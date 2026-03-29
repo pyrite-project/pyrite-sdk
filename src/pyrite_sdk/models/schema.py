@@ -2,9 +2,14 @@ from pydantic import BaseModel, Field
 from .consts import *
 from typing import Optional
 
+class CallbackData(BaseModel):
+    args: dict = Field(..., description="The arguments")
+    event: str = Field(..., description="The event name")
+
 class MessageData(BaseModel):
     err: Optional[str] = Field(None, description="The error")
     manager: Optional[str] = Field(None, description="The manager RFW code")
+    callback: Optional[CallbackData] = Field(None, description="The callback data")
 
 class Message(BaseModel):
     cmd: MessageCommands = Field(..., description="The command")

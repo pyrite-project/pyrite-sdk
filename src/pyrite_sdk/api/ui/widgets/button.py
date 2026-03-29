@@ -1,9 +1,12 @@
 from ..base import Widget
-from ....utils.ui import DataSerializer
 
 class TextButton(Widget):
     def __init__(self, on_pressed, child, **kwargs):
         super().__init__("TextButton",
-                        onPressed = DataSerializer(on_pressed, serialize=False),
+                        onPressed = on_pressed,
                         child = child,
                         **kwargs)
+
+    def setup(self):
+        super().setup()
+        self.setup_event(self.args.get("onPressed"))
