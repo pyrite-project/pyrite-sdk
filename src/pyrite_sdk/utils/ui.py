@@ -9,7 +9,7 @@ class DataSerializer(RFWSerializable):
     def __init__(self, data, serialize = True):
         self.data = data
         self.serialize = serialize
-        self.serializer = _serialize_value if serialize else lambda v: v
+        self.serializer = _serialize_value if serialize else lambda v: _serialize_value(v, serialize=False)
 
     def to_rfw(self) -> str:
         if isinstance(self.data, (list, tuple)):
@@ -82,7 +82,7 @@ class _Parser:
         data = {}
         for key, value in map.items():
             if not isinstance(value, str): continue
-            data[key] = self.parse_string(value)
+            data[f'"{key}"'] = self.parse_string(value)
         return data
 
     def parse(self, data) -> DataSerializer:
@@ -90,6 +90,6 @@ class _Parser:
             return DataSerializer(self.parse_string(data), serialize=False)
         elif isinstance(data, dict):
             return DataSerializer(self.parse_map(data), serialize=False)
-        raise TypeError("Unknown data type in Parse.")
+        raise ValueError(f'Unsupported value type: {type(data)}')
 
 parse = _Parser().parse
