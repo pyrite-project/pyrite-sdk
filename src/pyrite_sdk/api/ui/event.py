@@ -30,5 +30,5 @@ class Event(RFWSerializable):
 
 class Events(dict):
     def __init__(self):
-        self.events: dict[str:str] = {}
+        self.events: dict[str:callable] = {}
         super().__init__(self.events)
