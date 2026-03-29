@@ -1,5 +1,9 @@
-#### ERRORS ####
-KEY_NOT_FOUND_ERR = "ERR0"
+from enum import Enum
 
-### COMMANDS ###
-CMD_ERROR = "error"
+class MessageCommands(str, Enum):
+    GET_RFW_CODE = "GetRfwCode"
+    RESPONSE = "Response"
+    ERROR_RESPONSE = "ErrorResponse"
+
+class Error(str, Enum):
+    KEY_NOT_FOUND = "ERR_KEY_NOT_FOUND"
