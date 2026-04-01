@@ -1,7 +1,21 @@
-from .center import Center
-from .container import Container
+from .container import (Container,
+                        Center,
+                        Column,
+                        Row,
+                        Expanded,
+                        FittedBox)
 from .text import Text
 from .state import State
 from .button import TextButton
+from .gesture_detector import GestureDetector
 
-__all__ = ["Center", "Container", "Text", "State", "TextButton"]
+__all__ = ["Center",
+           "Container",
+           "Text",
+           "State",
+           "TextButton",
+           "Column",
+           "Row",
+           "Expanded",
+           "FittedBox",
+           "GestureDetector"]

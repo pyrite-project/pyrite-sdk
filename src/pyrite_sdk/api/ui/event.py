@@ -4,7 +4,7 @@ class Event(RFWSerializable):
     def __init__(self, callback: callable, args: dict, event: str = ""):
         self.callback = callback
         self.event = event
-        self.args = DataSerializer(args, serialize=False)
+        self.args = args
         self.events: Events | None = None
 
     def get_event_name(self):
@@ -19,6 +19,7 @@ class Event(RFWSerializable):
     def setup(self):
         if self.events is None:
             return
+        # print("setup event:", self)
         self.event = self.get_event_name()
         self.events[self.event] = self.callback
 
@@ -30,5 +31,5 @@ class Event(RFWSerializable):
 
 class Events(dict):
     def __init__(self):
-        self.events: dict[str:str] = {}
+        self.events: dict[str:callable] = {}
         super().__init__(self.events)
