@@ -69,3 +69,15 @@ class Case(RFWSerializable):
     
     def to_rfw(self):
         return f"{_serialize_value(self.cond)}: {_serialize_value(self.value)}"
+
+class ForLoop(RFWSerializable):
+    def __init__(self, var, in_list, *widgets):
+        self.var = var
+        self.in_list = in_list.to_rfw()
+        self.widgets = widgets
+    
+    def to_rfw(self):
+        result = f"...for {self.var} in {self.in_list}:\n"
+        for widget in self.widgets:
+            result += f"  {widget.to_rfw()},\n"
+        return result
