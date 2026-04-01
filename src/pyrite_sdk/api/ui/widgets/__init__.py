@@ -7,6 +7,7 @@ from .container import (Container,
 from .text import Text
 from .state import State
 from .button import TextButton
+from .gesture_detector import GestureDetector
 
 __all__ = ["Center",
            "Container",
@@ -16,4 +17,5 @@ __all__ = ["Center",
            "Column",
            "Row",
            "Expanded",
-           "FittedBox"]
+           "FittedBox",
+           "GestureDetector"]
