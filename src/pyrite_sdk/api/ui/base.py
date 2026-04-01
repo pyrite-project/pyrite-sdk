@@ -4,16 +4,23 @@ from .event import Event
 class Var(RFWSerializable):
     def __init__(self, *paths):
         self.paths = paths
+
+    def __getitem__(self, key):
+        return Var(*self.paths, key)
+
     def to_rfw(self):
         return ".".join(map(str, self.paths))
 
-def data(*paths): return Var("data", *paths)
-def args(*paths): return Var("args", *paths)
-def state(*paths): return Var("state", *paths)
+data = Var("data")
+args = Var("args")
+state = Var("state")
 
-def data_(*paths): return f"$[{data(*paths).to_rfw()}]"
-def args_(*paths): return f"$[{args(*paths).to_rfw()}]"
-def state_(*paths): return f"$[{state(*paths).to_rfw()}]"
+def data_(*paths): return f"$[{Var('data', *paths).to_rfw()}]"
+def args_(*paths): return f"$[{Var('args', *paths).to_rfw()}]"
+def state_(*paths): return f"$[{Var('state', *paths).to_rfw()}]"
+
+def let(var, value):
+    return f"let {var.to_rfw()} = {_serialize_value(value)}"
 
 class Widget(RFWSerializable):
     def __init__(self, name: str, **kwargs):
@@ -49,3 +56,31 @@ class Widget(RFWSerializable):
     def to_rfw(self):
         args_str = ", ".join(f"{key}: {_serialize_value(value)}" for (key, value) in self.args.items() if key != None and value != None)
         return f"{self.name}({args_str})"
+
+class Match(RFWSerializable):
+    def __init__(self, var, *cases):
+        self.cases = cases
+        self.var = var
+    
+    def to_rfw(self):
+        return f"switch {self.var} {{ {', '.join([a_case.to_rfw() for a_case in self.cases])} }}"
+
+class Case(RFWSerializable):
+    def __init__(self, cond, value):
+        self.cond = cond
+        self.value = value
+    
+    def to_rfw(self):
+        return f"{_serialize_value(self.cond)}: {_serialize_value(self.value)}"
+
+class ForLoop(RFWSerializable):
+    def __init__(self, var, in_list, *widgets):
+        self.var = var
+        self.in_list = in_list.to_rfw()
+        self.widgets = widgets
+    
+    def to_rfw(self):
+        result = f"...for {self.var} in {self.in_list}:\n"
+        for widget in self.widgets:
+            result += f"  {widget.to_rfw()},\n"
+        return result

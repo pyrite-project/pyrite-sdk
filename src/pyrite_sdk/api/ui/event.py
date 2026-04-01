@@ -1,4 +1,4 @@
-from pyrite_sdk.utils.ui import RFWSerializable, DataSerializer, parse
+from pyrite_sdk.utils.ui import RFWSerializable, DataSerializer, DataParser
 
 class Event(RFWSerializable):
     def __init__(self, callback: callable, args: dict, event: str = ""):
@@ -24,7 +24,7 @@ class Event(RFWSerializable):
         self.events[self.event] = self.callback
 
     def get_args(self):
-        return DataSerializer(self.args).to_rfw()
+        return DataParser(self.args.data).to_rfw()
 
     def to_rfw(self):
         return f"event \"{self.event}\" {self.get_args()}"

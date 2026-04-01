@@ -31,12 +31,13 @@ class DataSerializer(RFWSerializable):
 def _serialize_value(v, serialize=True):
     return DataSerializer(v, serialize=serialize).to_rfw()
 
-class _Parser:
-    def __init__(self):
+class DataParser(RFWSerializable):
+    def __init__(self, data):
         # 组1 (Escaped): \\(.) -> 匹配 \ 后跟任意字符
         # 组2 (Variable): \$\[(.*?)\] -> 匹配 $[...]
         # 组3 (Literal): ([^\\$]+|. ) -> 匹配不含 \ 和 $ 的文本，或者兜底的单个字符
         self._pattern = re.compile(r'\\(.)|\$\[(.*?)\]|([^\\$]+|.)')
+        self.data = data
 
     def parse_string(self, text: str) -> List[str]:
         """
@@ -96,4 +97,5 @@ class _Parser:
             return DataSerializer(data, serialize=False)
         # raise ValueError(f'Unsupported value type: {type(data)}')
 
-parse = _Parser().parse
+    def to_rfw(self):
+        return self.parse(self.data).to_rfw()
