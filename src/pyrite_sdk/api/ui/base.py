@@ -4,7 +4,7 @@ from .event import Event
 class Var(RFWSerializable):
     def __init__(self, *paths):
         self.paths = paths
-    
+
     def __getitem__(self, key):
         return Var(*self.paths, key)
 
@@ -18,6 +18,9 @@ state = Var("state")
 def data_(*paths): return f"$[{Var('data', *paths).to_rfw()}]"
 def args_(*paths): return f"$[{Var('args', *paths).to_rfw()}]"
 def state_(*paths): return f"$[{Var('state', *paths).to_rfw()}]"
+
+def let(var, value):
+    return f"let {var.to_rfw()} = {_serialize_value(value)}"
 
 class Widget(RFWSerializable):
     def __init__(self, name: str, **kwargs):
