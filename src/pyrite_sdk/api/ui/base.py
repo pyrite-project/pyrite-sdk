@@ -1,4 +1,4 @@
-from ...utils.ui import _serialize_value, RFWSerializable
+from ...utils.ui import _serialize_value, RFWSerializable, DataSerializer
 from .event import Event
 
 class Var(RFWSerializable):
@@ -20,7 +20,7 @@ def args_(*paths): return f"$[{Var('args', *paths).to_rfw()}]"
 def state_(*paths): return f"$[{Var('state', *paths).to_rfw()}]"
 
 def let(var, value):
-    return f"let {var.to_rfw()} = {_serialize_value(value)}"
+    return DataSerializer(f"set {var.to_rfw()} = {_serialize_value(value)}", serialize=False)
 
 class Widget(RFWSerializable):
     def __init__(self, name: str, **kwargs):
@@ -32,6 +32,9 @@ class Widget(RFWSerializable):
     def setup(self):
         self.manager = self.parent.manager
         self.setup_child()
+        for arg in self.args.values():
+            if isinstance(arg, Event):
+                self.setup_event(arg)
 
     def setup_event(self, event: Event | None):
         if not self.manager:
@@ -61,15 +64,15 @@ class Match(RFWSerializable):
     def __init__(self, var, *cases):
         self.cases = cases
         self.var = var
-    
+
     def to_rfw(self):
-        return f"switch {self.var} {{ {', '.join([a_case.to_rfw() for a_case in self.cases])} }}"
+        return f"switch {self.var.to_rfw()} {{ {', '.join([a_case.to_rfw() for a_case in self.cases])} }}"
 
 class Case(RFWSerializable):
     def __init__(self, cond, value):
         self.cond = cond
         self.value = value
-    
+
     def to_rfw(self):
         return f"{_serialize_value(self.cond)}: {_serialize_value(self.value)}"
 
