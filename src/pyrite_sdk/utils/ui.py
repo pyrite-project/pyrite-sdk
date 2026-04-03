@@ -86,16 +86,16 @@ class DataParser(RFWSerializable):
             data[f'"{key}"'] = self.parse_string(value)
         return data
 
-    def parse(self, data) -> DataSerializer:
-        if isinstance(data, str):
-            return DataSerializer(self.parse_string(data), serialize=False)
-        elif isinstance(data, dict):
-            return DataSerializer(self.parse_map(data), serialize=False)
-        elif isinstance(data, list):
-            return DataSerializer([self.parse(x) for x in data], serialize=False)
+    def parse(self) -> DataSerializer:
+        if isinstance(self.data, str):
+            return DataSerializer(self.parse_string(self.data), serialize=False)
+        elif isinstance(self.data, dict):
+            return DataSerializer(self.parse_map(self.data), serialize=False)
+        elif isinstance(self.data, list):
+            return DataSerializer([self.parse(x) for x in self.data], serialize=False)
         else:
-            return DataSerializer(data, serialize=False)
+            return DataSerializer(self.data, serialize=False)
         # raise ValueError(f'Unsupported value type: {type(data)}')
 
     def to_rfw(self):
-        return self.parse(self.data).to_rfw()
+        return self.parse().to_rfw()
