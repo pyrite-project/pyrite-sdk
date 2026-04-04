@@ -10,6 +10,7 @@ class MessageData(BaseModel):
     err: Optional[str] = Field(None, description="The error")
     manager: Optional[str] = Field(None, description="The manager RFW code")
     callback: Optional[CallbackData] = Field(None, description="The callback data")
+    others: Optional[str] = Field(None, description="The other data")
 
 class Message(BaseModel):
     cmd: MessageCommands = Field(..., description="The command")

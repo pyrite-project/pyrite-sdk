@@ -3,6 +3,19 @@ from pyrite_sdk.api.ui.manager import Manager
 from pyrite_sdk.api.ui.event import Event
 from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget
 from pyrite_sdk.core.bridge import Bridge
+from pyrite_sdk.models.schema import *
+from pyrite_sdk.models.consts import *
+
+def callback(**kws):
+    print("callback-custom-widget", kws)
+    bridge.push(
+        Message(
+            cmd = MessageCommands.SEND,
+            data = MessageData(
+                others = "CallbackMessage"
+            )
+        )
+    )
 
 manager_0 = Manager(
     ["core.widgets", "core.material"],
@@ -38,8 +51,11 @@ manager_0 = Manager(
                     ),
                     Widget(
                         "Button",
-                        on_pressed=Event(lambda **kws: print("callback-custom-widget", kws), args={"id": 1}),
-                        child=Text(["Hi, ", data["greet"]["name"]], text_direction="ltr"),
+                        on_pressed=Event(callback, args={"id": 1}),
+                        # child=Text(["Hi, ", data["greet"]["name"]], text_direction="ltr"),
+                        child=TextButton(
+                            child=Text(["Hello, ", data["greet"]["name"]], text_direction="ltr"),
+                        ),
                     ),
                 ]
             )
@@ -60,9 +76,10 @@ manager_1 = Manager(
 
 print(manager_0.to_rfw())
 
-Bridge(
+bridge = Bridge(
     managers = {
         "manager_0": manager_0,
         "manager_1": manager_1
     }
-).start()
+)
+bridge.start()
