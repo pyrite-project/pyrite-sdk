@@ -9,6 +9,7 @@ class Manager(RFWSerializable):
         self.widgets = widgets
         self.manager = self
         self.events = Events()
+        self.assets_directory = "ASSETS"
         self.setup_widgets()
 
     def setup_widgets(self):

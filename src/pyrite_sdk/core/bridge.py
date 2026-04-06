@@ -51,6 +51,8 @@ class Bridge:
                         event(**callback.args)
                     except Exception as e:
                         print(f"Error in callback {event}: {e}")
+                elif cmd == MessageCommands.RESPONSE:
+                    self.response_queue.put(message)
         except websockets.exceptions.ConnectionClosed:
             print("Connection closed")
             self.connected_clients.remove(websocket)
@@ -86,6 +88,7 @@ class Bridge:
 
     async def main(self):
         self.message_queqe = asyncio.Queue(maxsize = self.queue_size)
+        self.response_queue = asyncio.Queue(maxsize = self.queue_size)
         self.asyncio_loop = asyncio.get_running_loop()
         async with websockets.serve(self.handler, "localhost", 8765) as self.server:
             print("Server started on ws://localhost:8765")

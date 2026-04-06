@@ -1,5 +1,6 @@
 import re
 from typing import List
+from pathlib import Path
 
 class RFWSerializable:
     def to_rfw(self) -> str:
@@ -20,10 +21,10 @@ class DataSerializer(RFWSerializable):
             return 'true' if self.data else 'false'
         if isinstance(self.data, (int, float)):
             return str(self.data)
-        if not self.serialize:
-            return str(self.data)
         if isinstance(self.data, RFWSerializable):
             return self.data.to_rfw()
+        if not self.serialize:
+            return str(self.data)
         if isinstance(self.data, str):
             return f'"{self.data}"'
         raise ValueError(f'Unsupported value type: {type(self.data)}')

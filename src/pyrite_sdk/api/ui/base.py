@@ -1,5 +1,6 @@
 from ...utils.ui import _serialize_value, RFWSerializable, DataSerializer
 from .event import Event
+from pathlib import Path
 
 class Var(RFWSerializable):
     def __init__(self, *paths):
@@ -55,6 +56,10 @@ class Widget(RFWSerializable):
                     child.parent = self
                     child.setup()
                     self.children.append(child)
+        for arg in self.args.values():
+            if isinstance(arg, Assets):
+                arg.parent = self
+                arg.manager = self.manager
 
     def to_rfw(self):
         args_str = ", ".join(f"{key}: {_serialize_value(value)}" for (key, value) in self.args.items() if key != None and value != None)
@@ -81,9 +86,27 @@ class ForLoop(RFWSerializable):
         self.var = var
         self.in_list = in_list.to_rfw()
         self.widgets = widgets
-    
+
     def to_rfw(self):
         result = f"...for {self.var} in {self.in_list}:\n"
         for widget in self.widgets:
             result += f"  {widget.to_rfw()},\n"
         return result
+
+class Assets(RFWSerializable):
+    def __init__(self, path: Path | None = None):
+        self.parent = None
+        self.manager = None
+        self.path = path
+
+    def to_rfw(self):
+        if not self.manager:
+            raise ValueError("Cannot find manager")
+        if isinstance(self.path, Path):
+            return Path(self.manager.assets_directory) / self.path
+        return self.manager.assets_directory
+
+    def __truediv__(self, other):
+        if isinstance(self.path, Path):
+            return Assets(self.path / other)
+        return Assets(Path(other))
