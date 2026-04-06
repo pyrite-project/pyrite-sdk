@@ -7,7 +7,7 @@ def button_clicked(args):
     print(f"(from callback func) button clicked (ARGS: {args})")
 
 class Bridge:
-    def __init__(self, managers, queue_size: int = 10):
+    def __init__(self, managers: dict, queue_size: int = 10):
         self.managers = managers
         self.running = True
         self.connected_clients = set()
@@ -18,7 +18,7 @@ class Bridge:
     async def get_value(self, websocket, key, dict_, source=None):
         if key not in dict_.keys():
             error_response = Message(cmd=MessageCommands.ERROR_RESPONSE, data=MessageData(err=Error.KEY_NOT_FOUND), source=source)
-            await self.send(websocket, error_response)
+            await self.push(error_response, websocket)
             return None
         return dict_.get(key, None)
 
@@ -29,12 +29,16 @@ class Bridge:
                 message = Message.model_validate_json(message)
                 print("Received message:", message)
                 cmd = message.cmd
-                if cmd == MessageCommands.GET_RFW_CODE:
-                    manager = await self.get_value(websocket, message.data.manager, self.managers, source=message)
-                    if not manager:
-                        return
-                    manager_response = Message(cmd=MessageCommands.RESPONSE, data=MessageData(manager=manager.to_rfw()), source=message)
-                    await self.send(websocket, manager_response)
+                if cmd == MessageCommands.GET_REGISTER:
+                    self.push(
+                        message = Message(
+                            cmd = MessageCommands.RESPONSE,
+                            data = MessageData(
+                                managers = {name:manager.to_rfw() for name, manager in self.managers.items()},
+                            ),
+                            source = message
+                        )
+                    )
                 elif cmd == MessageCommands.EVENT_CALLBACK:
                     manager = await self.get_value(websocket, message.data.manager, self.managers, source=message)
                     if not manager:

@@ -1,7 +1,7 @@
 from enum import Enum
 
 class MessageCommands(str, Enum):
-    GET_RFW_CODE = "Commands.GetRfwCode"
+    GET_REGISTER = "Commands.GetRegister"
     EVENT_CALLBACK = "Commands.EventCallback"
     RESPONSE = "Commands.Response"
     ERROR_RESPONSE = "Commands.ErrorResponse"

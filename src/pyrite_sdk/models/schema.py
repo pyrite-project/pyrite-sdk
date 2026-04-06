@@ -8,7 +8,8 @@ class CallbackData(BaseModel):
 
 class MessageData(BaseModel):
     err: Optional[str] = Field(None, description="The error")
-    manager: Optional[str] = Field(None, description="The manager RFW code")
+    managers: Optional[dict] = Field(None, description="The map to manager RFW code and reg name")
+    manager: Optional[str] = Field(None, description="The manager to access")
     callback: Optional[CallbackData] = Field(None, description="The callback data")
     others: Optional[str] = Field(None, description="The other data")
 
