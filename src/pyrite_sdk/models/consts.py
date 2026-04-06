@@ -1,10 +1,11 @@
 from enum import Enum
 
 class MessageCommands(str, Enum):
-    GET_RFW_CODE = "GetRfwCode"
-    EVENT_CALLBACK = "EventCallback"
-    RESPONSE = "Response"
-    ERROR_RESPONSE = "ErrorResponse"
+    GET_REGISTER = "Commands.GetRegister"
+    EVENT_CALLBACK = "Commands.EventCallback"
+    RESPONSE = "Commands.Response"
+    ERROR_RESPONSE = "Commands.ErrorResponse"
+    SEND = "Commands.Send"
 
 class Error(str, Enum):
-    KEY_NOT_FOUND = "ERR_KEY_NOT_FOUND"
+    KEY_NOT_FOUND = "Error.KetNotFound"

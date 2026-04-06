@@ -10,5 +10,5 @@ class State(Widget):
     def setup(self):
         super().setup()
         self.child.parent = self
-        self.child.manager = self.manager
+        self.child.page = self.page
         self.child.setup()

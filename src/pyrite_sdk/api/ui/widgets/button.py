@@ -6,7 +6,3 @@ class TextButton(Widget):
                         onPressed = on_pressed,
                         child = child,
                         **kwargs)
-
-    def setup(self):
-        super().setup()
-        self.setup_event(self.args.get("onPressed"))
