@@ -104,7 +104,7 @@ class Assets(RFWSerializable):
             raise ValueError("Cannot find page")
         if isinstance(self.path, Path):
             return Path(self.page.assets_directory) / self.path
-        return self.page.assets_directory
+        return f'"{self.page.assets_directory}"'
 
     def __truediv__(self, other):
         if isinstance(self.path, Path):
