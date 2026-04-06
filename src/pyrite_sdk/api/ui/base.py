@@ -31,18 +31,18 @@ class Widget(RFWSerializable):
         self.children = []
 
     def setup(self):
-        self.manager = self.parent.manager
+        self.page = self.parent.page
         self.setup_child()
         for arg in self.args.values():
             if isinstance(arg, Event):
                 self.setup_event(arg)
 
     def setup_event(self, event: Event | None):
-        if not self.manager:
-            raise Exception("Widget cannot find manager")
+        if not self.page:
+            raise Exception("Widget cannot find page")
         if not event:
             return
-        event.events = self.manager.events
+        event.events = self.page.events
         event.setup()
 
     def setup_child(self):
@@ -59,7 +59,7 @@ class Widget(RFWSerializable):
         for arg in self.args.values():
             if isinstance(arg, Assets):
                 arg.parent = self
-                arg.manager = self.manager
+                arg.page = self.page
 
     def to_rfw(self):
         args_str = ", ".join(f"{key}: {_serialize_value(value)}" for (key, value) in self.args.items() if key != None and value != None)
@@ -96,15 +96,15 @@ class ForLoop(RFWSerializable):
 class Assets(RFWSerializable):
     def __init__(self, path: Path | None = None):
         self.parent = None
-        self.manager = None
+        self.page = None
         self.path = path
 
     def to_rfw(self):
-        if not self.manager:
-            raise ValueError("Cannot find manager")
+        if not self.page:
+            raise ValueError("Cannot find page")
         if isinstance(self.path, Path):
-            return Path(self.manager.assets_directory) / self.path
-        return self.manager.assets_directory
+            return Path(self.page.assets_directory) / self.path
+        return self.page.assets_directory
 
     def __truediv__(self, other):
         if isinstance(self.path, Path):

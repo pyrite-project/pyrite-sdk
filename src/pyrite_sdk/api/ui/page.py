@@ -3,11 +3,11 @@ from .widgets import State
 from ...utils.ui import RFWSerializable
 from .event import Events
 
-class Manager(RFWSerializable):
+class Page(RFWSerializable):
     def __init__(self, packages: list[str], widgets: dict[str, Widget | State]):
         self.packages = packages
         self.widgets = widgets
-        self.manager = self
+        self.page = self
         self.events = Events()
         self.assets_directory = "ASSETS"
         self.setup_widgets()
@@ -16,7 +16,7 @@ class Manager(RFWSerializable):
         for widget in self.widgets.values():
             if not isinstance(widget, Widget):
                 continue
-            widget.manager = widget.parent = self
+            widget.page = widget.parent = self
             widget.setup()
 
     def get_packages(self):

@@ -7,8 +7,8 @@ def button_clicked(args):
     print(f"(from callback func) button clicked (ARGS: {args})")
 
 class Bridge:
-    def __init__(self, managers: dict, queue_size: int = 10):
-        self.managers = managers
+    def __init__(self, pages: dict, queue_size: int = 10):
+        self.pages = pages
         self.running = True
         self.connected_clients = set()
         self.message_queqe = None
@@ -34,17 +34,17 @@ class Bridge:
                         message = Message(
                             cmd = MessageCommands.RESPONSE,
                             data = MessageData(
-                                managers = {name:manager.to_rfw() for name, manager in self.managers.items()},
+                                pages = {name:page.to_rfw() for name, page in self.pages.items()},
                             ),
                             source = message
                         )
                     )
                 elif cmd == MessageCommands.EVENT_CALLBACK:
-                    manager = await self.get_value(websocket, message.data.manager, self.managers, source=message)
-                    if not manager:
+                    page = await self.get_value(websocket, message.data.page, self.pages, source=message)
+                    if not page:
                         return
                     callback = message.data.callback
-                    event = await self.get_value(websocket, callback.event, manager.events, source=message)
+                    event = await self.get_value(websocket, callback.event, page.events, source=message)
                     if not event:
                         return
                     try:

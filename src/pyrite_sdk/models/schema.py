@@ -8,8 +8,8 @@ class CallbackData(BaseModel):
 
 class MessageData(BaseModel):
     err: Optional[str] = Field(None, description="The error")
-    managers: Optional[dict] = Field(None, description="The map to manager RFW code and reg name")
-    manager: Optional[str] = Field(None, description="The manager to access")
+    pages: Optional[dict] = Field(None, description="The map to pages RFW code and reg name")
+    page: Optional[str] = Field(None, description="The page to access")
     callback: Optional[CallbackData] = Field(None, description="The callback data")
     others: Optional[str] = Field(None, description="The other data")
 
@@ -19,6 +19,3 @@ class Message(BaseModel):
     source: Optional["Message"] = Field(None, description="The source message")
 
 Message.model_rebuild()
-
-# x = Message.model_validate_json('{"cmd":"GetRfwCode","data":{"args":"manager0"}}')
-# print(x)

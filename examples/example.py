@@ -1,7 +1,7 @@
 from pyrite_sdk.api.ui.widgets import *
-from pyrite_sdk.api.ui.manager import Manager
+from pyrite_sdk.api.ui.page import Page
 from pyrite_sdk.api.ui.event import Event
-from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget
+from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget, Assets
 from pyrite_sdk.core.bridge import Bridge
 from pyrite_sdk.models.schema import *
 from pyrite_sdk.models.consts import *
@@ -17,7 +17,7 @@ def callback(**kws):
         )
     )
 
-manager_0 = Manager(
+page_0 = Page(
     ["core.widgets", "core.material"],
     widgets = {
         "Button": State(
@@ -63,23 +63,21 @@ manager_0 = Manager(
     }
 )
 
-manager_1 = Manager(
+page_1 = Page(
     ["core.widgets", "core.material"],
     widgets = {
         "root": Container(
             child = Center(
-                child=Text(f"Bye, xxxx", text_direction="ltr")
+                child=Text(Assets()/"a", text_direction="ltr")
             )
         )
     }
 )
 
-print(manager_0.to_rfw())
-
 bridge = Bridge(
-    managers = {
-        "manager_0": manager_0,
-        "manager_1": manager_1
+    pages = {
+        "home": page_0,
+        "page_1": page_1,
     }
 )
 bridge.start()
