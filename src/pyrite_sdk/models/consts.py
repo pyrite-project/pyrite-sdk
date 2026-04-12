@@ -6,7 +6,7 @@ class MessageCommands(str, Enum):
     RESPONSE = "Commands.Response"
     ERROR_RESPONSE = "Commands.ErrorResponse"
     SEND = "Commands.Send"
-    LIFECYCLE_HOOKS = "Command.LifecycleHooks"
+    LIFECYCLE_HOOKS = "Commands.LifecycleHooks"
 
 class LifecycleHooks(str, Enum):
     ON_INSTALL = "LifecycleHooks.OnInstall"
