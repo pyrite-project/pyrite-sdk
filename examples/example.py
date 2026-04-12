@@ -1,10 +1,11 @@
 from pyrite_sdk.api.ui.widgets import *
 from pyrite_sdk.api.ui.page import Page
 from pyrite_sdk.api.ui.event import Event
-from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget, Assets, VarNode, Plugin
+from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget, Assets, VarNode
 from pyrite_sdk.core.bridge import Bridge
 from pyrite_sdk.models.schema import *
 from pyrite_sdk.models.consts import *
+from pyrite_sdk.models.plugin import Plugin
 
 def callback(**kws):
     print("callback-custom-widget", kws)
