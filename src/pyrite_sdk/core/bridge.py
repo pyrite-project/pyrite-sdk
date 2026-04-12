@@ -1,10 +1,8 @@
 import asyncio
 import websockets
+import os
 from ..models.consts import *
 from ..models.schema import *
-
-def button_clicked(args):
-    print(f"(from callback func) button clicked (ARGS: {args})")
 
 class Bridge:
     def __init__(self, pages: dict, queue_size: int = 10):
@@ -14,6 +12,7 @@ class Bridge:
         self.message_queqe = None
         self.asyncio_loop = None
         self.queue_size = queue_size
+        self.port = int(os.environ.get("PYRITE_IDE_PLUGIN_PORT"))
 
     async def get_value(self, websocket, key, dict_, source=None):
         if key not in dict_.keys():
@@ -90,8 +89,8 @@ class Bridge:
         self.message_queqe = asyncio.Queue(maxsize = self.queue_size)
         self.response_queue = asyncio.Queue(maxsize = self.queue_size)
         self.asyncio_loop = asyncio.get_running_loop()
-        async with websockets.serve(self.handler, "localhost", 8765) as self.server:
-            print("Server started on ws://localhost:8765")
+        async with websockets.serve(self.handler, "localhost", self.port) as self.server:
+            print(f"Server started on ws://localhost:{self.port}")
             await asyncio.gather(self.server.wait_closed(), self.loop())
 
     def start(self):
