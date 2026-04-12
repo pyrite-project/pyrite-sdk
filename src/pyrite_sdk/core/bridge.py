@@ -3,10 +3,12 @@ import websockets
 import os
 from ..models.consts import *
 from ..models.schema import *
+from ..models.plugin import Plugin
+from ..api.ui.page import Page
 
 class Bridge:
-    def __init__(self, pages: dict, queue_size: int = 10):
-        self.pages = pages
+    def __init__(self, plugin: Plugin, queue_size: int = 10):
+        self.plugin = plugin
         self.running = True
         self.connected_clients = set()
         self.message_queqe = None
@@ -14,44 +16,60 @@ class Bridge:
         self.queue_size = queue_size
         self.port = int(os.environ.get("PYRITE_IDE_PLUGIN_PORT"))
 
-    async def get_value(self, websocket, key, dict_, source=None):
-        if key not in dict_.keys():
-            error_response = Message(cmd=MessageCommands.ERROR_RESPONSE, data=MessageData(err=Error.KEY_NOT_FOUND), source=source)
-            await self.push(error_response, websocket)
-            return None
-        return dict_.get(key, None)
-
     async def handler(self, websocket):
         self.connected_clients.add(websocket)
         try:
             async for message in websocket:
                 message = Message.parse_raw(message)
                 print("Received message:", message)
-                cmd = message.cmd
-                if cmd == MessageCommands.GET_REGISTER:
-                    self.push(
-                        message = Message(
-                            cmd = MessageCommands.RESPONSE,
-                            data = MessageData(
-                                pages = {name:page.to_rfw() for name, page in self.pages.items()},
-                            ),
-                            source = message
-                        )
-                    )
-                elif cmd == MessageCommands.EVENT_CALLBACK:
-                    page = await self.get_value(websocket, message.data.page, self.pages, source=message)
-                    if not page:
-                        return
-                    callback = message.data.callback
-                    event = await self.get_value(websocket, callback.event, page.events, source=message)
-                    if not event:
-                        return
-                    try:
-                        event(**callback.args)
-                    except Exception as e:
-                        print(f"Error in callback {event}: {e}")
-                elif cmd == MessageCommands.RESPONSE:
-                    self.response_queue.put(message)
+                match message.cmd:
+                    case MessageCommands.GET_PAGES:
+                        try:
+                            self.push(
+                                message = Message(
+                                    cmd = MessageCommands.RESPONSE,
+                                    data = MessageData(
+                                        pages = {name:page.to_rfw() for name, page in self.plugin.pages.items()},
+                                    ),
+                                    source = message
+                                )
+                            )
+                        except Exception as e:
+                            print("Error in sending pages")
+                    case MessageCommands.EVENT_CALLBACK:
+                        page: Page = self.plugin.pages.get(message.data.page)
+                        if not page:
+                            self.send_error(websocket, Error.KEY_NOT_FOUND, message)
+                            return
+                        callback = message.data.callback
+                        event = page.events.get(callback.event)
+                        if not event:
+                            self.send_error(websocket, Error.KEY_NOT_FOUND, message)
+                            return
+                        try:
+                            event(**callback.args)
+                        except Exception as e:
+                            print(f"Error in callback {event}: {e}")
+                    case MessageCommands.RESPONSE:
+                        self.response_queue.put(message)
+                    case MessageCommands.LIFECYCLE_HOOKS:
+                        try:
+                            match message.data.lifecycle_hook:
+                                case LifecycleHooks.ON_INSTALL:
+                                    self.plugin.on_install()
+                                case LifecycleHooks.ON_START:
+                                    self.plugin.on_start()
+                                case LifecycleHooks.ON_PAUSE:
+                                    self.plugin.on_pause()
+                                case LifecycleHooks.ON_RESUME:
+                                    self.plugin.on_resume()
+                                case LifecycleHooks.ON_DISPOSE:
+                                    self.plugin.on_dispose()
+                                case LifecycleHooks.ON_UNINSTALL:
+                                    self.plugin.on_uninstall()
+                        except AttributeError:
+                            print(f"Cannot find api {message.data.lifecycle_hook}")
+                            self.send_error(websocket, Error.API_NOT_FOUND, message)
         except websockets.exceptions.ConnectionClosed:
             print("Connection closed")
             self.connected_clients.remove(websocket)
@@ -69,6 +87,29 @@ class Bridge:
     async def send_all(self, message: Message):
         for client in self.connected_clients.copy():
             await self.send(client, message)
+
+    async def send_error(self, websocket, error, source):
+        self.push(
+            Message(
+                cmd = MessageCommands.ERROR_RESPONSE,
+                data = MessageData(err = error),
+                source = source
+            ),
+            websocket
+        )
+
+    def push(self, message, client=None):
+        if self.asyncio_loop is None or self.message_queqe is None:
+            print("Error: cannot find loop")
+            return
+
+        def _put():
+            try:
+                self.message_queqe.put_nowait([client, message])
+            except asyncio.QueueFull:
+                print("Warning: Queue was full")
+
+        self.asyncio_loop.call_soon_threadsafe(_put)
 
     async def loop(self):
         while self.running:
@@ -99,15 +140,3 @@ class Bridge:
         except KeyboardInterrupt:
             self.running = False
 
-    def push(self, message, client=None):
-        if self.asyncio_loop is None or self.message_queqe is None:
-            print("Error: cannot find loop")
-            return
-
-        def _put():
-            try:
-                self.message_queqe.put_nowait([client, message])
-            except asyncio.QueueFull:
-                print("Warning: Queue was full")
-
-        self.asyncio_loop.call_soon_threadsafe(_put)

@@ -1,0 +1,19 @@
+from abc import ABC, abstractmethod
+from ..api.ui.page import Page
+
+class Plugin(ABC):
+    pages:dict[str:Page]
+
+    def on_install(self): ...
+
+    @abstractmethod
+    def on_start(self): ...
+
+    def on_pause(self): ...
+
+    def on_resume(self): ...
+
+    @abstractmethod
+    def on_dispose(self): ...
+
+    def on_uninstall(self): ...

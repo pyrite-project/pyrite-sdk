@@ -8,9 +8,10 @@ class CallbackData(BaseModel):
 
 class MessageData(BaseModel):
     err: Optional[str] = Field(None, description="The error")
-    pages: Optional[dict] = Field(None, description="The map to pages RFW code and reg name")
+    pages: Optional[dict] = Field(None, description="The map to pages RFW code and name")
     page: Optional[str] = Field(None, description="The page to access")
     callback: Optional[CallbackData] = Field(None, description="The callback data")
+    lifecycle_hook: Optional[LifecycleHooks] = Field(None, description="The LifecycleHook to run")
     others: Optional[str] = Field(None, description="The other data")
 
 class Message(BaseModel):

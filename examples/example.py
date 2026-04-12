@@ -1,7 +1,7 @@
 from pyrite_sdk.api.ui.widgets import *
 from pyrite_sdk.api.ui.page import Page
 from pyrite_sdk.api.ui.event import Event
-from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget, Assets, VarNode
+from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget, Assets, VarNode, Plugin
 from pyrite_sdk.core.bridge import Bridge
 from pyrite_sdk.models.schema import *
 from pyrite_sdk.models.consts import *
@@ -55,10 +55,18 @@ with Page(packages = ["core.widgets", "core.material"]) as page1:
 page1.print_tree()
 page0.print_tree()
 
-bridge = Bridge(
-    pages = {
-        "home": page0,
-        "test": page1,
-    }
-)
+class MyPlugin(Plugin):
+    def __init__(self):
+        self.pages = {
+            "home": page0,
+            "test": page1
+        }
+
+    def on_start(self):
+        print("Plugin started")
+
+    def on_dispose(self):
+        print("Plugin disposed")
+
+bridge = Bridge(MyPlugin())
 bridge.start()
