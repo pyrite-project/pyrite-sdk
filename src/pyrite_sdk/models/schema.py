@@ -11,7 +11,7 @@ class MessageData(BaseModel):
     pages: Optional[dict] = Field(None, description="The map to pages RFW code and name")
     page: Optional[str] = Field(None, description="The page to access")
     callback: Optional[CallbackData] = Field(None, description="The callback data")
-    lifecycle_hook: Optional[LifecycleHooks] = Field(None, description="The LifecycleHook to run")
+    lifecycle_hook: Optional[LifecycleHooks] = Field(None, alias="lifecycleHook", description="The LifecycleHook to run")
     others: Optional[str] = Field(None, description="The other data")
 
 class Message(BaseModel):
