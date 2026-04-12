@@ -1,6 +1,5 @@
 import re
 from typing import List
-from pathlib import Path
 
 class RFWSerializable:
     def to_rfw(self) -> str:

@@ -1,36 +1,40 @@
-from .base import Widget, _serialize_value
-from .widgets import State
-from ...utils.ui import RFWSerializable
+from .base import _serialize_value
+from .widgets import State, NewWidget
+from .context_manager import ContextNode
 from .event import Events
 
-class Page(RFWSerializable):
-    def __init__(self, packages: list[str], widgets: dict[str, Widget | State]):
+class Page(ContextNode):
+    def __init__(self, packages: list[str]):
+        super().__init__("Page", mul_children=True)
         self.packages = packages
-        self.widgets = widgets
         self.page = self
         self.events = Events()
         self.assets_directory = "ASSETS"
-        self.setup_widgets()
+        self.children: list[NewWidget]
 
     def setup_widgets(self):
-        for widget in self.widgets.values():
-            if not isinstance(widget, Widget):
+        for child in self.children:
+            if not isinstance(child, NewWidget):
                 continue
-            widget.page = widget.parent = self
-            widget.setup()
+            child.child.page = child.child.parent = self
+            child.child.setup()
 
     def get_packages(self):
         return ';\n'.join([f"import {package}" for package in self.packages])+";\n"
 
     def get_widgets(self):
         result = ""
-        for (name, widget) in self.widgets.items():
+        for child in self.children:
             state = ""
-            if isinstance(widget, State):
-                state = _serialize_value(widget.states)
-            result += f"widget {name} {state} = {widget.to_rfw()};\n"
+            if isinstance(child.child, State):
+                state = _serialize_value(child.child.states)
+            result += f"widget {child.name} {state} = {child.child.to_rfw()};\n"
 
         return result
 
     def to_rfw(self):
         return f"{self.get_packages()}{self.get_widgets()}"
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.setup_widgets()
+        return super().__exit__(exc_type, exc_val, exc_tb)

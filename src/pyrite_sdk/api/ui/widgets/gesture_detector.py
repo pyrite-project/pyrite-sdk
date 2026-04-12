@@ -9,7 +9,7 @@ class GestureDetector(Widget):
                 on_tap_down=None,
                 on_tap_up=None,
                 on_tap_cancel=None,
-                child=None):
+                **kwargs):
         super().__init__("GestureDetector",
                          onTap=on_tap,
                          onDoubleTap=on_double_tap,
@@ -17,7 +17,8 @@ class GestureDetector(Widget):
                          onTapDown=on_tap_down,
                          onTapUp=on_tap_up,
                          onTapCancel=on_tap_cancel,
-                         child=child)
+                         **kwargs
+                         )
 
     def setup(self):
         super().setup()

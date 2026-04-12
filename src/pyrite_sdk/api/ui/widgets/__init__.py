@@ -8,6 +8,7 @@ from .text import Text
 from .state import State
 from .button import TextButton
 from .gesture_detector import GestureDetector
+from .new_widget import NewWidget
 
 __all__ = ["Center",
            "Container",
@@ -18,4 +19,5 @@ __all__ = ["Center",
            "Row",
            "Expanded",
            "FittedBox",
-           "GestureDetector"]
+           "GestureDetector",
+           "NewWidget"]

@@ -1,5 +1,6 @@
 from ...utils.ui import _serialize_value, RFWSerializable, DataSerializer
 from .event import Event
+from .context_manager import ContextNode
 from pathlib import Path
 
 class Var(RFWSerializable):
@@ -23,8 +24,9 @@ def state_(*paths): return f"$[{Var('state', *paths).to_rfw()}]"
 def let(var, value):
     return DataSerializer(f"set {var.to_rfw()} = {_serialize_value(value)}", serialize=False)
 
-class Widget(RFWSerializable):
+class Widget(ContextNode):
     def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
         self.name = name
         self.args = kwargs
         self.parent = None
@@ -46,16 +48,16 @@ class Widget(RFWSerializable):
         event.setup()
 
     def setup_child(self):
-        if "child" in self.args and isinstance(self.args["child"], Widget):
-            self.args["child"].parent = self
-            self.args["child"].setup()
-            self.children.append(self.args["child"])
-        elif "children" in self.args and isinstance(self.args["children"], list):
-            for child in self.args["children"]:
+        if isinstance(self.child, Widget):
+            self.child.parent = self
+            self.child.setup()
+            self.args["child"] = self.child
+        if self.children:
+            self.args["children"] = self.children
+            for child in self.children:
                 if isinstance(child, Widget):
                     child.parent = self
                     child.setup()
-                    self.children.append(child)
         for arg in self.args.values():
             if isinstance(arg, Assets):
                 arg.parent = self
@@ -103,10 +105,18 @@ class Assets(RFWSerializable):
         if not self.page:
             raise ValueError("Cannot find page")
         if isinstance(self.path, Path):
-            return Path(self.page.assets_directory) / self.path
+            return f'"{Path(self.page.assets_directory) / self.path}"'
         return f'"{self.page.assets_directory}"'
 
     def __truediv__(self, other):
         if isinstance(self.path, Path):
             return Assets(self.path / other)
         return Assets(Path(other))
+
+class VarNode(Widget):
+    def __init__(self, var: Var):
+        super().__init__("VarNode", var=var)
+        self.var = var
+
+    def to_rfw(self):
+        return self.var.to_rfw()
