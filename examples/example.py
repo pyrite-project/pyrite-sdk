@@ -18,8 +18,7 @@ def callback(**kws):
     )
 
 with Page(packages = ["core.widgets", "core.material"]) as page0:
-    with NewWidget("Button"):
-        with State(down = False):
+    with NewWidget("Button", states = {"down": False}):
             with GestureDetector(
                     on_tap_down = let(state["down"], True),
                     on_tap_up = let(state["down"], False),

@@ -1,5 +1,5 @@
 from .base import _serialize_value
-from .widgets import State, NewWidget
+from .widgets import NewWidget
 from .context_manager import ContextNode
 from .event import Events
 
@@ -25,9 +25,7 @@ class Page(ContextNode):
     def get_widgets(self):
         result = ""
         for child in self.children:
-            state = ""
-            if isinstance(child.child, State):
-                state = _serialize_value(child.child.states)
+            state = _serialize_value(child.states)
             result += f"widget {child.name} {state} = {child.child.to_rfw()};\n"
 
         return result
