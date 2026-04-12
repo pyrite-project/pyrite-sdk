@@ -26,7 +26,7 @@ class Bridge:
         self.connected_clients.add(websocket)
         try:
             async for message in websocket:
-                message = Message.model_validate_json(message)
+                message = Message.parse_raw(message)
                 print("Received message:", message)
                 cmd = message.cmd
                 if cmd == MessageCommands.GET_REGISTER:
@@ -60,7 +60,7 @@ class Bridge:
     async def send(self, websocket, message: Message):
         try:
             print("Sending response:", message)
-            await websocket.send(message.model_dump_json())
+            await websocket.send(message.json())
         except websockets.exceptions.ConnectionClosed:
             print("Connection closed")
             self.connected_clients.remove(websocket)

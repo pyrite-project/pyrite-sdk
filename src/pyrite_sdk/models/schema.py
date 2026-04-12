@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from .consts import *
-from typing import Optional
+from typing import Optional, Any
 
 class CallbackData(BaseModel):
     args: dict = Field(..., description="The arguments")
@@ -16,6 +16,4 @@ class MessageData(BaseModel):
 class Message(BaseModel):
     cmd: MessageCommands = Field(..., description="The command")
     data: MessageData = Field(..., description="The data")
-    source: Optional["Message"] = Field(None, description="The source message")
-
-Message.model_rebuild()
+    source: Optional[Any] = Field(None, description="The source message")
