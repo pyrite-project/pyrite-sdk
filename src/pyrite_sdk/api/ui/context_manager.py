@@ -56,6 +56,6 @@ class ContextNode(RFWSerializable):
         else:
             print(str(self) if print_args else f"{self.name}()")
         for child in self.children:
-            child.print_tree(indent + 1)
+            child.print_tree(indent + 1, print_args)
         if self.child:
-            self.child.print_tree(indent + 1)
+            self.child.print_tree(indent + 1, print_args)

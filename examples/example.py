@@ -53,8 +53,8 @@ with Page(packages = ["core.widgets", "core.material"]) as page1:
             with Center():
                 Text(Assets()/"a", text_direction="ltr")
 
-page1.print_tree()
-page0.print_tree()
+page1.print_tree(print_args=True)
+page0.print_tree(print_args=True)
 
 class MyPlugin(Plugin):
     def __init__(self):
