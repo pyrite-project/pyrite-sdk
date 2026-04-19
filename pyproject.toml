@@ -1,12 +1,17 @@
 [project]
 name = "pyrite-sdk"
 version = "0.1.0"
-description = "Add your description here"
+description = "Expand your PyriteIDE"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.7"
 dependencies = [
     "build>=1.4.3",
     "pydantic==1.8.2",
     "setuptools>=82.0.1",
     "websockets>=16.0",
 ]
+authors = [
+    {name = "Can1425", email = "myqf1425@126.com"},
+    {name = "kaixin168", email = "kaixin168kx@163.com"},
+]
+keywords = ["pyrite", "PyriteIDE", "PyriteSDK", "MicroPython"]
