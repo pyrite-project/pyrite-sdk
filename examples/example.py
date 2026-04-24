@@ -1,7 +1,7 @@
 from pyrite_sdk.api.ui.widgets import *
 from pyrite_sdk.api.ui.page import Page
 from pyrite_sdk.api.ui.event import Event
-from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget, Assets, VarNode
+from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget, Assets, VarNode, DataSerializer
 from pyrite_sdk.core.bridge import Bridge
 from pyrite_sdk.models.schema import *
 from pyrite_sdk.models.consts import *
@@ -21,13 +21,13 @@ def callback(**kws):
 with Page(packages = ["core.widgets", "core.material"]) as page0:
     with NewWidget("Button", states = {"down": False}):
             with GestureDetector(
-                    on_tap_down = let(state["down"], True),
-                    on_tap_up = let(state["down"], False),
-                    on_tap_cancel = let(state["down"], False),
-                    on_tap = args["on_pressed"]):
+                    on_tap_down = let(state.down, True),
+                    on_tap_up = let(state.down, False),
+                    on_tap_cancel = let(state.down, False),
+                    on_tap = args.on_pressed):
                 with Container(
                         margin=Match(
-                            state["down"],
+                            state.down,
                             Case(False, [0.0, 0.0, 8.0, 8.0]),
                             Case(True, [8.0, 8.0, 0.0, 0.0])
                         ),
@@ -35,32 +35,44 @@ with Page(packages = ["core.widgets", "core.material"]) as page0:
                             "type": "box",
                             "border": [{}]
                         }):
-                    VarNode(args["child"])
+                    VarNode(args.child)
 
     with NewWidget("root"):
         with Container():
             with Column():
-                Text(["Hello, ", data["greet"]["name"]], text_direction="ltr")
+                Text(["Hello, ", data.greet.name], text_direction="ltr")
                 with TextButton(on_pressed=Event(lambda **kws: print("callback", kws), args={"id": 0})):
-                    Text(["Hello, ", data["greet"]["name"]], text_direction="ltr")
+                    Text(["Hello, ", data.greet.name], text_direction="ltr")
                 with Widget("Button", on_pressed=Event(callback, args={"id": 1})):
                     with TextButton():
-                        Text(["Hello, ", data["greet"]["name"]], text_direction="ltr"),
+                        Text(["Hello, ", data.greet.name], text_direction="ltr"),
 
 with Page(packages = ["core.widgets", "core.material"]) as page1:
     with NewWidget("root"):
         with Container():
             with Center():
-                Text(Assets()/"a", text_direction="ltr")
+                Text(Assets("a"), text_direction="ltr")
 
-page1.print_tree(print_args=True)
-page0.print_tree(print_args=True)
+with Page(packages = ["core.widgets", "core.material"]) as page2:
+    with NewWidget("root"):
+        with Scaffold():
+            with AppBar(title=DataSerializer('Text(text: "RFW Demo App")', serialize=False)).alias("appBar"):
+                pass
+            with Center():
+                Text("Hello, world", text_direction="ltr")
+
+page1.print_tree(print_args=False)
+page0.print_tree(print_args=False)
+page2.print_tree(print_args=False)
+print(page2.to_rfw())
+
+print(page0.to_rfw())
 
 class MyPlugin(Plugin):
     def __init__(self):
         self.pages = {
-            "home": page0,
-            "test": page1
+            "home": page2,
+            "test": page1,
         }
 
     def on_start(self):

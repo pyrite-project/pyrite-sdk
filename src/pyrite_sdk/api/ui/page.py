@@ -5,19 +5,19 @@ from .event import Events
 
 class Page(ContextNode):
     def __init__(self, packages: list[str]):
-        super().__init__("Page", mul_children=True)
+        super().__init__("Page", multi_child=True)
         self.packages = packages
         self.page = self
         self.events = Events()
         self.assets_directory = "ASSETS"
-        self.children: list[NewWidget]
 
     def setup_widgets(self):
         for child in self.children:
             if not isinstance(child, NewWidget):
                 continue
-            child.child.page = child.child.parent = self
-            child.child.setup()
+            c = child.child
+            c.page = c.parent = self
+            c.setup()
 
     def get_packages(self):
         return ';\n'.join([f"import {package}" for package in self.packages])+";\n"

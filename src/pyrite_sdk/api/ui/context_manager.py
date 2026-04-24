@@ -2,17 +2,14 @@ from ...utils.ui import RFWSerializable
 
 class ContextNode(RFWSerializable):
     _stack = []
-    def __init__(self, name,  **kwargs):
+    def __init__(self, name, multi_child=False, **kwargs):
         self.name = name
         self.kwargs = kwargs
-        self.parent = None
-        self.children = []
-        self.child = None
-        self.mul_children = kwargs.get("mul_children", False)
-
-        current_parent = ContextNode.current()
-        if current_parent is not None and kwargs.get("add_to_parent", True):
-            current_parent.add_child(self)
+        self.parent = self.get_parent_node()
+        self.child_nodes = {}
+        self._child_keyname = "children" if multi_child else "child"
+        self.multi_child = multi_child
+        self.alias_name = None
 
     def __enter__(self):
         ContextNode._stack.append(self)
@@ -20,23 +17,24 @@ class ContextNode(RFWSerializable):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         ContextNode._stack.pop()
+        if self.parent is not None and self.kwargs.get("add_to_parent", True):
+            self.parent.add_child(self)
 
     def add_child(self, child):
         child.parent = self
-        if self.mul_children:
-            self.children.append(child)
-        elif self.child:
+        alias_name = child.alias_name if child.alias_name else self._child_keyname
+        if alias_name not in self.child_nodes:
+            self.child_nodes[alias_name] = []
+        elif "child" in self.child_nodes and not self.multi_child:
             print(f"Too many child in {self.name}")
-        else:
-            self.child = child
+        self.child_nodes[alias_name].append(child)
         return child
 
     def remove_child(self, child):
         try:
-            if self.mul_children:
-                self.children.remove(child)
-            elif self.child is child:
-                self.child = None
+            alias_name = child.alias_name if child.alias_name else self._child_keyname
+            if alias_name in self.child_nodes and child in self.child_nodes[alias_name]:
+                self.child_nodes[alias_name].remove(child)
             else:
                 print(f"Cannot find any {child} to remove")
         except ValueError:
@@ -44,18 +42,30 @@ class ContextNode(RFWSerializable):
         return child
 
     @classmethod
-    def current(self):
+    def get_parent_node(self):
         return self._stack[-1] if self._stack else None
 
     def __repr__(self):
         return f"{self.name}({','.join([f'{k}={v}' for k, v in self.kwargs.items()])})"
 
     def print_tree(self, indent=0, print_args=False):
+        self_str = str(self) if print_args else f"{self.name}()"
+        if self.alias_name:
+            self_str = f"[{self.alias_name}] {self_str}"
         if indent:
-            print("|  " * (indent-1)+"|-" + (str(self) if print_args else f"{self.name}()"))
+            print("|  " * (indent-1)+"|-" + self_str)
         else:
-            print(str(self) if print_args else f"{self.name}()")
-        for child in self.children:
-            child.print_tree(indent + 1, print_args)
-        if self.child:
-            self.child.print_tree(indent + 1, print_args)
+            print(self_str)
+        for child in self.child_nodes.values():
+            for c in child:
+                c.print_tree(indent + 1, print_args)
+
+    @property
+    def children(self):
+        if self._child_keyname in self.child_nodes and self.child_nodes[self._child_keyname]:
+            return self.child_nodes[self._child_keyname]
+        return []
+
+    @property
+    def child(self):
+        return self.children[0] if self.children else None

@@ -7,7 +7,7 @@ class Var(RFWSerializable):
     def __init__(self, *paths):
         self.paths = paths
 
-    def __getitem__(self, key):
+    def __getattr__(self, key):
         return Var(*self.paths, key)
 
     def to_rfw(self):
@@ -25,12 +25,12 @@ def let(var, value):
     return DataSerializer(f"set {var.to_rfw()} = {_serialize_value(value)}", serialize=False)
 
 class Widget(ContextNode):
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, name: str, multi_child = False, **kwargs):
         self.name = name
         self.args = kwargs
-        self.parent = None
-        self.children = []
+        super().__init__(name,
+                         multi_child=multi_child,
+                         **kwargs)
 
     def setup(self):
         self.page = self.parent.page
@@ -47,21 +47,26 @@ class Widget(ContextNode):
         event.events = self.page.events
         event.setup()
 
+    def _setup_child(self, keyname, child):
+        for child in child:
+            if not isinstance(child, Widget):
+                continue
+            child.parent = self
+            child.setup()
+        self.args[keyname] = child
+
     def setup_child(self):
-        if isinstance(self.child, Widget):
-            self.child.parent = self
-            self.child.setup()
-            self.args["child"] = self.child
-        if self.children:
-            self.args["children"] = self.children
-            for child in self.children:
-                if isinstance(child, Widget):
-                    child.parent = self
-                    child.setup()
+        print(self, self.child_nodes)
+        for alias_name, child in self.child_nodes.items():
+            self._setup_child(alias_name, child)
         for arg in self.args.values():
             if isinstance(arg, Assets):
                 arg.parent = self
                 arg.page = self.page
+
+    def alias(self, name):
+        self.alias_name = name
+        return self
 
     def to_rfw(self):
         args_str = ", ".join(f"{key}: {_serialize_value(value)}" for (key, value) in self.args.items() if key != None and value != None)
@@ -96,10 +101,10 @@ class ForLoop(RFWSerializable):
         return result
 
 class Assets(RFWSerializable):
-    def __init__(self, path: Path | None = None):
+    def __init__(self, path: str | Path | None = None):
         self.parent = None
         self.page = None
-        self.path = path
+        self.path = Path(path)
 
     def to_rfw(self):
         if not self.page:

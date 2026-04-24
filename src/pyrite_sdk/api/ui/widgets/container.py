@@ -20,7 +20,7 @@ class Column(Widget):
         super().__init__("Column",
                         padding=padding,
                         margin=margin,
-                        mul_children=True,
+                        multi_child=True,
                         **kwargs)
 
 class Row(Widget):
@@ -28,7 +28,7 @@ class Row(Widget):
         super().__init__("Row",
                         padding=padding,
                         margin=margin,
-                        mul_children=True,
+                        multi_child=True,
                         **kwargs)
 
 class Expanded(Widget):
