@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from ..api.ui.page import Page
 
 class Plugin(ABC):
-    pages:dict[str:Page]
+    pages: dict[str, Page]
 
     def on_install(self): ...
 

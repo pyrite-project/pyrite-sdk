@@ -3,7 +3,7 @@ name = "pyrite-sdk"
 version = "0.1.0"
 description = "Expand your PyriteIDE"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 dependencies = [
     "build>=1.4.3",
     "pydantic==1.8.2",

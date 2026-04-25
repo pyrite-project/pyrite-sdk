@@ -45,13 +45,13 @@ with Page(packages = ["core.widgets", "core.material"]) as page0:
                     Text(["Hello, ", data.greet.name], text_direction="ltr")
                 with Widget("Button", on_pressed=Event(callback, args={"id": 1})):
                     with TextButton():
-                        Text(["Hello, ", data.greet.name], text_direction="ltr"),
+                        Text(["Hello, ", data.greet.name], text_direction="ltr")
 
 with Page(packages = ["core.widgets", "core.material"]) as page1:
     with NewWidget("root"):
         with Container():
             with Center():
-                Text(Assets("a"), text_direction="ltr")
+                Text("test", text_direction="ltr")
 
 with Page(packages = ["core.widgets", "core.material"]) as page2:
     with NewWidget("root"):

@@ -1,15 +1,15 @@
 import re
-from typing import List
+from typing import Any, List, Union
 
 class RFWSerializable:
     def to_rfw(self) -> str:
         raise NotImplementedError()
 
 class DataSerializer(RFWSerializable):
-    def __init__(self, data, serialize = True):
-        self.data = data
-        self.serialize = serialize
-        self.serializer = _serialize_value if serialize else lambda v: _serialize_value(v, serialize=False)
+    def __init__(self, data: Any, serialize: bool = True) -> None:
+        self.data: Any = data
+        self.serialize: bool = serialize
+        self.serializer = _serialize_value if serialize else lambda v, serialize=False: _serialize_value(v, serialize=False)
 
     def to_rfw(self) -> str:
         if isinstance(self.data, (list, tuple)):
@@ -28,44 +28,32 @@ class DataSerializer(RFWSerializable):
             return f'"{self.data}"'
         raise ValueError(f'Unsupported value type: {type(self.data)}')
 
-def _serialize_value(v, serialize=True):
+def _serialize_value(v: Any, serialize: bool = True) -> str:
     return DataSerializer(v, serialize=serialize).to_rfw()
 
 class DataParser(RFWSerializable):
-    def __init__(self, data):
-        # 组1 (Escaped): \\(.) -> 匹配 \ 后跟任意字符
-        # 组2 (Variable): \$\[(.*?)\] -> 匹配 $[...]
-        # 组3 (Literal): ([^\\$]+|. ) -> 匹配不含 \ 和 $ 的文本，或者兜底的单个字符
+    def __init__(self, data: Union[str, dict, list]) -> None:
         self._pattern = re.compile(r'\\(.)|\$\[(.*?)\]|([^\\$]+|.)')
-        self.data = data
+        self.data: Union[str, dict, list] = data
 
     def parse_string(self, text: str) -> List[str]:
-        """
-        解析模板字符串
-        """
-
-        tokens = []
+        tokens: List[str] = []
         for match in self._pattern.finditer(text):
             esc, var, lit = match.groups()
 
             if esc:
-                # 处理转义：如 \\ -> \, \$ -> $
-                # 转义字符通常被视为普通文本的一部分
                 tokens.append(f'\"{esc}\"')
             elif var:
-                # 处理变量：$[xxx] -> xxx
                 tokens.append(var)
             elif lit:
-                # 处理普通文本
                 tokens.append(f'\"{lit}\"')
 
-        # 合并连续的字符串部分
         return self.merge_literals(tokens)
 
     def merge_literals(self, tokens: List[str]) -> List[str]:
         if not tokens: return []
-        res = []
-        current_lit = []
+        res: List[str] = []
+        current_lit: List[str] = []
 
         for t in tokens:
             if t.startswith('"') and t.endswith('"'):
@@ -80,7 +68,7 @@ class DataParser(RFWSerializable):
         return res
 
     def parse_map(self, map: dict) -> dict:
-        data = {}
+        data: dict = {}
         for key, value in map.items():
             if not isinstance(value, str): continue
             data[f'"{key}"'] = self.parse_string(value)
@@ -95,7 +83,6 @@ class DataParser(RFWSerializable):
             return DataSerializer([self.parse(x) for x in self.data], serialize=False)
         else:
             return DataSerializer(self.data, serialize=False)
-        # raise ValueError(f'Unsupported value type: {type(data)}')
 
-    def to_rfw(self):
+    def to_rfw(self) -> str:
         return self.parse().to_rfw()
