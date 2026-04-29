@@ -1,7 +1,7 @@
 from ...utils.ui import _serialize_value, RFWSerializable, DataSerializer
+from ...interfaces.ui import PageProto, WidgetProto
 from .event import Event
 from .context_manager import ContextNode
-from .page import Page
 from pathlib import Path
 from typing import Any, Optional, TypeAlias
 
@@ -31,13 +31,13 @@ class Widget(ContextNode):
     def __init__(self, name: str, multi_child: bool = False, **kwargs: Any):
         self.name: str = name
         self.args: dict[str, Any] = kwargs
-        self.page: Optional[Page] = None
+        self.page: Optional[PageProto] = None
         super().__init__(name,
                         multi_child=multi_child,
                         **kwargs)
 
     def setup(self) -> None:
-        assert isinstance(self.parent, Widget)
+        assert isinstance(self.parent, (WidgetProto, PageProto))
         if self.parent is None or self.parent.page is None:
             raise Exception("Widget cannot find page")
         self.page = self.parent.page
@@ -54,7 +54,7 @@ class Widget(ContextNode):
         event.events = self.page.events
         event.setup()
 
-    def _setup_child(self, keyname: str, child: "Widget" | list[ContextNode]) -> None:
+    def _setup_child(self, keyname: str, child: WidgetProto | list[ContextNode]) -> None:
         if isinstance(child, Widget):
             child.parent = self
             child.setup()
@@ -116,7 +116,7 @@ class ForLoop(RFWSerializable):
 class Assets(RFWSerializable):
     def __init__(self, path: str | Path | None = None) -> None:
         self.parent: Optional[ContextNode] = None
-        self.page: Optional[Page] = None
+        self.page: Optional[PageProto] = None
         self.path: Path = Path(path) if path else Path()
 
     def to_rfw(self) -> str:

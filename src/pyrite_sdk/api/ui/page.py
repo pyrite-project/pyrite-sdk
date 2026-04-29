@@ -1,7 +1,8 @@
-from .base import Widget, _serialize_value
+from .base import _serialize_value
 from .widgets import NewWidget
 from .context_manager import ContextNode
 from .event import Events
+from ...interfaces.ui import WidgetProto
 from typing import Any
 
 class Page(ContextNode):
@@ -19,7 +20,7 @@ class Page(ContextNode):
             c = child.child
             if c is None:
                 continue
-            assert isinstance(c, Widget)
+            assert isinstance(c, WidgetProto)
             c.page = c.parent = self
             c.setup()
 

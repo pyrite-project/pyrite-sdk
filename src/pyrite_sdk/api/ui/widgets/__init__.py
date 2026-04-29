@@ -10,15 +10,17 @@ from .gesture_detector import GestureDetector
 from .new_widget import NewWidget
 from .scaffold import Scaffold, AppBar
 
-__all__ = ["Center",
-           "Container",
-           "Text",
-           "TextButton",
-           "Column",
-           "Row",
-           "Expanded",
-           "FittedBox",
-           "GestureDetector",
-           "NewWidget",
-           "Scaffold",
-           "AppBar"]
+__all__ = [
+    "Center",
+    "Container",
+    "Text",
+    "TextButton",
+    "Column",
+    "Row",
+    "Expanded",
+    "FittedBox",
+    "GestureDetector",
+    "NewWidget",
+    "Scaffold",
+    "AppBar"
+]
