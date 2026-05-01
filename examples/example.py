@@ -56,17 +56,16 @@ with Page(packages = ["core.widgets", "core.material"]) as page1:
 with Page(packages = ["core.widgets", "core.material"]) as page2:
     with NewWidget("root"):
         with Scaffold():
-            with AppBar(title=DataSerializer('Text(text: "RFW Demo App")', serialize=False)).alias("appBar"):
-                pass
+            with AppBar().alias("appBar"):
+                Text(text="Plugin Test").alias("title")
             with Center():
                 Text("Hello, world", text_direction="ltr")
 
-page1.print_tree(print_args=False)
-page0.print_tree(print_args=False)
-page2.print_tree(print_args=False)
-print(page2.to_rfw())
-
-print(page0.to_rfw())
+# page1.print_tree(print_args=False)
+# page0.print_tree(print_args=False)
+# page2.print_tree(print_args=False)
+# print(page2.to_rfw())
+# print(page0.to_rfw())
 
 class MyPlugin(Plugin):
     def __init__(self):

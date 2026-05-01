@@ -46,7 +46,7 @@ class Widget(ContextNode):
             if isinstance(arg, Event):
                 self.setup_event(arg)
 
-    def setup_event(self, event: Event | None) -> None:
+    def setup_event(self, event: Optional[Event] = None) -> None:
         if not self.page:
             raise Exception("Widget cannot find page")
         if not event:
@@ -54,28 +54,26 @@ class Widget(ContextNode):
         event.events = self.page.events
         event.setup()
 
-    def _setup_child(self, keyname: str, child: WidgetProto | list[ContextNode]) -> None:
-        if isinstance(child, Widget):
-            child.parent = self
-            child.setup()
-        else:
-            for c in child:
-                if not isinstance(c, Widget):
-                    continue
-                c.parent = self
-                c.setup()
-        self.args[keyname] = child
+    def _setup_child(self, keyname: str, child: list[ContextNode]) -> None:
+        _child = []
+        for c in child:
+            if not isinstance(c, Widget):
+                continue
+            _child.append(c)
+            c.parent = self
+            c.setup()
+        if len(_child) == 1:
+            _child = _child[0]
+        self.args[keyname] = _child
 
     def setup_child(self) -> None:
-        print(self, self.child_nodes)
         for alias_name, child in self.child_nodes.items():
             assert isinstance(child, list)
             self._setup_child(alias_name, child)
         for arg in self.args.values():
             if isinstance(arg, Assets):
                 arg.parent = self
-                if self.page is not None:
-                    arg.page = self.page
+                arg.page = self.page
 
     def alias(self, name: str) -> "Widget":
         self.alias_name = name

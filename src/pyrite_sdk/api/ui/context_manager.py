@@ -12,6 +12,10 @@ class ContextNode(RFWSerializable):
         self._child_keyname: str = "children" if multi_child else "child"
         self.multi_child: bool = multi_child
         self.alias_name: Optional[str] = None
+        self._child_nodes: list["ContextNode"] = []
+
+        if self.parent is not None and self.kwargs.get("add_to_parent", True):
+            self.parent._child_nodes.append(self)
 
     def __enter__(self):
         ContextNode._stack.append(self)
@@ -19,8 +23,8 @@ class ContextNode(RFWSerializable):
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         ContextNode._stack.pop()
-        if self.parent is not None and self.kwargs.get("add_to_parent", True):
-            self.parent.add_child(self)
+        for child in self._child_nodes:
+            self.add_child(child)
 
     def add_child(self, child: "ContextNode") -> "ContextNode":
         child.parent = self

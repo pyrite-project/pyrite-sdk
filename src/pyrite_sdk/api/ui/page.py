@@ -31,14 +31,15 @@ class Page(ContextNode):
         result: str = ""
         for child in self.children:
             assert isinstance(child, NewWidget)
-            assert child.child is not None
-            state = _serialize_value(child.states)
-            result += f"widget {child.name} {state} = {child.child.to_rfw()};\n"
+            if child.child is None:
+                continue
+            result += child.to_rfw() + ";\n"
         return result
 
     def to_rfw(self) -> str:
         return f"{self.get_packages()}{self.get_widgets()}"
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        super().__exit__(exc_type, exc_val, exc_tb)
         self.setup_widgets()
-        return super().__exit__(exc_type, exc_val, exc_tb)
+        return None

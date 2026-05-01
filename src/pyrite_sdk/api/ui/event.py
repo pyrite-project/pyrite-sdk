@@ -15,7 +15,6 @@ class Event(RFWSerializable):
             if self.event in self.events:
                 raise Exception(f"Event {self.event} already exists")
             return self.event
-        print("EVENTS", self.events)
         return f"event_{len(self.events)}"
 
     def setup(self) -> None:
