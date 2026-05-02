@@ -1,11 +1,12 @@
 from pyrite_sdk.api.ui.widgets import *
 from pyrite_sdk.api.ui.page import Page
 from pyrite_sdk.api.ui.event import Event
-from pyrite_sdk.api.ui.base import data, let, state, args, Match, Case, Widget, Assets, VarNode, DataSerializer
+from pyrite_sdk.api.ui.sentence import *
 from pyrite_sdk.core.bridge import Bridge
 from pyrite_sdk.models.schema import *
 from pyrite_sdk.models.consts import *
 from pyrite_sdk.models.plugin import Plugin
+from pyrite_sdk.interfaces.ui import WidgetType
 
 def callback(**kws):
     print("callback-custom-widget", kws)
@@ -35,7 +36,7 @@ with Page(packages = ["core.widgets", "core.material"]) as page0:
                             "type": "box",
                             "border": [{}]
                         }):
-                    VarNode(args.child)
+                    VarWidget(args.child)
 
     with NewWidget("root"):
         with Container():
@@ -60,6 +61,7 @@ with Page(packages = ["core.widgets", "core.material"]) as page2:
                 Text(text="Plugin Test").alias("title")
             with Center():
                 Text("Hello, world", text_direction="ltr")
+# print(isinstance(open("./example.py", WidgetType)))
 
 # page1.print_tree(print_args=False)
 # page0.print_tree(print_args=False)

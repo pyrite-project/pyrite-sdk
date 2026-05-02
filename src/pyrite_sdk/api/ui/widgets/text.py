@@ -1,4 +1,4 @@
-from ..base import Widget
+from .base import Widget
 from ....utils.ui import DataParser
 from typing import Any, Optional, Union
 

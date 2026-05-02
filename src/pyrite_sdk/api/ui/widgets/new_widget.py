@@ -1,5 +1,6 @@
-from ..base import Widget
+from .base import Widget
 from ....utils.ui import _serialize_value
+from ....interfaces.ui import WidgetType
 from typing import Any
 
 class NewWidget(Widget):
@@ -13,6 +14,6 @@ class NewWidget(Widget):
         return f"{self.name}({','.join([f'{k}={v}' for k, v in kwargs.items()])})"
     
     def to_rfw(self):
-        assert isinstance(self.child, Widget)
+        assert isinstance(self.child, WidgetType)
         state = _serialize_value(self.states)
         return f"widget {self.name} {state} = {self.child.to_rfw()}"

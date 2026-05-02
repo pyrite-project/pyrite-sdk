@@ -1,18 +1,18 @@
 from ....utils.ui import DataSerializer
-
-from ..base import Var, Widget
-from ..event import Event
+from .base import Widget
+from ..sentence import Var
+from ....interfaces.ui import EventType
 from typing import Any, Optional
 
 class GestureDetector(Widget):
     def __init__(
         self,
-        on_tap: Optional[Event | DataSerializer | Var] = None,
-        on_double_tap: Optional[Event | DataSerializer | Var] = None,
-        on_long_press: Optional[Event | DataSerializer | Var] = None,
-        on_tap_down: Optional[Event | DataSerializer | Var] = None,
-        on_tap_up: Optional[Event | DataSerializer | Var] = None,
-        on_tap_cancel: Optional[Event | DataSerializer | Var] = None,
+        on_tap: Optional[EventType | DataSerializer | Var] = None,
+        on_double_tap: Optional[EventType | DataSerializer | Var] = None,
+        on_long_press: Optional[EventType | DataSerializer | Var] = None,
+        on_tap_down: Optional[EventType | DataSerializer | Var] = None,
+        on_tap_up: Optional[EventType | DataSerializer | Var] = None,
+        on_tap_cancel: Optional[EventType | DataSerializer | Var] = None,
         **kwargs: Any
     ) -> None:
         super().__init__("GestureDetector",
@@ -28,5 +28,5 @@ class GestureDetector(Widget):
     def setup(self) -> None:
         super().setup()
         for event in self.args.values():
-            if isinstance(event, Event):
+            if isinstance(event, EventType):
                 self.setup_event(event)

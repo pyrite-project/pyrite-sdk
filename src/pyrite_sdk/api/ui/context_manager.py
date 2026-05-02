@@ -1,23 +1,24 @@
 from ...utils.ui import RFWSerializable
+from ...interfaces.ui import ContextNodeType
 from typing import Any, Optional
 
 class ContextNode(RFWSerializable):
-    _stack: list["ContextNode"] = []
+    _stack: list["ContextNodeType"] = []
 
     def __init__(self, name: str, multi_child: bool = False, **kwargs: Any) -> None:
         self.name: str = name
         self.kwargs: dict[str, Any] = kwargs
-        self.parent: Optional["ContextNode"] = self.get_parent_node()
-        self.child_nodes: dict[str, list["ContextNode"]] = {}
+        self.parent: Optional["ContextNodeType"] = self.get_parent_node()
+        self.child_nodes: dict[str, list["ContextNodeType"]] = {}
         self._child_keyname: str = "children" if multi_child else "child"
         self.multi_child: bool = multi_child
         self.alias_name: Optional[str] = None
-        self._child_nodes: list["ContextNode"] = []
+        self._child_nodes: list["ContextNodeType"] = []
 
         if self.parent is not None and self.kwargs.get("add_to_parent", True):
             self.parent._child_nodes.append(self)
 
-    def __enter__(self):
+    def __enter__(self) -> ContextNodeType:
         ContextNode._stack.append(self)
         return self
 
@@ -26,7 +27,7 @@ class ContextNode(RFWSerializable):
         for child in self._child_nodes:
             self.add_child(child)
 
-    def add_child(self, child: "ContextNode") -> "ContextNode":
+    def add_child(self, child: "ContextNodeType") -> "ContextNodeType":
         child.parent = self
         alias_name = child.alias_name if child.alias_name else self._child_keyname
         if alias_name not in self.child_nodes:
@@ -36,7 +37,7 @@ class ContextNode(RFWSerializable):
         self.child_nodes[alias_name].append(child)
         return child
 
-    def remove_child(self, child: "ContextNode") -> "ContextNode":
+    def remove_child(self, child: "ContextNodeType") -> "ContextNodeType":
         try:
             alias_name = child.alias_name if child.alias_name else self._child_keyname
             if alias_name in self.child_nodes and child in self.child_nodes[alias_name]:
@@ -48,7 +49,7 @@ class ContextNode(RFWSerializable):
         return child
 
     @classmethod
-    def get_parent_node(cls) -> Optional["ContextNode"]:
+    def get_parent_node(cls) -> Optional["ContextNodeType"]:
         return cls._stack[-1] if cls._stack else None
 
     def __repr__(self) -> str:
@@ -67,11 +68,11 @@ class ContextNode(RFWSerializable):
                 c.print_tree(indent + 1, print_args)
 
     @property
-    def children(self) -> list["ContextNode"]:
+    def children(self) -> list["ContextNodeType"]:
         if self._child_keyname in self.child_nodes and self.child_nodes[self._child_keyname]:
             return self.child_nodes[self._child_keyname]
         return []
 
     @property
-    def child(self) -> Optional["ContextNode"]:
+    def child(self) -> Optional["ContextNodeType"]:
         return self.children[0] if self.children else None

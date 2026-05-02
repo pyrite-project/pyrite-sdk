@@ -9,6 +9,7 @@ from .button import TextButton
 from .gesture_detector import GestureDetector
 from .new_widget import NewWidget
 from .scaffold import Scaffold, AppBar
+from .base import Widget, VarWidget
 
 __all__ = [
     "Center",
@@ -22,5 +23,7 @@ __all__ = [
     "GestureDetector",
     "NewWidget",
     "Scaffold",
-    "AppBar"
+    "AppBar",
+    "Widget",
+    "VarWidget"
 ]

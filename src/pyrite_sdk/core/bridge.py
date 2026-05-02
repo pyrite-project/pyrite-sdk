@@ -4,7 +4,7 @@ import os
 from ..models.consts import *
 from ..models.schema import *
 from ..models.plugin import Plugin
-from ..api.ui.page import Page
+from ..interfaces.ui import PageType
 
 class Bridge:
     def __init__(self, plugin: Plugin, queue_size: int = 10):
@@ -38,9 +38,9 @@ class Bridge:
                             print("Error in sending pages")
                     case MessageCommands.EVENT_CALLBACK:
                         assert message.data.page is not None
-                        _page: Optional[Page] = self.plugin.pages.get(message.data.page)
+                        _page: Optional[PageType] = self.plugin.pages.get(message.data.page)
                         assert _page is not None
-                        page: Page = _page
+                        page: PageType = _page
                         if not page:
                             self.send_error(websocket, Error.KEY_NOT_FOUND, message)
                             return

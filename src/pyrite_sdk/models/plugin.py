@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from ..api.ui.page import Page
+from ..interfaces.ui import PageType
 
 class Plugin(ABC):
-    pages: dict[str, Page]
+    pages: dict[str, PageType]
 
     def on_install(self): ...
 

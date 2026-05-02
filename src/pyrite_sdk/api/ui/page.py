@@ -1,16 +1,14 @@
-from .base import _serialize_value
 from .widgets import NewWidget
 from .context_manager import ContextNode
-from .event import Events
-from ...interfaces.ui import WidgetProto
-from typing import Any
+from ...interfaces.ui import WidgetType, PageType
+from typing import Any, Callable
 
 class Page(ContextNode):
     def __init__(self, packages: list[str]) -> None:
         super().__init__("Page", multi_child=True)
         self.packages: list[str] = packages
-        self.page: Page = self
-        self.events: Events = Events()
+        self.page: PageType = self
+        self.events: dict[str, Callable[..., Any]] = {}
         self.assets_directory: str = "ASSETS"
 
     def setup_widgets(self) -> None:
@@ -20,7 +18,8 @@ class Page(ContextNode):
             c = child.child
             if c is None:
                 continue
-            assert isinstance(c, WidgetProto)
+            print(c)
+            assert isinstance(c, WidgetType)
             c.page = c.parent = self
             c.setup()
 

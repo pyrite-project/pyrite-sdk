@@ -1,4 +1,4 @@
-from ..base import Widget
+from .base import Widget
 from typing import Any, Optional
 
 class Container(Widget):

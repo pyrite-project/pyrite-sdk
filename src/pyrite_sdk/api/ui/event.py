@@ -6,7 +6,7 @@ class Event(RFWSerializable):
         self.callback: Callable[..., Any] = callback
         self.event: str = event
         self.args: dict[str, Any] = args
-        self.events: Optional[Events] = None
+        self.events: Optional[dict[str, Callable[..., Any]]] = None
 
     def get_event_name(self) -> Optional[str]:
         if self.events is None:
@@ -29,7 +29,3 @@ class Event(RFWSerializable):
 
     def to_rfw(self) -> str:
         return f'event "{self.event}" {self.get_args()}'
-
-class Events(dict[str, Callable[..., Any]]):
-    def __init__(self) -> None:
-        super().__init__()

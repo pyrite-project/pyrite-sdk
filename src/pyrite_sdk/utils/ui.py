@@ -1,9 +1,11 @@
 import re
 from typing import Any, List, Union
+from abc import ABC, abstractmethod
 
-class RFWSerializable:
+class RFWSerializable(ABC):
+    @abstractmethod
     def to_rfw(self) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError("to_rfw is empty")
 
 class DataSerializer(RFWSerializable):
     def __init__(self, data: Any, serialize: bool = True) -> None:
@@ -30,6 +32,9 @@ class DataSerializer(RFWSerializable):
 
 def _serialize_value(v: Any, serialize: bool = True) -> str:
     return DataSerializer(v, serialize=serialize).to_rfw()
+
+def raw(v: Any) -> DataSerializer:
+    return DataSerializer(v, serialize=False)
 
 class DataParser(RFWSerializable):
     def __init__(self, data: Union[str, dict, list]) -> None:
@@ -76,13 +81,13 @@ class DataParser(RFWSerializable):
 
     def parse(self) -> DataSerializer:
         if isinstance(self.data, str):
-            return DataSerializer(self.parse_string(self.data), serialize=False)
+            return raw(self.parse_string(self.data))
         elif isinstance(self.data, dict):
-            return DataSerializer(self.parse_map(self.data), serialize=False)
+            return raw(self.parse_map(self.data))
         elif isinstance(self.data, list):
-            return DataSerializer([self.parse(x) for x in self.data], serialize=False)
+            return raw([self.parse(x) for x in self.data])
         else:
-            return DataSerializer(self.data, serialize=False)
+            return raw(self.data)
 
     def to_rfw(self) -> str:
         return self.parse().to_rfw()
