@@ -1,6 +1,7 @@
 import asyncio
 import websockets
 import os
+import sys
 from ..models.consts import *
 from ..models.schema import *
 from ..models.plugin import Plugin
@@ -142,6 +143,8 @@ class Bridge:
 
     def start(self):
         try:
+            if sys.platform == 'win32':
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
             asyncio.run(self.main())
         except KeyboardInterrupt:
             self.running = False
