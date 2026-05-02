@@ -1,6 +1,6 @@
 from ...utils.ui import RFWSerializable
 from ...interfaces.ui import ContextNodeType
-from typing import Any, Optional
+from typing import Any, Optional, overload
 
 class ContextNode(RFWSerializable):
     _stack: list["ContextNodeType"] = []
@@ -25,9 +25,9 @@ class ContextNode(RFWSerializable):
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         ContextNode._stack.pop()
         for child in self._child_nodes:
-            self.add_child(child)
+            self.add(child)
 
-    def add_child(self, child: "ContextNodeType") -> "ContextNodeType":
+    def _add(self, child: ContextNodeType) -> ContextNodeType:
         child.parent = self
         alias_name = child.alias_name if child.alias_name else self._child_keyname
         if alias_name not in self.child_nodes:
@@ -37,7 +37,12 @@ class ContextNode(RFWSerializable):
         self.child_nodes[alias_name].append(child)
         return child
 
-    def remove_child(self, child: "ContextNodeType") -> "ContextNodeType":
+    def add(self, *children: list[ContextNodeType]) -> ContextNodeType:
+        for c in children:
+            self._add(c)
+        return children[0]
+
+    def remove_child(self, child: ContextNodeType) -> ContextNodeType:
         try:
             alias_name = child.alias_name if child.alias_name else self._child_keyname
             if alias_name in self.child_nodes and child in self.child_nodes[alias_name]:

@@ -19,34 +19,36 @@ def callback(**kws):
         )
     )
 
-with Page(packages = ["core.widgets", "core.material"]) as page0:
-    with NewWidget("Button", states = {"down": False}):
-            with GestureDetector(
-                    on_tap_down = let(state.down, True),
-                    on_tap_up = let(state.down, False),
-                    on_tap_cancel = let(state.down, False),
-                    on_tap = args.on_pressed):
-                with Container(
-                        margin=Match(
-                            state.down,
-                            Case(False, [0.0, 0.0, 8.0, 8.0]),
-                            Case(True, [8.0, 8.0, 0.0, 0.0])
-                        ),
-                        decoration={
-                            "type": "box",
-                            "border": [{}]
-                        }):
-                    VarWidget(args.child)
-
-    with NewWidget("root"):
-        with Container():
-            with Column():
+page0 = Page(packages = ["core.widgets", "core.material"])
+button = NewWidget("Button", states = {"down": False})
+with GestureDetector(
+        on_tap_down = let(state.down, True),
+        on_tap_up = let(state.down, False),
+        on_tap_cancel = let(state.down, False),
+        on_tap = args.on_pressed) as gd:
+    with Container(
+        margin=Match(
+            state.down,
+            Case(False, [0.0, 0.0, 8.0, 8.0]),
+            Case(True, [8.0, 8.0, 0.0, 0.0])
+        ),
+        decoration={
+            "type": "box",
+            "border": [{}]
+        }):
+        VarWidget(args.child)
+button.add(gd)
+root = NewWidget("root")
+with Container() as c:
+    with Column():
+        Text(["Hello, ", data.greet.name], text_direction="ltr")
+        with TextButton(on_pressed=Event(lambda **kws: print("callback", kws), args={"id": 0})):
+            Text(["Hello, ", data.greet.name], text_direction="ltr")
+        with Widget("Button", on_pressed=Event(callback, args={"id": 1})):
+            with TextButton():
                 Text(["Hello, ", data.greet.name], text_direction="ltr")
-                with TextButton(on_pressed=Event(lambda **kws: print("callback", kws), args={"id": 0})):
-                    Text(["Hello, ", data.greet.name], text_direction="ltr")
-                with Widget("Button", on_pressed=Event(callback, args={"id": 1})):
-                    with TextButton():
-                        Text(["Hello, ", data.greet.name], text_direction="ltr")
+root.add(c)
+page0.add(button, root)
 
 with Page(packages = ["core.widgets", "core.material"]) as page1:
     with NewWidget("root"):
@@ -64,10 +66,10 @@ with Page(packages = ["core.widgets", "core.material"]) as page2:
 # print(isinstance(open("./example.py", WidgetType)))
 
 # page1.print_tree(print_args=False)
-# page0.print_tree(print_args=False)
+page0.print_tree(print_args=False)
 # page2.print_tree(print_args=False)
 # print(page2.to_rfw())
-# print(page0.to_rfw())
+print(page0.to_rfw())
 
 class MyPlugin(Plugin):
     def __init__(self):
