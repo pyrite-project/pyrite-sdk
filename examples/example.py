@@ -6,7 +6,6 @@ from pyrite_sdk.core.bridge import Bridge
 from pyrite_sdk.models.schema import *
 from pyrite_sdk.models.consts import *
 from pyrite_sdk.models.plugin import Plugin
-from pyrite_sdk.interfaces.ui import WidgetType
 
 def callback(**kws):
     print("callback-custom-widget", kws)
@@ -19,13 +18,14 @@ def callback(**kws):
         )
     )
 
-page0 = Page(packages = ["core.widgets", "core.material"])
-button = NewWidget("Button", states = {"down": False})
+page0 = Page(packages = [Package.core.widgets, Package.core.material])
+
+button = NewWidget("Button", states = {"down": False}).add_to(page0)
 with GestureDetector(
         on_tap_down = let(state.down, True),
         on_tap_up = let(state.down, False),
         on_tap_cancel = let(state.down, False),
-        on_tap = args.on_pressed) as gd:
+        on_tap = args.on_pressed).add_to(button):
     with Container(
         margin=Match(
             state.down,
@@ -35,35 +35,33 @@ with GestureDetector(
         decoration={
             "type": "box",
             "border": [{}]
-        }):
+        }
+    ):
         VarWidget(args.child)
-button.add(gd)
-root = NewWidget("root")
-with Container() as c:
+
+root = NewWidget(Ui.root).add_to(page0)
+with Container().add_to(root):
     with Column():
-        Text(["Hello, ", data.greet.name], text_direction="ltr")
+        Text(["Hello, ", data.greet.name], text_direction=Ui.LTR)
         with TextButton(on_pressed=Event(lambda **kws: print("callback", kws), args={"id": 0})):
-            Text(["Hello, ", data.greet.name], text_direction="ltr")
+            Text(["Hello, ", data.greet.name], text_direction=Ui.LTR)
         with Widget("Button", on_pressed=Event(callback, args={"id": 1})):
             with TextButton():
-                Text(["Hello, ", data.greet.name], text_direction="ltr")
-root.add(c)
-page0.add(button, root)
+                Text(["Hello, ", data.greet.name], text_direction=Ui.LTR)
 
-with Page(packages = ["core.widgets", "core.material"]) as page1:
-    with NewWidget("root"):
+with Page(packages = [Package.core.widgets, Package.core.material]) as page1:
+    with NewWidget(Ui.root):
         with Container():
             with Center():
-                Text("test", text_direction="ltr")
+                Text("test", text_direction=Ui.LTR)
 
-with Page(packages = ["core.widgets", "core.material"]) as page2:
-    with NewWidget("root"):
+with Page(packages = [Package.core.widgets, Package.core.material]) as page2:
+    with NewWidget(Ui.root):
         with Scaffold():
-            with AppBar().alias("appBar"):
-                Text(text="Plugin Test").alias("title")
+            with AppBar().alias(Ui.AppBar):
+                Text(text="Plugin Test").alias(Ui.Title)
             with Center():
-                Text("Hello, world", text_direction="ltr")
-# print(isinstance(open("./example.py", WidgetType)))
+                Text("Hello, world", text_direction=Ui.LTR)
 
 # page1.print_tree(print_args=False)
 page0.print_tree(print_args=False)

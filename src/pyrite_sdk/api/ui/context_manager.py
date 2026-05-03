@@ -3,17 +3,17 @@ from ...interfaces.ui import ContextNodeType
 from typing import Any, Optional, overload
 
 class ContextNode(RFWSerializable):
-    _stack: list["ContextNodeType"] = []
+    _stack: list[ContextNodeType] = []
 
     def __init__(self, name: str, multi_child: bool = False, **kwargs: Any) -> None:
         self.name: str = name
         self.kwargs: dict[str, Any] = kwargs
-        self.parent: Optional["ContextNodeType"] = self.get_parent_node()
-        self.child_nodes: dict[str, list["ContextNodeType"]] = {}
+        self.parent: Optional[ContextNodeType] = self.get_parent_node()
+        self.child_nodes: dict[str, list[ContextNodeType]] = {}
         self._child_keyname: str = "children" if multi_child else "child"
         self.multi_child: bool = multi_child
         self.alias_name: Optional[str] = None
-        self._child_nodes: list["ContextNodeType"] = []
+        self._child_nodes: list[ContextNodeType] = []
 
         if self.parent is not None and self.kwargs.get("add_to_parent", True):
             self.parent._child_nodes.append(self)
@@ -37,10 +37,20 @@ class ContextNode(RFWSerializable):
         self.child_nodes[alias_name].append(child)
         return child
 
-    def add(self, *children: list[ContextNodeType]) -> ContextNodeType:
+    @overload
+    def add(self, child: ContextNodeType) -> ContextNodeType: ...
+    @overload
+    def add(self, *children: ContextNodeType) -> list[ContextNodeType]: ...
+
+    def add(self, child: ContextNodeType, *children: list[ContextNodeType]) -> list[ContextNodeType] | ContextNodeType:
+        self._add(child)
         for c in children:
             self._add(c)
-        return children[0]
+        return children if children else child
+
+    def add_to(self, parent: ContextNodeType) -> ContextNodeType:
+        parent.add(self)
+        return self
 
     def remove_child(self, child: ContextNodeType) -> ContextNodeType:
         try:

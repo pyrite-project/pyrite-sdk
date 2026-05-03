@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import StrEnum
 
-class MessageCommands(str, Enum):
+class MessageCommands(StrEnum):
     GET_PAGES = "Commands.GetPages"
     EVENT_CALLBACK = "Commands.EventCallback"
     RESPONSE = "Commands.Response"
@@ -8,7 +8,7 @@ class MessageCommands(str, Enum):
     SEND = "Commands.Send"
     LIFECYCLE_HOOKS = "Commands.LifecycleHooks"
 
-class LifecycleHooks(str, Enum):
+class LifecycleHooks(StrEnum):
     ON_INSTALL = "LifecycleHooks.OnInstall"
     ON_START = "LifecycleHooks.OnStart"
     ON_PAUSE = "LifecycleHooks.OnPause"
@@ -16,6 +16,19 @@ class LifecycleHooks(str, Enum):
     ON_DISPOSE = "LifecycleHooks.OnDispose"
     ON_UNINSTALL = "LifecycleHooks.OnUninstall"
 
-class Error(str, Enum):
+class Error(StrEnum):
     KEY_NOT_FOUND = "Error.KeyNotFound"
     API_NOT_FOUND = "Error.ApiNotFound"
+
+class Ui(StrEnum):
+    LTR = "ltr"
+    AppBar = "appBar"
+    Title = "title"
+    root = "root"
+
+class PackageCore(StrEnum):
+    widgets = "core.widgets"
+    material = "core.material"
+
+class Package:
+    core = PackageCore

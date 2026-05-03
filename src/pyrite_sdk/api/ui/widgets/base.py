@@ -2,7 +2,7 @@ from ....utils.ui import _serialize_value
 from ....interfaces.ui import PageType, WidgetType, EventType, ContextNodeType
 from ..context_manager import ContextNode
 from ..sentence import Var, Assets
-from typing import Any, Optional, Callable
+from typing import Any, Optional
 
 class Widget(ContextNode):
     def __init__(self, name: str, multi_child: bool = False, **kwargs: Any) -> None:
