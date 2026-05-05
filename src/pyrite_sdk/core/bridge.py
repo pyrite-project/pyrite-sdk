@@ -28,7 +28,7 @@ class Bridge:
         print("MSD:", msd)
         self.push(
             Message(
-                cmd=MessageCommands.GET_PATH,
+                cmd=MessageCommands.SDK.REQUEST.GET_PATH,
                 data=msd,
             ),
             websocket,
@@ -39,20 +39,9 @@ class Bridge:
                 print("DEBUG MATCH:", repr(message.cmd), type(message.cmd).__name__, type(message.cmd).__module__)
                 print("Received message:", message)
                 match message.cmd:
-                    # case MessageCommands.GET_PAGES:
-                    #     try:
-                    #         self.push(
-                    #             message = Message(
-                    #                 cmd = MessageCommands.RESPONSE,
-                    #                 data = MessageData(
-                    #                     pages = {name:page.to_rfw() for name, page in self.plugin.pages.items()},
-                    #                 ),
-                    #                 source = message
-                    #             )
-                    #         )
-                    #     except Exception as e:
-                    #         print("Error in sending pages")
-                    case MessageCommands.EVENT_CALLBACK:
+                    case MessageCommands.IDE.REQUEST.GET_PAGES:
+                        self.refresh()
+                    case MessageCommands.IDE.REQUEST.EVENT_CALLBACK:
                         assert message.data.page is not None
                         _page: Optional[PageType] = self.plugin.pages.get(message.data.page)
                         assert _page is not None
@@ -70,13 +59,13 @@ class Bridge:
                             event(**callback.args)
                         except Exception as e:
                             print(f"Error in callback {event}: {e}")
-                    case MessageCommands.RESPONSE:
+                    case MessageCommands.IDE.RESPONSE.RESPONSE:
                         assert self.response_queue is not None
                         try:
                             self.response_queue.put_nowait(message)
                         except asyncio.QueueFull:
                             print("Warning: Response queue was full")
-                    case MessageCommands.LIFECYCLE_HOOKS:
+                    case MessageCommands.IDE.REQUEST.LIFECYCLE_HOOKS:
                         try:
                             match message.data.lifecycle_hook:
                                 case LifecycleHooks.ON_INSTALL:
@@ -94,7 +83,7 @@ class Bridge:
                         except AttributeError:
                             print(f"Cannot find api {message.data.lifecycle_hook}")
                             self.send_error(websocket, Error.API_NOT_FOUND, message)
-                    case MessageCommands.GET_PATH:
+                    case MessageCommands.IDE.RESPONSE.GET_PATH:
                         if message.data.path is not None:
                             self.plugin.assets = Path(message.data.path)
                             self.refresh()
@@ -121,7 +110,7 @@ class Bridge:
     def send_error(self, websocket, error, source):
         self.push(
             Message(
-                cmd = MessageCommands.ERROR_RESPONSE,
+                cmd = MessageCommands.SDK.RESPONSE.ERROR_RESPONSE,
                 data = MessageData(err = error),
                 source = source
             ),
@@ -139,7 +128,7 @@ class Bridge:
         try:
             self.push(
                 message = Message(
-                    cmd = MessageCommands.REFRESH,
+                    cmd = MessageCommands.SDK.REQUEST.REFRESH,
                     data = MessageData(
                         pages = {name:page.to_rfw() for name, page in self.plugin.pages.items()},
                     ),
@@ -162,6 +151,15 @@ class Bridge:
                 print("Warning: Message queue was full")
 
         self.asyncio_loop.call_soon_threadsafe(_put)
+
+    def set_var(self, name, value):
+        self.push(
+            Message(
+                cmd = MessageCommands.SDK.REQUEST.SET_VAR,
+                data = MessageData(var_name = name, var_value = value),
+                source = None
+            )
+        )
 
     async def loop(self):
         while self.running:

@@ -1,14 +1,35 @@
 from enum import StrEnum, Enum
 
-class MessageCommands(str, Enum):
-    GET_PAGES = "Commands.GetPages"
-    GET_PATH = "Commands.GetPath"
-    REFRESH = "Commands.Refresh"
-    EVENT_CALLBACK = "Commands.EventCallback"
-    LIFECYCLE_HOOKS = "Commands.LifecycleHooks"
-    ERROR_RESPONSE = "Commands.ErrorResponse"
-    RESPONSE = "Commands.Response"
-    SEND = "Commands.Send"
+class MessageCommandsIDERequest(str, Enum):
+    EVENT_CALLBACK = "Commands.IDE.Request.EventCallback"
+    LIFECYCLE_HOOKS = "Commands.IDE.Request.LifecycleHooks"
+    GET_PAGES = "Commands.IDE.Request.GetPages"
+
+class MessageCommandsIDEResponse(str, Enum):
+    GET_PATH = "Commands.IDE.Response.GetPath"
+    ERROR_RESPONSE = "Commands.IDE.Response.ErrorResponse"
+    RESPONSE = "Commands.IDE.Response.Response"
+
+class MessageCommandsSDKRequest(str, Enum):
+    GET_PATH = "Commands.SDK.Request.GetPath"
+    REFRESH = "Commands.SDK.Request.Refresh"
+    SET_VAR = "Commands.SDK.Request.SetVar"
+
+class MessageCommandsSDKResponse(str, Enum):
+    ERROR_RESPONSE = "Commands.SDK.Response.ErrorResponse"
+    RESPONSE = "Commands.SDK.Response.Response"
+
+class MessageCommandsIDE:
+    REQUEST = MessageCommandsIDERequest
+    RESPONSE = MessageCommandsIDEResponse
+
+class MessageCommandsSDK:
+    REQUEST = MessageCommandsSDKRequest
+    RESPONSE = MessageCommandsSDKResponse
+
+class MessageCommands:
+    IDE = MessageCommandsIDE
+    SDK = MessageCommandsSDK
 
 class PathType(str, Enum):
     ASSETS = "PathType.Assets"
