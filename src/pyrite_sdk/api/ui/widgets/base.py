@@ -1,7 +1,7 @@
 from ....utils.ui import _serialize_value
 from ....interfaces.ui import PageType, WidgetType, EventType, ContextNodeType
 from ..context_manager import ContextNode
-from ..sentence import Var, Assets
+from ..sentence import Var
 from typing import Any, Optional
 
 class Widget(ContextNode):
@@ -47,10 +47,10 @@ class Widget(ContextNode):
         for alias_name, child in self.child_nodes.items():
             assert isinstance(child, list)
             self._setup_child(alias_name, child)
-        for arg in self.args.values():
-            if isinstance(arg, Assets):
-                arg.parent = self
-                arg.page = self.page
+        # for arg in self.args.values():
+        #     if isinstance(arg, Assets):
+        #         arg.parent = self
+        #         arg.page = self.page
 
     def alias(self, name: str) -> WidgetType:
         self.alias_name = name

@@ -61,7 +61,6 @@ class PageType(Protocol):
     packages: list[str]
     page: "PageType"
     events: dict[str, Callable[..., Any]]
-    assets_directory: str
 
     def __init__(self, packages: list[str]) -> None: ...
     def setup_widgets(self) -> None: ...

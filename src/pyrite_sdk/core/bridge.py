@@ -2,13 +2,15 @@ import asyncio
 import websockets
 import os
 import sys
+from pathlib import Path
+from typing import Optional
 from ..models.consts import *
 from ..models.schema import *
 from ..models.plugin import Plugin
 from ..interfaces.ui import PageType
 
 class Bridge:
-    def __init__(self, plugin: Plugin, queue_size: int = 10):
+    def __init__(self, plugin: Optional[Plugin] = None, queue_size: int = 10):
         self.plugin = plugin
         self.running = True
         self.connected_clients = set()
@@ -18,25 +20,38 @@ class Bridge:
         self.port = int(os.environ.get("PYRITE_IDE_PLUGIN_PORT")) # type: ignore
 
     async def handler(self, websocket):
+        if self.plugin is None:
+            raise RuntimeError("Bridge.start(plugin) must be called before accepting websocket connections")
+
         self.connected_clients.add(websocket)
+        msd = MessageData(path_type=PathType.ASSETS)
+        print("MSD:", msd)
+        self.push(
+            Message(
+                cmd=MessageCommands.GET_PATH,
+                data=msd,
+            ),
+            websocket,
+        )
         try:
             async for message in websocket:
                 message = Message.parse_raw(message)
+                print("DEBUG MATCH:", repr(message.cmd), type(message.cmd).__name__, type(message.cmd).__module__)
                 print("Received message:", message)
                 match message.cmd:
-                    case MessageCommands.GET_PAGES:
-                        try:
-                            self.push(
-                                message = Message(
-                                    cmd = MessageCommands.RESPONSE,
-                                    data = MessageData(
-                                        pages = {name:page.to_rfw() for name, page in self.plugin.pages.items()},
-                                    ),
-                                    source = message
-                                )
-                            )
-                        except Exception as e:
-                            print("Error in sending pages")
+                    # case MessageCommands.GET_PAGES:
+                    #     try:
+                    #         self.push(
+                    #             message = Message(
+                    #                 cmd = MessageCommands.RESPONSE,
+                    #                 data = MessageData(
+                    #                     pages = {name:page.to_rfw() for name, page in self.plugin.pages.items()},
+                    #                 ),
+                    #                 source = message
+                    #             )
+                    #         )
+                    #     except Exception as e:
+                    #         print("Error in sending pages")
                     case MessageCommands.EVENT_CALLBACK:
                         assert message.data.page is not None
                         _page: Optional[PageType] = self.plugin.pages.get(message.data.page)
@@ -49,14 +64,18 @@ class Bridge:
                         callback: CallbackData = message.data.callback
                         event = page.events.get(callback.event)
                         if not event:
-                            await self.send_error(websocket, Error.KEY_NOT_FOUND, message)
+                            self.send_error(websocket, Error.KEY_NOT_FOUND, message)
                             return
                         try:
                             event(**callback.args)
                         except Exception as e:
                             print(f"Error in callback {event}: {e}")
                     case MessageCommands.RESPONSE:
-                        await self.response_queue.put(message)
+                        assert self.response_queue is not None
+                        try:
+                            self.response_queue.put_nowait(message)
+                        except asyncio.QueueFull:
+                            print("Warning: Response queue was full")
                     case MessageCommands.LIFECYCLE_HOOKS:
                         try:
                             match message.data.lifecycle_hook:
@@ -74,7 +93,13 @@ class Bridge:
                                     self.plugin.on_uninstall()
                         except AttributeError:
                             print(f"Cannot find api {message.data.lifecycle_hook}")
-                            await self.send_error(websocket, Error.API_NOT_FOUND, message)
+                            self.send_error(websocket, Error.API_NOT_FOUND, message)
+                    case MessageCommands.GET_PATH:
+                        if message.data.path is not None:
+                            self.plugin.assets = Path(message.data.path)
+                            self.refresh()
+                        else:
+                            print("Warning: GET_PATH message missing path")
         except websockets.exceptions.ConnectionClosed:
             print("Connection closed")
             self.connected_clients.remove(websocket)
@@ -82,7 +107,7 @@ class Bridge:
     async def send(self, websocket, message: Message):
         try:
             print("Sending response:", message)
-            await websocket.send(message.json())
+            await websocket.send(message.json(by_alias=True))
         except websockets.exceptions.ConnectionClosed:
             print("Connection closed")
             self.connected_clients.remove(websocket)
@@ -93,7 +118,7 @@ class Bridge:
         for client in self.connected_clients.copy():
             await self.send(client, message)
 
-    async def send_error(self, websocket, error, source):
+    def send_error(self, websocket, error, source):
         self.push(
             Message(
                 cmd = MessageCommands.ERROR_RESPONSE,
@@ -102,6 +127,27 @@ class Bridge:
             ),
             websocket
         )
+
+    def refresh(self):
+        self.plugin.on_refresh()
+        if not hasattr(self.plugin, "pages"):
+            print("Warning: Plugin has no pages to refresh")
+            return
+        if not self.plugin.pages:
+            print("Warning: Plugin has empty pages to refresh")
+            return
+        try:
+            self.push(
+                message = Message(
+                    cmd = MessageCommands.REFRESH,
+                    data = MessageData(
+                        pages = {name:page.to_rfw() for name, page in self.plugin.pages.items()},
+                    ),
+                    source = None
+                )
+            )
+        except Exception as e:
+            print("Error in refreshing pages:", e)
 
     def push(self, message, client=None):
         if self.asyncio_loop is None or self.message_queue is None:
@@ -113,7 +159,7 @@ class Bridge:
             try:
                 self.message_queue.put_nowait([client, message])
             except asyncio.QueueFull:
-                print("Warning: Queue was full")
+                print("Warning: Message queue was full")
 
         self.asyncio_loop.call_soon_threadsafe(_put)
 
@@ -141,7 +187,8 @@ class Bridge:
             print(f"Server started on ws://localhost:{self.port}")
             await asyncio.gather(self.server.wait_closed(), self.loop())
 
-    def start(self):
+    def start(self, plugin: Plugin):
+        self.plugin = plugin
         try:
             if sys.platform == 'win32':
                 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

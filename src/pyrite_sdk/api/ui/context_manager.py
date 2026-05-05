@@ -24,8 +24,8 @@ class ContextNode(RFWSerializable):
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         ContextNode._stack.pop()
-        for child in self._child_nodes:
-            self.add(child)
+        for _ in range(len(self._child_nodes)):
+            self.add(self._child_nodes.pop(0))
 
     def _add(self, child: ContextNodeType) -> ContextNodeType:
         child.parent = self

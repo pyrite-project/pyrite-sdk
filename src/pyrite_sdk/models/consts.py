@@ -1,14 +1,19 @@
-from enum import StrEnum
+from enum import StrEnum, Enum
 
-class MessageCommands(StrEnum):
+class MessageCommands(str, Enum):
     GET_PAGES = "Commands.GetPages"
+    GET_PATH = "Commands.GetPath"
+    REFRESH = "Commands.Refresh"
     EVENT_CALLBACK = "Commands.EventCallback"
-    RESPONSE = "Commands.Response"
-    ERROR_RESPONSE = "Commands.ErrorResponse"
-    SEND = "Commands.Send"
     LIFECYCLE_HOOKS = "Commands.LifecycleHooks"
+    ERROR_RESPONSE = "Commands.ErrorResponse"
+    RESPONSE = "Commands.Response"
+    SEND = "Commands.Send"
 
-class LifecycleHooks(StrEnum):
+class PathType(str, Enum):
+    ASSETS = "PathType.Assets"
+
+class LifecycleHooks(str, Enum):
     ON_INSTALL = "LifecycleHooks.OnInstall"
     ON_START = "LifecycleHooks.OnStart"
     ON_PAUSE = "LifecycleHooks.OnPause"
@@ -16,7 +21,7 @@ class LifecycleHooks(StrEnum):
     ON_DISPOSE = "LifecycleHooks.OnDispose"
     ON_UNINSTALL = "LifecycleHooks.OnUninstall"
 
-class Error(StrEnum):
+class Error(str, Enum):
     KEY_NOT_FOUND = "Error.KeyNotFound"
     API_NOT_FOUND = "Error.ApiNotFound"
 

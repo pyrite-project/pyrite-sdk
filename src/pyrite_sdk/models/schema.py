@@ -12,7 +12,12 @@ class MessageData(BaseModel):
     page: Optional[str] = Field(None, description="The page to access")
     callback: Optional[CallbackData] = Field(None, description="The callback data")
     lifecycle_hook: Optional[LifecycleHooks] = Field(None, alias="lifecycleHook", description="The LifecycleHook to run")
+    path_type: Optional[PathType] = Field(None, alias="pathType")
+    path: Optional[str] = Field(None, description="The path to get")
     others: Optional[str] = Field(None, description="The other data")
+
+    class Config:
+        allow_population_by_field_name = True
 
 class Message(BaseModel):
     cmd: MessageCommands = Field(..., description="The command")
