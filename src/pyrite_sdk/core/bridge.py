@@ -4,9 +4,11 @@ import os
 import sys
 from pathlib import Path
 from typing import Optional
+from copy import copy
 from ..models.consts import *
 from ..models.schema import *
 from ..models.plugin import Plugin
+from ..api.ui.sentence.var import Var
 from ..interfaces.ui import PageType
 
 class Bridge:
@@ -152,11 +154,15 @@ class Bridge:
 
         self.asyncio_loop.call_soon_threadsafe(_put)
 
-    def set_var(self, name, value):
+    def let(self, name: Var, value: Any):
+        paths = list(name.paths)
+        if paths and paths[0] in {"data", "args", "state"}:
+            paths.pop(0)
+        print("INBRIDGE.LET", paths, name.paths, value, Var(*paths).to_rfw())
         self.push(
             Message(
                 cmd = MessageCommands.SDK.REQUEST.SET_VAR,
-                data = MessageData(var_name = name, var_value = value),
+                data = MessageData(var_name = Var(*paths).to_rfw(), var_value = value),
                 source = None
             )
         )

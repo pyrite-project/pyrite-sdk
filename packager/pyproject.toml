@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "packager"
+version = "0.1.0"
+description = "A tool for packaging Python applications to work with serious_python package"
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.25.1",
+]
+
+authors = [
+    {name = "Can1425", email = "myqf1425@126.com"},
+    {name = "kaixin168", email = "kaixin168kx@163.com"},
+]
+
+keywords = ["packaging", "python", "serious_python", "pyrite"]
+
+[project.scripts]
+pyrcli = "packager.main:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["packager"]
+
+[tool.setuptools.package-data]
+"*" = ["*.py"]

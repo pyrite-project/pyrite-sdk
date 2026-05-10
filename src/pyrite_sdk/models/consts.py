@@ -4,6 +4,7 @@ class MessageCommandsIDERequest(str, Enum):
     EVENT_CALLBACK = "Commands.IDE.Request.EventCallback"
     LIFECYCLE_HOOKS = "Commands.IDE.Request.LifecycleHooks"
     GET_PAGES = "Commands.IDE.Request.GetPages"
+    REQUEST = "Commands.IDE.Request.Request"
 
 class MessageCommandsIDEResponse(str, Enum):
     GET_PATH = "Commands.IDE.Response.GetPath"
@@ -14,6 +15,7 @@ class MessageCommandsSDKRequest(str, Enum):
     GET_PATH = "Commands.SDK.Request.GetPath"
     REFRESH = "Commands.SDK.Request.Refresh"
     SET_VAR = "Commands.SDK.Request.SetVar"
+    REQUEST = "Commands.SDK.Request.Request"
 
 class MessageCommandsSDKResponse(str, Enum):
     ERROR_RESPONSE = "Commands.SDK.Response.ErrorResponse"

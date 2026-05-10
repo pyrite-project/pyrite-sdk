@@ -12,16 +12,16 @@ def callback(**kws):
     print("callback-custom-widget", kws)
     bridge.push(
         Message(
-            cmd=MessageCommands.SEND,
+            cmd=MessageCommands.SDK.REQUEST.REQUEST,
             data=MessageData(
                 others="CallbackMessage"
             )
         )
     )
-    bridge.set_var("x", "Pyrite")
+    bridge.let(data.x, "Pyrite")
 
-page0 = Page(packages=[Package.core.widgets, Package.core.material])
-button = NewWidget("Button", states={"down": False}).add_to(page0)
+page = Page(packages=[Package.core.widgets, Package.core.material])
+button = NewWidget("Button", states={"down": False}).add_to(page)
 
 with GestureDetector(
         on_tap_down=let(state.down, True),
@@ -41,7 +41,7 @@ with GestureDetector(
     ):
         VarWidget(args.child)
 
-root = NewWidget(Ui.root).add_to(page0)
+root = NewWidget(Ui.root).add_to(page)
 with Container().add_to(root):
     with Column():
         Text(["Hello, ", data.x], text_direction=Ui.LTR)
@@ -51,14 +51,14 @@ with Container().add_to(root):
             with TextButton():
                 Text(["Hello, ", data.x], text_direction=Ui.LTR)
 
-page0.print_tree(print_args=False)
-print(page0.to_rfw())
+page.print_tree(print_args=False)
+print(page.to_rfw())
 
 class MyPlugin(Plugin):
     def __init__(self):
         super().__init__()
         self.pages = {
-            "home": page0
+            "home": page
         }
 
     def on_start(self):
