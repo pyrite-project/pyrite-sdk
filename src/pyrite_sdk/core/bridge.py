@@ -41,7 +41,7 @@ class Bridge:
                 print("DEBUG MATCH:", repr(message.cmd), type(message.cmd).__name__, type(message.cmd).__module__)
                 print("Received message:", message)
                 match message.cmd:
-                    case MessageCommands.IDE.REQUEST.GET_PAGES:
+                    case MessageCommands.IDE.REQUEST.REFRESH:
                         self.refresh()
                     case MessageCommands.IDE.REQUEST.EVENT_CALLBACK:
                         assert message.data.page is not None

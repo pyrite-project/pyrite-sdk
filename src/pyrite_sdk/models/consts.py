@@ -3,7 +3,7 @@ from enum import StrEnum, Enum
 class MessageCommandsIDERequest(str, Enum):
     EVENT_CALLBACK = "Commands.IDE.Request.EventCallback"
     LIFECYCLE_HOOKS = "Commands.IDE.Request.LifecycleHooks"
-    GET_PAGES = "Commands.IDE.Request.GetPages"
+    REFRESH = "Commands.IDE.Request.Refresh"
     REQUEST = "Commands.IDE.Request.Request"
 
 class MessageCommandsIDEResponse(str, Enum):
