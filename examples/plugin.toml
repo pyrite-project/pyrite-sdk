@@ -1,0 +1,13 @@
+[general]
+name = "My Plugin"
+id = "my-plugin"
+version = "1.0.0"
+author = "Your Name"
+
+[permissions]
+ui = true
+
+[platform]
+linux = true
+macos = true
+windows = true

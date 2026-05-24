@@ -1,36 +1,47 @@
-from .base import Widget, _serialize_value
-from .widgets import State
-from ...utils.ui import RFWSerializable
-from .event import Events
+from .widgets import NewWidget
+from .context_manager import ContextNode
+from ...interfaces.ui import WidgetType, PageType
+from typing import Any, Callable
 
-class Page(RFWSerializable):
-    def __init__(self, packages: list[str], widgets: dict[str, Widget | State]):
-        self.packages = packages
-        self.widgets = widgets
-        self.page = self
-        self.events = Events()
-        self.assets_directory = "ASSETS"
-        self.setup_widgets()
+class Page(ContextNode):
+    def __init__(self, packages: list[str]) -> None:
+        super().__init__("Page", multi_child=True)
+        self.packages: list[str] = packages
+        self.page: PageType = self
+        self.events: dict[str, Callable[..., Any]] = {}
+        self.setup_done: bool = False
 
-    def setup_widgets(self):
-        for widget in self.widgets.values():
-            if not isinstance(widget, Widget):
+    def setup_widgets(self) -> None:
+        for child in self.children:
+            if not isinstance(child, NewWidget):
                 continue
-            widget.page = widget.parent = self
-            widget.setup()
+            c = child.child
+            if c is None:
+                continue
+            print(c)
+            assert isinstance(c, WidgetType)
+            c.page = c.parent = self
+            c.setup()
+        self.setup_done = True
 
-    def get_packages(self):
-        return ';\n'.join([f"import {package}" for package in self.packages])+";\n"
+    def get_packages(self) -> str:
+        return ';'.join([f"import {package}" for package in self.packages])+";\n"
 
-    def get_widgets(self):
-        result = ""
-        for (name, widget) in self.widgets.items():
-            state = ""
-            if isinstance(widget, State):
-                state = _serialize_value(widget.states)
-            result += f"widget {name} {state} = {widget.to_rfw()};\n"
-
+    def get_widgets(self) -> str:
+        if not self.setup_done:
+            self.setup_widgets()
+        result: str = ""
+        for child in self.children:
+            assert isinstance(child, NewWidget)
+            if child.child is None:
+                continue
+            result += child.to_rfw() + ";\n"
         return result
 
-    def to_rfw(self):
+    def to_rfw(self) -> str:
         return f"{self.get_packages()}{self.get_widgets()}"
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        super().__exit__(exc_type, exc_val, exc_tb)
+        self.setup_widgets()
+        return None

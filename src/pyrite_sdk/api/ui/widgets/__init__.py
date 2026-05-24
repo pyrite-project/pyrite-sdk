@@ -5,17 +5,25 @@ from .container import (Container,
                         Expanded,
                         FittedBox)
 from .text import Text
-from .state import State
 from .button import TextButton
 from .gesture_detector import GestureDetector
+from .new_widget import NewWidget
+from .scaffold import Scaffold, AppBar
+from .base import Widget, VarWidget
 
-__all__ = ["Center",
-           "Container",
-           "Text",
-           "State",
-           "TextButton",
-           "Column",
-           "Row",
-           "Expanded",
-           "FittedBox",
-           "GestureDetector"]
+__all__ = [
+    "Center",
+    "Container",
+    "Text",
+    "TextButton",
+    "Column",
+    "Row",
+    "Expanded",
+    "FittedBox",
+    "GestureDetector",
+    "NewWidget",
+    "Scaffold",
+    "AppBar",
+    "Widget",
+    "VarWidget"
+]
