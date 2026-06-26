@@ -1,8 +1,8 @@
-# PyriteSDK WebSocket 传输数据规范 v2
+# PyriteSDK WebSocket 传输数据规范
 
 ## 1. 设计原则
 
-1. **类型安全** —— 每个消息类型有独立的 Payload 模型，拒绝大一统的 Optional 字段集合
+1. **类型安全** —— 每个消息类型有独立的 Payload 模型
 2. **请求-响应关联** —— 每个请求携带 `id`，响应通过 `reply_to` 关联
 3. **双向对称** —— IDE 和 SDK 使用相同的消息框架
 4. **版本化** —— 协议版本号协商

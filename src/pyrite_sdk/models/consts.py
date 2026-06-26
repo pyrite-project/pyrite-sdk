@@ -1,52 +1,29 @@
 from enum import StrEnum, Enum
 
-class MessageCommandsIDERequest(str, Enum):
-    EVENT_CALLBACK = "Commands.IDE.Request.EventCallback"
-    LIFECYCLE_HOOKS = "Commands.IDE.Request.LifecycleHooks"
-    REFRESH = "Commands.IDE.Request.Refresh"
-    REQUEST = "Commands.IDE.Request.Request"
 
-class MessageCommandsIDEResponse(str, Enum):
-    GET_PATH = "Commands.IDE.Response.GetPath"
-    ERROR_RESPONSE = "Commands.IDE.Response.ErrorResponse"
-    RESPONSE = "Commands.IDE.Response.Response"
+class PathScope(str, Enum):
+    ASSETS = "assets"
+    CACHE = "cache"
+    DATA = "data"
+    TEMP = "temp"
 
-class MessageCommandsSDKRequest(str, Enum):
-    GET_PATH = "Commands.SDK.Request.GetPath"
-    REFRESH = "Commands.SDK.Request.Refresh"
-    SET_VAR = "Commands.SDK.Request.SetVar"
-    REQUEST = "Commands.SDK.Request.Request"
 
-class MessageCommandsSDKResponse(str, Enum):
-    ERROR_RESPONSE = "Commands.SDK.Response.ErrorResponse"
-    RESPONSE = "Commands.SDK.Response.Response"
+class LifecycleHook(str, Enum):
+    INSTALL = "install"
+    START = "start"
+    PAUSE = "pause"
+    RESUME = "resume"
+    DISPOSE = "dispose"
+    UNINSTALL = "uninstall"
 
-class MessageCommandsIDE:
-    REQUEST = MessageCommandsIDERequest
-    RESPONSE = MessageCommandsIDEResponse
 
-class MessageCommandsSDK:
-    REQUEST = MessageCommandsSDKRequest
-    RESPONSE = MessageCommandsSDKResponse
+class ErrorCode(str, Enum):
+    KEY_NOT_FOUND = "key_not_found"
+    API_NOT_FOUND = "api_not_found"
+    INVALID_REQUEST = "invalid_request"
+    INTERNAL_ERROR = "internal_error"
+    TIMEOUT = "timeout"
 
-class MessageCommands:
-    IDE = MessageCommandsIDE
-    SDK = MessageCommandsSDK
-
-class PathType(str, Enum):
-    ASSETS = "PathType.Assets"
-
-class LifecycleHooks(str, Enum):
-    ON_INSTALL = "LifecycleHooks.OnInstall"
-    ON_START = "LifecycleHooks.OnStart"
-    ON_PAUSE = "LifecycleHooks.OnPause"
-    ON_RESUME = "LifecycleHooks.OnResume"
-    ON_DISPOSE = "LifecycleHooks.OnDispose"
-    ON_UNINSTALL = "LifecycleHooks.OnUninstall"
-
-class Error(str, Enum):
-    KEY_NOT_FOUND = "Error.KeyNotFound"
-    API_NOT_FOUND = "Error.ApiNotFound"
 
 class Ui(StrEnum):
     LTR = "ltr"
@@ -54,9 +31,11 @@ class Ui(StrEnum):
     Title = "title"
     root = "root"
 
+
 class PackageCore(StrEnum):
     widgets = "core.widgets"
     material = "core.material"
+
 
 class Package:
     core = PackageCore

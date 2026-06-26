@@ -1,27 +1,88 @@
 from pydantic import BaseModel, Field
-from .consts import *
-from typing import Optional, Any, Union
+from typing import Optional, Any, Dict
+from uuid import uuid4
+import time
+from .consts import PathScope, LifecycleHook, ErrorCode
 
-class CallbackData(BaseModel):
-    args: dict = Field(..., description="The arguments")
-    event: str = Field(..., description="The event name")
 
-class MessageData(BaseModel):
-    err: Optional[str] = Field(None, description="The error")
-    pages: Optional[dict] = Field(None, description="The map to pages RFW code and name")
-    page: Optional[str] = Field(None, description="The page to access")
-    callback: Optional[CallbackData] = Field(None, description="The callback data")
-    lifecycle_hook: Optional[LifecycleHooks] = Field(None, alias="lifecycleHook", description="The LifecycleHook to run")
-    path_type: Optional[PathType] = Field(None, alias="pathType")
-    var_name: Optional[str] = Field(None, alias="varName", description="The variable name to set")
-    var_value: Optional[Any] = Field(None, alias="varValue", description="The variable value to set")
-    path: Optional[str] = Field(None, description="The path to get")
-    others: Optional[str] = Field(None, description="The other data")
+def new_id() -> str:
+    return uuid4().hex
 
-    class Config:
-        allow_population_by_field_name = True
+def now() -> int:
+    return int(time.time() * 1000)
 
-class Message(BaseModel):
-    cmd: Union[MessageCommandsIDERequest, MessageCommandsIDEResponse, MessageCommandsSDKRequest, MessageCommandsSDKResponse] = Field(..., description="The command")
-    data: MessageData = Field(..., description="The data")
-    source: Optional[Any] = Field(None, description="The source message")
+
+class PagePayload(BaseModel):
+    pages: Dict[str, str]
+
+
+class VarSetPayload(BaseModel):
+    name: str
+    value: Any
+
+
+class PathRequestPayload(BaseModel):
+    scope: PathScope
+
+
+class EventCallbackPayload(BaseModel):
+    page: str
+    name: str
+    args: Dict[str, Any]
+
+
+class LifecyclePayload(BaseModel):
+    hook: LifecycleHook
+
+
+class RefreshPayload(BaseModel):
+    pass
+
+
+class OkResponsePayload(BaseModel):
+    data: Optional[Any] = None
+
+
+class ErrorResponsePayload(BaseModel):
+    code: ErrorCode
+    message: str
+    details: Optional[Any] = None
+
+
+class PathResponsePayload(BaseModel):
+    scope: PathScope
+    path: str
+
+
+class Envelope(BaseModel):
+    version: str = "0.0"
+    id: str = Field(default_factory=new_id)
+    type: str
+    payload: dict
+    reply_to: Optional[str] = None
+    timestamp: int = Field(default_factory=now)
+
+
+def request(type_: str, payload: BaseModel) -> Envelope:
+    return Envelope(type=type_, payload=payload.dict())
+
+
+def ok(original: Envelope, data: Any = None) -> Envelope:
+    role = original.type.split(".", 1)[0]
+    return Envelope(
+        type=f"{role}.response.ok",
+        payload=OkResponsePayload(data=data).dict(),
+        reply_to=original.id,
+    )
+
+
+def err(original: Envelope, code: ErrorCode, message: str,
+        details: Any = None) -> Envelope:
+    role = original.type.split(".", 1)[0]
+    return Envelope(
+        type=f"{role}.response.error",
+        payload=ErrorResponsePayload(
+            code=code, message=message, details=details
+        ).dict(),
+        reply_to=original.id,
+    )
