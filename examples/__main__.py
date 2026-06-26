@@ -2,23 +2,15 @@ from pyrite_sdk.api.ui.widgets import *
 from pyrite_sdk.api.ui.page import Page
 from pyrite_sdk.api.ui.event import Event
 from pyrite_sdk.api.ui.sentence import *
-from pyrite_sdk.core.bridge import Bridge
-from pyrite_sdk.models.schema import *
-from pyrite_sdk.models.consts import *
-from pyrite_sdk.models.plugin import Plugin
+from pyrite_sdk.models.schema import request, OkResponsePayload
+from pyrite_sdk.models.consts import Package, Ui
+from pyrite_sdk.core.plugin import Plugin
 
 def callback(**kws):
     """Callback handler for custom widget events."""
     print("callback-custom-widget", kws)
-    bridge.push(
-        Message(
-            cmd=MessageCommands.SDK.REQUEST.REQUEST,
-            data=MessageData(
-                others="CallbackMessage"
-            )
-        )
-    )
-    bridge.let(data.x, "Pyrite")
+    plugin.bridge.push(request("sdk.request", OkResponsePayload(data="CallbackMessage")))
+    plugin.bridge.let(data.x, "Pyrite")
 
 page = Page(packages=[Package.core.widgets, Package.core.material])
 button = NewWidget("Button", states={"down": False}).add_to(page)
@@ -69,5 +61,4 @@ class MyPlugin(Plugin):
 
 if __name__ == "__main__":
     plugin = MyPlugin()
-    bridge = Bridge()
-    bridge.start(plugin)
+    plugin.start()
