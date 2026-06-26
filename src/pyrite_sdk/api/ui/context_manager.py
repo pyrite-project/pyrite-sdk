@@ -42,11 +42,11 @@ class ContextNode(RFWSerializable):
     @overload
     def add(self, *children: ContextNodeType) -> list[ContextNodeType]: ...
 
-    def add(self, child: ContextNodeType, *children: list[ContextNodeType]) -> list[ContextNodeType] | ContextNodeType:
+    def add(self, child: ContextNodeType, *children: ContextNodeType) -> list[ContextNodeType] | ContextNodeType:
         self._add(child)
         for c in children:
             self._add(c)
-        return children if children else child
+        return list(children) if children else child
 
     def add_to(self, parent: ContextNodeType) -> ContextNodeType:
         parent.add(self)
