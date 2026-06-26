@@ -30,7 +30,8 @@ class Bridge:
         self.running = True
         self.connected_clients = set()
         self.message_queue: Optional[asyncio.Queue] = None
-        self.response_queue: Optional[asyncio.Queue] = None
+        # self.response_queue: Optional[asyncio.Queue] = None
+        self.callbacks: dict[str, Callable[[dict], Any]] = {}
         self.asyncio_loop: Optional[asyncio.AbstractEventLoop] = None
         self.queue_size = queue_size
         self.port = int(os.environ.get("PYRITE_IDE_PLUGIN_PORT"))  # type: ignore
@@ -77,11 +78,12 @@ class Bridge:
                             self.push(err(env, ErrorCode.INTERNAL_ERROR, str(e)), websocket)
 
                     case "ide.response.ok" | "ide.response.error":
-                        if self.response_queue is not None:
+                        if env.reply_to and env.reply_to in self.callbacks:
+                            callback = self.callbacks.pop(env.reply_to)
                             try:
-                                self.response_queue.put_nowait(env)
-                            except asyncio.QueueFull:
-                                print("Warning: Response queue was full")
+                                callback(env.payload)
+                            except Exception as e:
+                                print(f"Error in callback: {e}")
 
                     case "ide.lifecycle.hook":
                         payload = LifecyclePayload(**env.payload)
@@ -169,6 +171,9 @@ class Bridge:
     def push_wait_response(self, envelope: Envelope,
                            callback: Optional[Callable[[dict], Any]] = None,
                            client=None):
+        env_id = envelope.id
+        if callback:
+            self.callbacks[env_id] = callback
         self.push(envelope, client)
 
     def let(self, name: Var, value: Any):
@@ -203,7 +208,7 @@ class Bridge:
 
     async def main(self):
         self.message_queue = asyncio.Queue(maxsize=self.queue_size)
-        self.response_queue = asyncio.Queue(maxsize=self.queue_size)
+        # self.response_queue = asyncio.Queue(maxsize=self.queue_size)
         self.asyncio_loop = asyncio.get_running_loop()
         async with websockets.serve(self.handler, "localhost", self.port) as self.server:
             print(f"Server started on ws://localhost:{self.port}")

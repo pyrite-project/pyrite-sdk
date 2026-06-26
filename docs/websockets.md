@@ -12,14 +12,14 @@
 
 ## 2. 传输层
 
-| 项目   | 值                                 |
-| ------ | ---------------------------------- |
-| 协议   | WebSocket (RFC 6455)               |
-| 地址   | `ws://localhost:{port}`          |
-| 端口   | 环境变量`PYRITE_IDE_PLUGIN_PORT` |
-| 编码   | UTF-8                              |
-| 帧格式 | 文本帧 (Text Frame)                |
-| 序列化 | JSON                               |
+| 项目 | 值 |
+| --- | --- |
+| 协议 | WebSocket (RFC 6455) |
+| 地址 | `ws://localhost:{port}` |
+| 端口 | 环境变量`PYRITE_IDE_PLUGIN_PORT` |
+| 编码 | UTF-8 |
+| 帧格式 | 文本帧 (Text Frame) |
+| 序列化 | JSON |
 
 ---
 
@@ -29,7 +29,7 @@
 
 ```python
 class Envelope(BaseModel):
-    version: str = "2.0"           # 协议版本
+    version: str = "0.0"           # 协议版本
     id: str                        # 消息唯一 ID (UUID v4)
     type: str                      # 消息类型，见第4节
     payload: dict                  # 具体载荷
@@ -41,7 +41,7 @@ class Envelope(BaseModel):
 
 ```json
 {
-  "version": "2.0",
+  "version": "0.0",
   "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "type": "sdk.page.push",
   "payload": { ... },
@@ -53,31 +53,32 @@ class Envelope(BaseModel):
 
 ## 4. 消息类型（type 字段）
 
-### 4.1 SDK -> IDE
+### 4.1 `SDK -> IDE`
 
-| type                 | 方向     | 说明             |
-| -------------------- | -------- | ---------------- |
-| `sdk.page.push`    | SDK→IDE | 推送页面 UI 描述 |
-| `sdk.var.set`      | SDK→IDE | 设置响应式变量   |
-| `sdk.path.request` | SDK→IDE | 请求资源路径     |
-| `sdk.request`      | SDK→IDE | 通用请求         |
+|type|说明|
+|---|---|
+|`sdk.page.push`|推送页面 UI 描述|
+|`sdk.var.set`|设置响应式变量|
+|`sdk.path.request`|请求资源路径|
+|`sdk.workspace.get_dir_list`|请求当前工作区的问价目录|
+|`sdk.request`|通用请求|
 
-### 4.2 IDE -> SDK
+### 4.2 `IDE -> SDK`
 
-| type                   | 方向     | 说明             |
-| ---------------------- | -------- | ---------------- |
-| `ide.event.callback` | IDE→SDK | 用户交互事件回调 |
-| `ide.lifecycle.hook` | IDE→SDK | 生命周期钩子     |
-| `ide.page.refresh`   | IDE→SDK | 触发 UI 刷新     |
-| `ide.request`        | IDE→SDK | 通用请求         |
+|type|说明|
+|---|---|
+|`ide.event.callback`|用户交互事件回调|
+|`ide.lifecycle.hook`|生命周期钩子|
+|`ide.page.refresh`|触发 UI 刷新|
+|`ide.request`|通用请求|
+|`ide.response.path`|路径查询响应|
 
 ### 4.3 响应（双向）
 
-| type                 | 方向     | 说明         |
-| -------------------- | -------- | ------------ |
-| `*.response.ok`    | 双向     | 成功响应     |
-| `*.response.error` | 双向     | 错误响应     |
-| `*.response.path`  | IDE→SDK | 路径查询响应 |
+|type|说明|
+|---|---|
+|`*.response.ok`|成功响应|
+|`*.response.error`|错误响应|
 
 ---
 
@@ -214,7 +215,7 @@ class OkResponsePayload(BaseModel):
 ```json
 {
   "type": "sdk.response.ok",
-  "reply_to": "req-uuid-xxx",
+  "reply_to": "uuid",
   "payload": { "data": null }
 }
 ```
@@ -296,12 +297,10 @@ class PathScope(str, Enum):
     TEMP   = "temp"
 
 class LifecycleHook(str, Enum):
-    INSTALL   = "install"
     START     = "start"
     PAUSE     = "pause"
     RESUME    = "resume"
     DISPOSE   = "dispose"
-    UNINSTALL = "uninstall"
 
 class ErrorCode(str, Enum):
     KEY_NOT_FOUND    = "key_not_found"
@@ -350,7 +349,7 @@ class PathResponsePayload(BaseModel):
 # ─── 消息信封 ──────────────────────────────────────
 
 class Envelope(BaseModel):
-    version: str = "2.0"
+    version: str = "0.0"
     id: str = Field(default_factory=new_id)
     type: str
     payload: dict
@@ -442,15 +441,3 @@ SDK                             IDE
 | 生命周期发起   | 接收`ide.lifecycle.hook` | 发送`ide.lifecycle.hook` |
 
 ---
-
-## 9. 与 v1 差异对照
-
-| v1 (当前实现)                    | v2 (本规范)                            | 改进点                    |
-| -------------------------------- | -------------------------------------- | ------------------------- |
-| `MessageData` 全 Optional 字段 | 每个 type 独立 Payload                 | 类型安全，减少误用        |
-| `source: Optional[Any]`        | `reply_to: Optional[str]`            | 强类型关联，UUID 精确匹配 |
-| `push_wait_response` 为 stub   | `reply()` 工厂函数                   | 天然支持等待响应          |
-| 无版本号                         | `version: "2.0"`                     | 向前兼容                  |
-| 无时间戳                         | `timestamp`                          | 调试、延迟分析            |
-| 无标准化错误码                   | `ErrorCode` 枚举 + message + details | 结构化错误                |
-| 同一枚举杂糅多方向               | SDK/IDE 方向独立枚举                   | 清晰职责边界              |
