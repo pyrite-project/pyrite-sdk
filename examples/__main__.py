@@ -11,6 +11,7 @@ def callback(**kws):
     print("callback-custom-widget", kws)
     plugin.bridge.push(request("sdk.request", OkResponsePayload(data="CallbackMessage")))
     plugin.bridge.let(data.x, "Pyrite")
+    plugin.local_workspace.get_dir_list("/", lambda **kws: print("callback-get-dir-list", kws))
 
 page = Page(packages=[Package.core.widgets, Package.core.material])
 button = NewWidget("Button", states={"down": False}).add_to(page)

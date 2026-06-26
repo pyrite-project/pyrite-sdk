@@ -52,64 +52,60 @@ class Bridge:
         try:
             async for raw in websocket:
                 env = Envelope.parse_raw(raw)
-
-                match env.type:
-                    case "ide.page.refresh":
-                        self.refresh()
-                        self.push(ok(env), websocket)
-
-                    case "ide.event.callback":
-                        payload = EventCallbackPayload(**env.payload)
-                        _page: Optional[PageType] = self.plugin.pages.get(payload.page)
-                        if not _page:
-                            self.push(err(env, ErrorCode.KEY_NOT_FOUND,
-                                          f"Page '{payload.page}' not found"), websocket)
-                            return
-                        page: PageType = _page
-                        event = page.events.get(payload.name)
-                        if not event:
-                            self.push(err(env, ErrorCode.KEY_NOT_FOUND,
-                                          f"Event '{payload.name}' not found"), websocket)
-                            return
-                        try:
-                            event(**payload.args)
+                if env.data:
+                    pass
+                else:
+                    match env.type:
+                        case "ide.page.refresh":
+                            self.refresh()
                             self.push(ok(env), websocket)
-                        except Exception as e:
-                            self.push(err(env, ErrorCode.INTERNAL_ERROR, str(e)), websocket)
 
-                    case "ide.response.ok" | "ide.response.error":
-                        if env.reply_to and env.reply_to in self.callbacks:
-                            callback = self.callbacks.pop(env.reply_to)
+                        case "ide.event.callback":
+                            payload = EventCallbackPayload(**env.payload)
+                            _page: Optional[PageType] = self.plugin.pages.get(payload.page)
+                            if not _page:
+                                self.push(err(env, ErrorCode.KEY_NOT_FOUND,
+                                            f"Page '{payload.page}' not found"), websocket)
+                                return
+                            page: PageType = _page
+                            event = page.events.get(payload.name)
+                            if not event:
+                                self.push(err(env, ErrorCode.KEY_NOT_FOUND,
+                                            f"Event '{payload.name}' not found"), websocket)
+                                return
                             try:
-                                callback(env.payload)
-                            except Exception as e:
-                                print(f"Error in callback: {e}")
-
-                    case "ide.lifecycle.hook":
-                        payload = LifecyclePayload(**env.payload)
-                        handler = LIFECYCLE_MAP.get(payload.hook)
-                        if handler:
-                            try:
-                                handler(self)
+                                event(**payload.args)
                                 self.push(ok(env), websocket)
                             except Exception as e:
                                 self.push(err(env, ErrorCode.INTERNAL_ERROR, str(e)), websocket)
-                        else:
-                            self.push(err(env, ErrorCode.API_NOT_FOUND,
-                                          f"Unknown lifecycle hook: {payload.hook}"), websocket)
 
-                    case "ide.response.path":
-                        payload = PathResponsePayload(**env.payload)
-                        if payload.path:
-                            self.plugin.assets = Path(payload.path)
-                            self.refresh()
-                        else:
-                            print("Warning: path response missing path")
+                        case "ide.lifecycle.hook":
+                            payload = LifecyclePayload(**env.payload)
+                            handler = LIFECYCLE_MAP.get(payload.hook)
+                            if handler:
+                                try:
+                                    handler(self)
+                                    self.push(ok(env), websocket)
+                                except Exception as e:
+                                    self.push(err(env, ErrorCode.INTERNAL_ERROR, str(e)), websocket)
+                            else:
+                                self.push(err(env, ErrorCode.API_NOT_FOUND,
+                                            f"Unknown lifecycle hook: {payload.hook}"), websocket)
 
-                    case _:
-                        self.push(err(env, ErrorCode.INVALID_REQUEST,
-                                      f"Unknown message type: {env.type}"), websocket)
-
+                        case "ide.response.path":
+                            payload = PathResponsePayload(**env.payload)
+                            if payload.path:
+                                self.plugin.assets = Path(payload.path)
+                                self.refresh()
+                            else:
+                                print("Warning: path response missing path")
+                
+                if env.reply_to and env.reply_to in self.callbacks:
+                    callback = self.callbacks.pop(env.reply_to)
+                    try:
+                        callback(env.payload or env.data or {})
+                    except Exception as e:
+                        print(f"Error in callback: {e}")
         except websockets.exceptions.ConnectionClosed:
             print("Connection closed")
             self.connected_clients.discard(websocket)
@@ -169,7 +165,7 @@ class Bridge:
         self.asyncio_loop.call_soon_threadsafe(_put)
 
     def push_wait_response(self, envelope: Envelope,
-                           callback: Optional[Callable[[dict], Any]] = None,
+                           callback: Optional[Callable[[dict], Any]]=None,
                            client=None):
         env_id = envelope.id
         if callback:

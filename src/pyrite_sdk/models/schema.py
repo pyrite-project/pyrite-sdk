@@ -25,6 +25,10 @@ class PathRequestPayload(BaseModel):
     scope: PathScope
 
 
+class LocalWorkspaceRequestPathPayload(BaseModel):
+    path: str
+
+
 class EventCallbackPayload(BaseModel):
     page: str
     name: str
@@ -53,18 +57,21 @@ class PathResponsePayload(BaseModel):
     scope: PathScope
     path: str
 
+class LocalWorkspaceResponseListDir(BaseModel):
+    dir_list: list[str]
 
 class Envelope(BaseModel):
     version: str = "0.0"
     id: str = Field(default_factory=new_id)
     type: str
     payload: dict
+    data: Optional[Any] = None
     reply_to: Optional[str] = None
     timestamp: int = Field(default_factory=now)
 
 
-def request(type_: str, payload: BaseModel) -> Envelope:
-    return Envelope(type=type_, payload=payload.dict())
+def request(type_: str, payload: Optional[BaseModel] = None, data: Optional[Any] = None) -> Envelope:
+    return Envelope(type=type_, payload=payload.dict() if payload else {}, data=data)
 
 
 def ok(original: Envelope, data: Any = None) -> Envelope:
