@@ -115,6 +115,7 @@ class PackageCommand:
         cleanup_packages: bool = False,
         cleanup_package_files: list,
         verbose: bool = False,
+        pip_tool: str = "uv",
     ) -> None:
         self._console.print(
             Panel.fit(
@@ -334,8 +335,17 @@ class PackageCommand:
                             for index in extra_pypi_indexes:
                                 pip_args.extend(["--extra-index-url", index])
 
-                            result = subprocess.run(
-                                [
+                            if pip_tool == "pip":
+                                install_cmd = [
+                                    sys.executable, "-m", "pip", "install",
+                                    "--upgrade",
+                                    *pip_args,
+                                    "--target",
+                                    site_packages_dir,
+                                    *requirements,
+                                ]
+                            else:
+                                install_cmd = [
                                     "uv",
                                     "pip",
                                     "install",
@@ -347,7 +357,10 @@ class PackageCommand:
                                     *requirements,
                                     "--index-strategy",
                                     "unsafe-best-match",
-                                ],
+                                ]
+
+                            result = subprocess.run(
+                                install_cmd,
                                 env={
                                     **os.environ,
                                     **{

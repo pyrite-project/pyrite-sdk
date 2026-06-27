@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Protocol, runtime_checkable, Any, Optional, Callable, overload
 
 @runtime_checkable

@@ -13,8 +13,8 @@ class Plugin(ABC):
         self.cfg: Optional[Cfg] = None
         self.bridge = Bridge(self, queue_size)
         self.start = self.bridge.start
-        self.local_workspace = LocalWorkspace()
-        self.board_workspace = BoardWorkspace()
+        self.local_workspace = LocalWorkspace(self.bridge)
+        self.board_workspace = BoardWorkspace(self.bridge)
 
     @property
     def assets(self) -> Optional[Path]:

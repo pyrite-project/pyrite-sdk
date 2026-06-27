@@ -15,12 +15,10 @@ if TYPE_CHECKING:
     from ..interfaces.plugin import PluginType
 
 LIFECYCLE_MAP: dict[LifecycleHook, Callable] = {
-    LifecycleHook.INSTALL: lambda self: self.plugin.on_install(),
     LifecycleHook.START: lambda self: self.plugin.on_start(),
     LifecycleHook.PAUSE: lambda self: self.plugin.on_pause(),
     LifecycleHook.RESUME: lambda self: self.plugin.on_resume(),
     LifecycleHook.DISPOSE: lambda self: self.plugin.on_dispose(),
-    LifecycleHook.UNINSTALL: lambda self: self.plugin.on_uninstall(),
 }
 
 
@@ -103,9 +101,14 @@ class Bridge:
                 if env.reply_to and env.reply_to in self.callbacks:
                     callback = self.callbacks.pop(env.reply_to)
                     try:
-                        callback(env.payload or env.data or {})
+                        data = env.payload or env.data or {}
+                        print(f"[DEBUG] Invoking callback for reply_to={env.reply_to}, type={env.type}, data={data}")
+                        callback(**data) if isinstance(data, dict) else callback(data)
+                        print(f"[DEBUG] Callback invoked successfully")
                     except Exception as e:
                         print(f"Error in callback: {e}")
+                elif env.reply_to:
+                    print(f"[DEBUG] reply_to={env.reply_to} not found in callbacks, type={env.type}")
         except websockets.exceptions.ConnectionClosed:
             print("Connection closed")
             self.connected_clients.discard(websocket)
@@ -125,9 +128,6 @@ class Bridge:
             await self.send(client, envelope)
 
     def refresh(self):
-        if not isinstance(self.plugin, PluginType):
-            print("Warning: Cannot find plugin in Bridge")
-            return
         self.plugin.on_refresh()
         if not hasattr(self.plugin, "pages"):
             print("Warning: Plugin has no pages to refresh")
@@ -176,15 +176,18 @@ class Bridge:
         paths = list(name.paths)
         if paths and paths[0] in {"data", "args", "state"}:
             paths.pop(0)
+        var_name = Var(*paths).to_rfw()
+        print(f"[DEBUG] let() called: name={var_name}, value={value}")
         self.push(
             request(
                 "sdk.var.set",
                 VarSetPayload(
-                    name=Var(*paths).to_rfw(),
+                    name=var_name,
                     value=value,
                 ),
             )
         )
+        print(f"[DEBUG] let() pushed sdk.var.set to queue")
 
     async def loop(self):
         while self.running:

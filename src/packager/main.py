@@ -95,6 +95,10 @@ def _interactive_mode() -> dict:
     params["compile_packages"] = Confirm.ask("  编译依赖包", default=False)
     params["cleanup"] = Confirm.ask("  执行清理", default=False)
     params["verbose"] = Confirm.ask("  详细输出", default=False)
+    params["pip_tool"] = Prompt.ask(
+        "  依赖安装工具 (uv/pip)",
+        default="uv",
+    )
 
     # Step 6: asset path
     _console.print(f"\n[bold]Step 6:[/bold] 输出路径")
@@ -125,6 +129,7 @@ def _interactive_mode() -> dict:
     summary.add_row("编译包", "是" if params["compile_packages"] else "否")
     summary.add_row("清理", "是" if params["cleanup"] else "否")
     summary.add_row("详细输出", "是" if params["verbose"] else "否")
+    summary.add_row("依赖工具", str(params.get("pip_tool", "uv")))
     summary.add_row("输出路径", str(params["asset"]))
 
     _console.print(
@@ -249,6 +254,13 @@ def package(
             help="详细输出",
         ),
     ] = False,
+    pip_tool: Annotated[
+        str,
+        typer.Option(
+            "--pip-tool",
+            help="依赖安装工具，可选 uv 或 pip",
+        ),
+    ] = "uv",
     interactive: Annotated[
         bool,
         typer.Option(
@@ -284,6 +296,7 @@ def package(
             cleanup_packages=params.get("cleanup_packages", False),
             cleanup_package_files=params.get("cleanup_package_files", []),
             verbose=params.get("verbose", False),
+            pip_tool=params.get("pip_tool", "uv"),
         )
         return
 
@@ -304,6 +317,7 @@ def package(
         cleanup_packages=cleanup_packages,
         cleanup_package_files=cleanup_package_files or [],
         verbose=verbose,
+        pip_tool=pip_tool,
     )
 
 

@@ -29,6 +29,40 @@ class LocalWorkspaceRequestPathPayload(BaseModel):
     path: str
 
 
+class LocalWorkspaceRequestCreatePayload(BaseModel):
+    path: str
+
+
+class LocalWorkspaceRequestRenamePayload(BaseModel):
+    path: str
+    new_name: str
+
+
+class LocalWorkspaceRequestCopyPayload(BaseModel):
+    src: str
+    dst: str
+
+
+class LocalWorkspaceRequestWritePayload(BaseModel):
+    path: str
+    content: str
+
+
+class LocalWorkspaceRequestUploadPayload(BaseModel):
+    local_path: str
+    board_path: str
+
+
+class LocalWorkspaceRequestDownloadPayload(BaseModel):
+    board_path: str
+    local_path: str
+
+
+class LocalWorkspaceRequestUniqueNamePayload(BaseModel):
+    name: str
+    is_folder: bool = False
+
+
 class EventCallbackPayload(BaseModel):
     page: str
     name: str
