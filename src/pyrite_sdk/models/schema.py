@@ -63,6 +63,62 @@ class LocalWorkspaceRequestUniqueNamePayload(BaseModel):
     is_folder: bool = False
 
 
+class EditorSetTextPayload(BaseModel):
+    text: str
+
+
+class EditorInsertTextPayload(BaseModel):
+    text: str
+
+
+class EditorReplaceRangePayload(BaseModel):
+    start: int
+    end: int
+    text: str
+
+
+class EditorGetLineTextPayload(BaseModel):
+    line: int
+
+
+class EditorCursorPositionPayload(BaseModel):
+    line: int
+    column: int
+
+
+class EditorSelectionPayload(BaseModel):
+    start: int
+    end: int
+
+
+class EditorFindPayload(BaseModel):
+    word: str
+    match_case: bool = False
+    whole_word: bool = False
+
+
+class EditorFindRegexPayload(BaseModel):
+    pattern: str
+
+
+class EditorOpenFilePayload(BaseModel):
+    path: str
+
+
+class EditorCloseTabPayload(BaseModel):
+    path: str
+
+
+class EditorGhostTextPayload(BaseModel):
+    text: str
+    line: int
+    column: int
+
+
+class EditorScrollToLinePayload(BaseModel):
+    line: int
+
+
 class EventCallbackPayload(BaseModel):
     page: str
     name: str

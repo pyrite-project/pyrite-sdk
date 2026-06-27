@@ -5,6 +5,7 @@ from ..interfaces.ui import PageType
 from ..utils.cfg import Cfg
 from ..core.bridge import Bridge
 from ..api.workspace import *
+from ..api.editor import Editor
 
 class Plugin(ABC):
     def __init__(self, queue_size: int = 10) -> None:
@@ -15,6 +16,7 @@ class Plugin(ABC):
         self.start = self.bridge.start
         self.local_workspace = LocalWorkspace(self.bridge)
         self.board_workspace = BoardWorkspace(self.bridge)
+        self.editor = Editor(self.bridge)
 
     @property
     def assets(self) -> Optional[Path]:
