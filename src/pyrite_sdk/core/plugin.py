@@ -4,7 +4,7 @@ from typing import Optional
 from ..interfaces.ui import PageType
 from ..utils.cfg import Cfg
 from ..core.bridge import Bridge
-from ..api.workspace import *
+from ..api.file import *
 from ..api.editor import Editor
 from ..api.ui.router import Router
 from ..api.persistence import Persistence
@@ -17,8 +17,8 @@ class Plugin(ABC):
         self.cfg: Optional[Cfg] = None
         self.bridge = Bridge(self, queue_size)
         self.start = self.bridge.start
-        self.local_workspace = LocalWorkspace(self.bridge)
-        self.board_workspace = BoardWorkspace(self.bridge)
+        self.file = File(self.bridge)
+        self.board = Board(self.bridge)
         self.editor = Editor(self.bridge)
         self.router = Router(self.bridge)
         self.persistence = Persistence(self.bridge)

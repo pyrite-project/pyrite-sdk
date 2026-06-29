@@ -25,40 +25,40 @@ class PathRequestPayload(BaseModel):
     scope: PathScope
 
 
-class LocalWorkspaceRequestPathPayload(BaseModel):
+class FileRequestPathPayload(BaseModel):
     path: str
 
 
-class LocalWorkspaceRequestCreatePayload(BaseModel):
+class FileRequestCreatePayload(BaseModel):
     path: str
 
 
-class LocalWorkspaceRequestRenamePayload(BaseModel):
+class FileRequestRenamePayload(BaseModel):
     path: str
     new_name: str
 
 
-class LocalWorkspaceRequestCopyPayload(BaseModel):
+class FileRequestCopyPayload(BaseModel):
     src: str
     dst: str
 
 
-class LocalWorkspaceRequestWritePayload(BaseModel):
+class FileRequestWritePayload(BaseModel):
     path: str
     content: str
 
 
-class LocalWorkspaceRequestUploadPayload(BaseModel):
+class FileRequestUploadPayload(BaseModel):
     local_path: str
     board_path: str
 
 
-class LocalWorkspaceRequestDownloadPayload(BaseModel):
+class FileRequestDownloadPayload(BaseModel):
     board_path: str
     local_path: str
 
 
-class LocalWorkspaceRequestUniqueNamePayload(BaseModel):
+class FileRequestUniqueNamePayload(BaseModel):
     name: str
     is_folder: bool = False
 
@@ -192,7 +192,7 @@ class PersistenceListKeysPayload(BaseModel):
 class PersistenceClearPayload(BaseModel):
     group: str
 
-class LocalWorkspaceResponseListDir(BaseModel):
+class FileResponseListDir(BaseModel):
     dir_list: list[str]
 
 class Envelope(BaseModel):

@@ -1,0 +1,15 @@
+[general]
+name = "Chinese Language Pack"
+id = "zh-lang-pack"
+version = "1.0.0"
+author = "Pyrite Examples"
+type = "data"
+
+[permissions]
+data = true
+
+[platform]
+linux = true
+macos = true
+windows = true
+android = true

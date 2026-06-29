@@ -18,10 +18,10 @@ with Scaffold(
 
                 # ── Local Workspace Tests ──
 
-                Text("=== Local Workspace ===", style={"fontSize": 18.0})
+                Text("=== File ===", style={"fontSize": 18.0})
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.get_root_dir(
+                    lambda **kws: plugin.file.get_root_dir(
                         lambda **cb: plugin.bridge.let(data.r0, str(cb))
                     ), args={"id": 0})):
                     Text("Get Root Dir")
@@ -29,7 +29,7 @@ with Scaffold(
                 Text(data.r0)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.get_file_list(
+                    lambda **kws: plugin.file.get_file_list(
                         "/",
                         lambda **cb: plugin.bridge.let(data.r1, str(cb))
                     ), args={"id": 1})):
@@ -38,7 +38,7 @@ with Scaffold(
                 Text(data.r1)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.get_focus_file_node(
+                    lambda **kws: plugin.file.get_focus_file_node(
                         lambda **cb: plugin.bridge.let(data.r2, str(cb))
                     ), args={"id": 2})):
                     Text("Get Focus File Node")
@@ -46,7 +46,7 @@ with Scaffold(
                 Text(data.r2)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.get_focus_folder_node(
+                    lambda **kws: plugin.file.get_focus_folder_node(
                         lambda **cb: plugin.bridge.let(data.r3, str(cb))
                     ), args={"id": 3})):
                     Text("Get Focus Folder Node")
@@ -54,7 +54,7 @@ with Scaffold(
                 Text(data.r3)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.create_file(
+                    lambda **kws: plugin.file.create_file(
                         path="/test_plugin.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r4, str(cb))
                     ), args={"id": 4})):
@@ -63,7 +63,7 @@ with Scaffold(
                 Text(data.r4)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.create_folder(
+                    lambda **kws: plugin.file.create_folder(
                         path="/test_plugin_dir",
                         callback=lambda **cb: plugin.bridge.let(data.r5, str(cb))
                     ), args={"id": 5})):
@@ -72,20 +72,20 @@ with Scaffold(
                 Text(data.r5)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.rename(
+                    lambda **kws: plugin.file.rename(
                         path="/data.r6_target.txt",
                         new_name="data.r6_renamed.txt",
                     ), args={"id": 6})):
                     Text("Rename (test)")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.delete(
+                    lambda **kws: plugin.file.delete(
                         path="/test_plugin.txt",
                     ), args={"id": 7})):
                     Text("Delete (test_plugin.txt)")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.is_file(
+                    lambda **kws: plugin.file.is_file(
                         path="/test_plugin.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r6, str(cb))
                     ), args={"id": 8})):
@@ -94,7 +94,7 @@ with Scaffold(
                 Text(data.r6)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.is_directory(
+                    lambda **kws: plugin.file.is_directory(
                         path="/test_plugin_dir",
                         callback=lambda **cb: plugin.bridge.let(data.r7, str(cb))
                     ), args={"id": 9})):
@@ -103,13 +103,13 @@ with Scaffold(
                 Text(data.r7)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.open_folder(
+                    lambda **kws: plugin.file.open_folder(
                         path="/",
                     ), args={"id": 10})):
                     Text("Open Folder (/)")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.get_unique_name(
+                    lambda **kws: plugin.file.get_unique_name(
                         name="/new_file.txt",
                         is_folder=False,
                         callback=lambda **cb: plugin.bridge.let(data.r25, str(cb))
@@ -119,7 +119,7 @@ with Scaffold(
                 Text(data.r25)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.get_unique_name(
+                    lambda **kws: plugin.file.get_unique_name(
                         name="/new_folder",
                         is_folder=True,
                         callback=lambda **cb: plugin.bridge.let(data.r26, str(cb))
@@ -130,10 +130,10 @@ with Scaffold(
 
                 # ── Board Workspace Tests ──
 
-                Text("=== Board Workspace ===", style={"fontSize": 18.0})
+                Text("=== Board ===", style={"fontSize": 18.0})
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.get_root_dir(
+                    lambda **kws: plugin.board.get_root_dir(
                         lambda **cb: plugin.bridge.let(data.r8, str(cb))
                     ), args={"id": 11})):
                     Text("Board: Get Root Dir")
@@ -141,7 +141,7 @@ with Scaffold(
                 Text(data.r8)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.get_dir_list(
+                    lambda **kws: plugin.board.get_dir_list(
                         "/",
                         lambda **cb: plugin.bridge.let(data.r9, str(cb))
                     ), args={"id": 12})):
@@ -150,7 +150,7 @@ with Scaffold(
                 Text(data.r9)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.get_focus_file_node(
+                    lambda **kws: plugin.board.get_focus_file_node(
                         lambda **cb: plugin.bridge.let(data.r10, str(cb))
                     ), args={"id": 13})):
                     Text("Board: Get Focus File Node")
@@ -158,7 +158,7 @@ with Scaffold(
                 Text(data.r10)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.get_focus_folder_node(
+                    lambda **kws: plugin.board.get_focus_folder_node(
                         lambda **cb: plugin.bridge.let(data.r11, str(cb))
                     ), args={"id": 14})):
                     Text("Board: Get Focus Folder Node")
@@ -166,7 +166,7 @@ with Scaffold(
                 Text(data.r11)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.get_corresponding_file_path(
+                    lambda **kws: plugin.board.get_corresponding_file_path(
                         path="/board_file.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r12, str(cb))
                     ), args={"id": 15})):
@@ -175,7 +175,7 @@ with Scaffold(
                 Text(data.r12)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.is_file(
+                    lambda **kws: plugin.board.is_file(
                         path="/board_file.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r13, str(cb))
                     ), args={"id": 16})):
@@ -184,7 +184,7 @@ with Scaffold(
                 Text(data.r13)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.is_directory(
+                    lambda **kws: plugin.board.is_directory(
                         path="/board_dir",
                         callback=lambda **cb: plugin.bridge.let(data.r14, str(cb))
                     ), args={"id": 17})):
@@ -195,51 +195,51 @@ with Scaffold(
                 # ── Local: remaining commands ──
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.save_current_file(),
+                    lambda **kws: plugin.file.save_current_file(),
                     args={"id": 18})):
                     Text("Local: Save Current File")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.save_current_file_as(),
+                    lambda **kws: plugin.file.save_current_file_as(),
                     args={"id": 19})):
                     Text("Local: Save Current File As")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.open_file("/"),
+                    lambda **kws: plugin.file.open_file("/"),
                     args={"id": 20})):
                     Text("Local: Open File (/)")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.upload_selected_local_file_item(),
+                    lambda **kws: plugin.file.upload_selected_local_file_item(),
                     args={"id": 21})):
                     Text("Local: Upload Selected File Item")
 
                 # ── Board: remaining commands ──
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.open_file("/"),
+                    lambda **kws: plugin.board.open_file("/"),
                     args={"id": 22})):
                     Text("Board: Open File (/)")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.download_selected_board_item(),
+                    lambda **kws: plugin.board.download_selected_board_item(),
                     args={"id": 23})):
                     Text("Board: Download Selected Board Item")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.rename(
+                    lambda **kws: plugin.board.rename(
                         path="/board_file.txt",
                         new_name="board_file_renamed.txt",
                     ), args={"id": 24})):
                     Text("Board: Rename")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.delete_file("/board_file.txt"),
+                    lambda **kws: plugin.board.delete_file("/board_file.txt"),
                     args={"id": 25})):
                     Text("Board: Delete File")
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.delete_folder("/board_dir"),
+                    lambda **kws: plugin.board.delete_folder("/board_dir"),
                     args={"id": 26})):
                     Text("Board: Delete Folder")
 
@@ -248,7 +248,7 @@ with Scaffold(
                 Text("=== Local File Ops ===", style={"fontSize": 18.0})
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.read_file(
+                    lambda **kws: plugin.file.read_file(
                         path="/test_plugin.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r15, str(cb))
                     ), args={"id": 27})):
@@ -257,7 +257,7 @@ with Scaffold(
                 Text(data.r15)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.write_file(
+                    lambda **kws: plugin.file.write_file(
                         path="/test_plugin.txt",
                         content="Hello from plugin!",
                         callback=lambda **cb: plugin.bridge.let(data.r16, str(cb))
@@ -267,7 +267,7 @@ with Scaffold(
                 Text(data.r16)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.copy_file(
+                    lambda **kws: plugin.file.copy_file(
                         src="/test_plugin.txt",
                         dst="/test_plugin_copy.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r17, str(cb))
@@ -277,7 +277,7 @@ with Scaffold(
                 Text(data.r17)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.move_file(
+                    lambda **kws: plugin.file.move_file(
                         src="/test_plugin_copy.txt",
                         dst="/test_plugin_moved.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r18, str(cb))
@@ -287,7 +287,7 @@ with Scaffold(
                 Text(data.r18)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.exists(
+                    lambda **kws: plugin.file.exists(
                         path="/test_plugin.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r19, str(cb))
                     ), args={"id": 31})):
@@ -296,7 +296,7 @@ with Scaffold(
                 Text(data.r19)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.local_workspace.upload_file(
+                    lambda **kws: plugin.file.upload_file(
                         local_path="/test_plugin.txt",
                         board_path="/uploaded_from_plugin.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r20, str(cb))
@@ -310,7 +310,7 @@ with Scaffold(
                 Text("=== Board File Ops ===", style={"fontSize": 18.0})
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.read_file(
+                    lambda **kws: plugin.board.read_file(
                         path="/board_file.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r21, str(cb))
                     ), args={"id": 33})):
@@ -319,7 +319,7 @@ with Scaffold(
                 Text(data.r21)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.write_file(
+                    lambda **kws: plugin.board.write_file(
                         path="/board_from_plugin.txt",
                         content="Written by plugin!",
                         callback=lambda **cb: plugin.bridge.let(data.r22, str(cb))
@@ -329,7 +329,7 @@ with Scaffold(
                 Text(data.r22)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.exists(
+                    lambda **kws: plugin.board.exists(
                         path="/board_file.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r23, str(cb))
                     ), args={"id": 35})):
@@ -338,7 +338,7 @@ with Scaffold(
                 Text(data.r23)
 
                 with Widget("ElevatedButton", onPressed=Event(
-                    lambda **kws: plugin.board_workspace.download_file(
+                    lambda **kws: plugin.board.download_file(
                         board_path="/board_file.txt",
                         local_path="/downloaded_from_board.txt",
                         callback=lambda **cb: plugin.bridge.let(data.r24, str(cb))

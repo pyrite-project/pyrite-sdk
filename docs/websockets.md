@@ -62,19 +62,19 @@ class Envelope(BaseModel):
 |`sdk.var.set`|设置响应式变量|
 |`sdk.path.request`|请求资源路径|
 |`sdk.request`|通用请求|
-|`sdk.local_workspace.get_root_dir`|请求本地工作区根目录|
-|`sdk.local_workspace.get_dir_list`|请求目录下的文件列表（path 通过 `data` 字段传递）|
-|`sdk.local_workspace.create_file`|创建文件|
-|`sdk.local_workspace.create_folder`|创建文件夹|
-|`sdk.local_workspace.get_focus_file_node`|获取当前聚焦的文件节点|
-|`sdk.local_workspace.get_focus_folder_node`|获取当前聚焦的文件夹节点|
-|`sdk.local_workspace.open_file`|打开文件|
-|`sdk.local_workspace.open_folder`|打开文件夹|
-|`sdk.local_workspace.rename_file`|重命名文件|
-|`sdk.local_workspace.delete_file`|删除文件|
-|`sdk.local_workspace.save_current_file`|保存当前文件|
-|`sdk.local_workspace.save_current_file_as`|另存为|
-|`sdk.local_workspace.upload_selected_local_file_item`|上传选中的本地文件|
+|`sdk.file.get_root_dir`|请求本地工作区根目录|
+|`sdk.file.get_dir_list`|请求目录下的文件列表（path 通过 `data` 字段传递）|
+|`sdk.file.create_file`|创建文件|
+|`sdk.file.create_folder`|创建文件夹|
+|`sdk.file.get_focus_file_node`|获取当前聚焦的文件节点|
+|`sdk.file.get_focus_folder_node`|获取当前聚焦的文件夹节点|
+|`sdk.file.open_file`|打开文件|
+|`sdk.file.open_folder`|打开文件夹|
+|`sdk.file.rename_file`|重命名文件|
+|`sdk.file.delete_file`|删除文件|
+|`sdk.file.save_current_file`|保存当前文件|
+|`sdk.file.save_current_file_as`|另存为|
+|`sdk.file.upload_selected_local_file_item`|上传选中的本地文件|
 
 ### 4.2 `IDE -> SDK`
 

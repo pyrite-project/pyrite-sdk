@@ -7,10 +7,11 @@ type = "ui"
 
 [permissions]
 ui = true
-workspace = true
+file = true
 editor = true
 settings = true
-board_manager = true
+serial = true
+persistence = true
 
 [platform]
 linux = true

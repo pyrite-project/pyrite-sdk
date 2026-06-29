@@ -1,2 +1,2 @@
-from .local import *
+from .file import *
 from .board import *

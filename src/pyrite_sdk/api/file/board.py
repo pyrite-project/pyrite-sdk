@@ -2,23 +2,23 @@ from __future__ import annotations
 from typing import Callable, Optional, TYPE_CHECKING
 from ...models.schema import (
     request,
-    LocalWorkspaceRequestPathPayload,
-    LocalWorkspaceRequestRenamePayload,
-    LocalWorkspaceRequestWritePayload,
-    LocalWorkspaceRequestDownloadPayload,
+    FileRequestPathPayload,
+    FileRequestRenamePayload,
+    FileRequestWritePayload,
+    FileRequestDownloadPayload,
 )
 if TYPE_CHECKING:
     from ...core.bridge import Bridge
 
 
-class BoardWorkspace:
+class Board:
     def __init__(self, bridge: Optional[Bridge] = None):
         self._bridge = bridge
 
     def get_dir_list(self, path: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.board_workspace.get_dir_list",
+                "sdk.board.get_dir_list",
                 data=path,
             ),
             callback=callback,
@@ -26,40 +26,40 @@ class BoardWorkspace:
 
     def get_root_dir(self, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
-            request("sdk.board_workspace.get_root_dir"),
+            request("sdk.board.get_root_dir"),
             callback=callback,
         )
 
     def get_focus_file_node(self, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
-            request("sdk.board_workspace.get_focus_file_node"),
+            request("sdk.board.get_focus_file_node"),
             callback=callback,
         )
 
     def get_focus_folder_node(self, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
-            request("sdk.board_workspace.get_focus_folder_node"),
+            request("sdk.board.get_focus_folder_node"),
             callback=callback,
         )
 
     def open_file(self, path: str):
         self._bridge.push(
             request(
-                "sdk.board_workspace.open_file",
-                payload=LocalWorkspaceRequestPathPayload(path=path),
+                "sdk.board.open_file",
+                payload=FileRequestPathPayload(path=path),
             ),
         )
 
     def download_selected_board_item(self):
         self._bridge.push(
-            request("sdk.board_workspace.download_selected_board_item"),
+            request("sdk.board.download_selected_board_item"),
         )
 
     def rename(self, path: str, new_name: str):
         self._bridge.push(
             request(
-                "sdk.board_workspace.rename",
-                payload=LocalWorkspaceRequestRenamePayload(
+                "sdk.board.rename",
+                payload=FileRequestRenamePayload(
                     path=path,
                     new_name=new_name,
                 ),
@@ -69,24 +69,24 @@ class BoardWorkspace:
     def delete_file(self, path: str):
         self._bridge.push(
             request(
-                "sdk.board_workspace.delete_file",
-                payload=LocalWorkspaceRequestPathPayload(path=path),
+                "sdk.board.delete_file",
+                payload=FileRequestPathPayload(path=path),
             ),
         )
 
     def delete_folder(self, path: str):
         self._bridge.push(
             request(
-                "sdk.board_workspace.delete_folder",
-                payload=LocalWorkspaceRequestPathPayload(path=path),
+                "sdk.board.delete_folder",
+                payload=FileRequestPathPayload(path=path),
             ),
         )
 
     def is_file(self, path: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.board_workspace.is_file",
-                payload=LocalWorkspaceRequestPathPayload(path=path),
+                "sdk.board.is_file",
+                payload=FileRequestPathPayload(path=path),
             ),
             callback=callback,
         )
@@ -94,8 +94,8 @@ class BoardWorkspace:
     def is_directory(self, path: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.board_workspace.is_directory",
-                payload=LocalWorkspaceRequestPathPayload(path=path),
+                "sdk.board.is_directory",
+                payload=FileRequestPathPayload(path=path),
             ),
             callback=callback,
         )
@@ -103,8 +103,8 @@ class BoardWorkspace:
     def get_corresponding_file_path(self, path: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.board_workspace.get_corresponding_file_path",
-                payload=LocalWorkspaceRequestPathPayload(path=path),
+                "sdk.board.get_corresponding_file_path",
+                payload=FileRequestPathPayload(path=path),
             ),
             callback=callback,
         )
@@ -112,8 +112,8 @@ class BoardWorkspace:
     def read_file(self, path: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.board_workspace.read_file",
-                payload=LocalWorkspaceRequestPathPayload(path=path),
+                "sdk.board.read_file",
+                payload=FileRequestPathPayload(path=path),
             ),
             callback=callback,
         )
@@ -121,8 +121,8 @@ class BoardWorkspace:
     def write_file(self, path: str, content: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.board_workspace.write_file",
-                payload=LocalWorkspaceRequestWritePayload(path=path, content=content),
+                "sdk.board.write_file",
+                payload=FileRequestWritePayload(path=path, content=content),
             ),
             callback=callback,
         )
@@ -130,8 +130,8 @@ class BoardWorkspace:
     def exists(self, path: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.board_workspace.exists",
-                payload=LocalWorkspaceRequestPathPayload(path=path),
+                "sdk.board.exists",
+                payload=FileRequestPathPayload(path=path),
             ),
             callback=callback,
         )
@@ -139,8 +139,8 @@ class BoardWorkspace:
     def download_file(self, board_path: str, local_path: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.board_workspace.download_file",
-                payload=LocalWorkspaceRequestDownloadPayload(
+                "sdk.board.download_file",
+                payload=FileRequestDownloadPayload(
                     board_path=board_path,
                     local_path=local_path,
                 ),

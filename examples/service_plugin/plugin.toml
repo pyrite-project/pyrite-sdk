@@ -1,0 +1,17 @@
+[general]
+name = "File Watcher"
+id = "file-watcher"
+version = "1.0.0"
+author = "Pyrite Examples"
+type = "service"
+auto_start = true
+
+[permissions]
+file = true
+persistence = true
+
+[platform]
+linux = true
+macos = true
+windows = true
+android = true

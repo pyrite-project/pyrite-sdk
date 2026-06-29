@@ -18,7 +18,7 @@ pyrite-sdk/
 │   ├── pyrite_sdk/           # 核心 SDK 库
 │   │   ├── api/              # API 接口层
 │   │   │   ├── ui/           # UI 构建 API（页面、组件、事件、语句）
-│   │   │   └── workspace/    # 工作区 API（本地/远程文件操作）
+│   │   │   └── fs/    # 工作区 API（本地/远程文件操作）
 │   │   ├── core/             # 核心模块（Bridge、Plugin）
 │   │   ├── interfaces/       # 类型接口定义
 │   │   ├── models/           # 数据模型（Schema、常量）
@@ -49,7 +49,7 @@ SDK 通过 WebSocket 与 PyriteIDE 进行双向通信，采用 JSON 序列化的
 | SDK → IDE | `sdk.page.push` | 推送页面 UI 描述 |
 | SDK → IDE | `sdk.var.set` | 设置响应式变量 |
 | SDK → IDE | `sdk.path.request` | 请求资源路径 |
-| SDK → IDE | `sdk.local_workspace.*` | 本地工作区操作（文件列表、创建、删除等） |
+| SDK → IDE | `sdk.file.*` | 本地工作区操作（文件列表、创建、删除等） |
 | IDE → SDK | `ide.event.callback` | 用户交互事件回调 |
 | IDE → SDK | `ide.lifecycle.hook` | 生命周期钩子 |
 | IDE → SDK | `ide.page.refresh` | 触发 UI 刷新 |
@@ -86,8 +86,8 @@ class MyPlugin(Plugin):
 **Plugin 核心属性**:
 - `pages: dict[str, Page]` - 注册的页面集合
 - `bridge: Bridge` - WebSocket 通信桥接器
-- `local_workspace: LocalWorkspace` - 本地工作区操作接口
-- `board_workspace: BoardWorkspace` - 远程工作区操作接口（占位实现）
+- `file: File` - 本地工作区操作接口
+- `board: Board` - 远程工作区操作接口（占位实现）
 - `cfg: Cfg` - 插件配置（从 `plugin.toml` 加载）
 - `assets: Path` - 插件资产路径
 
@@ -137,7 +137,7 @@ button = TextButton(on_pressed=Event(on_button_click, args={"id": 0}))
 
 ### 3.4 工作区 API
 
-#### LocalWorkspace（本地工作区）
+#### File（本地工作区）
 
 | 方法 | 说明 |
 |------|------|

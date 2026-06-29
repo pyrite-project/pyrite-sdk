@@ -799,9 +799,9 @@ page.to_rfw()
 
 ## 9. 工作区 API
 
-### 9.1 LocalWorkspace
+### 9.1 File
 
-通过 `plugin.local_workspace` 访问。
+通过 `plugin.file` 访问。
 
 | 方法 | 参数 | 说明 |
 |------|------|------|
@@ -821,26 +821,26 @@ page.to_rfw()
 
 > **注意**: `get_file_list` 的 `path` 参数通过 Envelope 的 `data` 字段传递，而非 `payload`。其他带 `payload` 的方法使用对应的 Pydantic 模型序列化。
 
-### 9.2 BoardWorkspace
+### 9.2 Board
 
-通过 `plugin.board_workspace` 访问。当前为占位实现，暂无可用方法。
+通过 `plugin.board` 访问。当前为占位实现，暂无可用方法。
 
 **回调格式**: `callback(**kwargs)` — kwargs 包含 IDE 返回的数据。
 
 ```python
 # 获取根目录
-plugin.local_workspace.get_root_dir(
+plugin.file.get_root_dir(
     callback=lambda **kw: print("Root:", kw)
 )
 
 # 获取文件列表
-plugin.local_workspace.get_file_list(
+plugin.file.get_file_list(
     "/src",
     callback=lambda **kw: print("Files:", kw)
 )
 
 # 创建文件
-plugin.local_workspace.create_file(
+plugin.file.create_file(
     name="test.txt",
     callback=lambda **kw: print("Created:", kw)
 )
@@ -927,7 +927,7 @@ root = NewWidget("root").add_to(page)
 with Container().add_to(root):
     with Column():
         with Widget("Button", on_pressed=Event(
-            lambda **kw: plugin.local_workspace.get_root_dir(
+            lambda **kw: plugin.file.get_root_dir(
                 callback=lambda **cb: plugin.bridge.let(data.r0, str(cb))
             )
         )):
@@ -936,7 +936,7 @@ with Container().add_to(root):
         Text(["Root: ", data.r0])
 
         with Widget("Button", on_pressed=Event(
-            lambda **kw: plugin.local_workspace.get_file_list(
+            lambda **kw: plugin.file.get_file_list(
                 "/",
                 callback=lambda **cb: plugin.bridge.let(data.r1, str(cb))
             )
