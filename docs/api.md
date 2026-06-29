@@ -1,0 +1,97 @@
+# ui
+sdk.page.push                     → ui.view
+sdk.var.set                       → ui.view
+sdk.router.push                   → ui:navigate
+sdk.router.pop                    → ui:navigate
+sdk.router.replace                → ui:navigate
+sdk.router.goto                   → ui:navigate
+# workspace
+sdk.local_workspace.get_dir_list      → workspace:read
+sdk.local_workspace.get_root_dir      → workspace:read
+sdk.local_workspace.read_file         → workspace:read
+sdk.local_workspace.exists            → workspace:read
+sdk.local_workspace.is_file           → workspace:read
+sdk.local_workspace.is_directory      → workspace:read
+sdk.local_workspace.get_focus_file_node    → workspace:read
+sdk.local_workspace.get_focus_folder_node  → workspace:read
+sdk.local_workspace.get_unique_name   → workspace:read
+sdk.local_workspace.write_file        → workspace:write
+sdk.local_workspace.create_file       → workspace:write
+sdk.local_workspace.create_folder     → workspace:write
+sdk.local_workspace.delete            → workspace:write
+sdk.local_workspace.rename            → workspace:write
+sdk.local_workspace.copy_file         → workspace:write
+sdk.local_workspace.move_file         → workspace:write
+sdk.local_workspace.save_current_file     → workspace:write
+sdk.local_workspace.save_current_file_as  → workspace:write
+sdk.local_workspace.upload_file           → workspace:upload
+sdk.local_workspace.upload_selected_*     → workspace:upload
+sdk.local_workspace.open_file         → workspace:open
+sdk.local_workspace.open_folder       → workspace:open
+# board
+sdk.board_workspace.get_dir_list          → board:read
+sdk.board_workspace.get_root_dir          → board:read
+sdk.board_workspace.read_file             → board:read
+sdk.board_workspace.exists                → board:read
+sdk.board_workspace.is_file               → board:read
+sdk.board_workspace.is_directory          → board:read
+sdk.board_workspace.get_focus_file_node   → board:read
+sdk.board_workspace.get_focus_folder_node → board:read
+sdk.board_workspace.get_corresponding_file_path → board:read
+sdk.board_workspace.write_file            → board:write
+sdk.board_workspace.delete_file           → board:write
+sdk.board_workspace.delete_folder         → board:write
+sdk.board_workspace.rename                → board:write
+sdk.board_workspace.download_file         → board:download
+sdk.board_workspace.download_selected_*   → board:download
+# editor
+sdk.editor.get_text               → editor:read
+sdk.editor.get_line_count         → editor:read
+sdk.editor.get_line_text          → editor:read
+sdk.editor.get_selected_text      → editor:read
+sdk.editor.get_cursor_position    → editor:read
+sdk.editor.get_selection          → editor:read
+sdk.editor.can_undo               → editor:read
+sdk.editor.can_redo               → editor:read
+sdk.editor.get_current_tab        → editor:read
+sdk.editor.list_tabs              → editor:read
+sdk.editor.set_text               → editor:write
+sdk.editor.insert_text            → editor:write
+sdk.editor.replace_range          → editor:write
+sdk.editor.clear                  → editor:write
+sdk.editor.set_cursor_position    → editor:write
+sdk.editor.set_selection          → editor:write
+sdk.editor.select_all             → editor:write
+sdk.editor.go_to_line             → editor:write
+sdk.editor.undo                   → editor:write
+sdk.editor.redo                   → editor:write
+sdk.editor.open_file              → editor:write
+sdk.editor.close_tab              → editor:write
+sdk.editor.set_ghost_text         → editor:write
+sdk.editor.clear_ghost_text       → editor:write
+sdk.editor.scroll_to_line         → editor:write
+sdk.editor.copy                   → editor:clipboard
+sdk.editor.cut                    → editor:clipboard
+sdk.editor.paste                  → editor:clipboard
+sdk.editor.find                   → editor:search
+sdk.editor.find_regex             → editor:search
+sdk.editor.clear_search           → editor:search
+# persistence
+sdk.persistence.get               → persistence:read
+sdk.persistence.list_groups       → persistence:read
+sdk.persistence.list_keys         → persistence:read
+sdk.persistence.set               → persistence:write
+sdk.persistence.delete            → persistence:write
+sdk.persistence.clear             → persistence:write
+# tab
+sdk.tab.create_file               → tab:create
+sdk.tab.create_custom             → tab:create
+sdk.tab.close                     → tab:manage
+sdk.tab.list                      → tab:manage
+sdk.tab.switch                    → tab:manage
+# settings
+sdk.settings.get                  → settings:read
+sdk.settings.set                  → settings:write
+sdk.settings.list                 → settings:read
+# 无需权限（基础设施）
+sdk.path.request                  → (无)

@@ -6,6 +6,9 @@ from ..utils.cfg import Cfg
 from ..core.bridge import Bridge
 from ..api.workspace import *
 from ..api.editor import Editor
+from ..api.ui.router import Router
+from ..api.persistence import Persistence
+from ..api.data import Theme, I18n
 
 class Plugin(ABC):
     def __init__(self, queue_size: int = 10) -> None:
@@ -17,6 +20,10 @@ class Plugin(ABC):
         self.local_workspace = LocalWorkspace(self.bridge)
         self.board_workspace = BoardWorkspace(self.bridge)
         self.editor = Editor(self.bridge)
+        self.router = Router(self.bridge)
+        self.persistence = Persistence(self.bridge)
+        self.theme = Theme(self.bridge)
+        self.i18n = I18n(self.bridge)
 
     @property
     def assets(self) -> Optional[Path]:

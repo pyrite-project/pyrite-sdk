@@ -1,13 +1,19 @@
 [general]
-name = "My Plugin"
-id = "my-plugin"
+name = "Test Plugin"
+id = "test-plugin"
 version = "1.0.0"
-author = "Your Name"
+author = "Pyrite Project"
+type = "ui"
 
 [permissions]
 ui = true
+workspace = true
+editor = true
+settings = true
+board_manager = true
 
 [platform]
 linux = true
 macos = true
 windows = true
+android = true

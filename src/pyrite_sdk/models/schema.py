@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 from uuid import uuid4
 import time
 from .consts import PathScope, LifecycleHook, ErrorCode
@@ -125,6 +125,27 @@ class EventCallbackPayload(BaseModel):
     args: Dict[str, Any]
 
 
+class RouterPushPayload(BaseModel):
+    page: str
+
+
+class RouterPopPayload(BaseModel):
+    pass
+
+
+class RouterReplacePayload(BaseModel):
+    page: str
+
+
+class RouterGotoPayload(BaseModel):
+    page: str
+
+
+class RouterSyncPayload(BaseModel):
+    page: str
+    stack: List[str]
+
+
 class LifecyclePayload(BaseModel):
     hook: LifecycleHook
 
@@ -146,6 +167,30 @@ class ErrorResponsePayload(BaseModel):
 class PathResponsePayload(BaseModel):
     scope: PathScope
     path: str
+
+
+class PersistenceGetPayload(BaseModel):
+    group: str
+    key: str
+
+
+class PersistenceSetPayload(BaseModel):
+    group: str
+    key: str
+    value: Any
+
+
+class PersistenceDeletePayload(BaseModel):
+    group: str
+    key: str
+
+
+class PersistenceListKeysPayload(BaseModel):
+    group: str
+
+
+class PersistenceClearPayload(BaseModel):
+    group: str
 
 class LocalWorkspaceResponseListDir(BaseModel):
     dir_list: list[str]

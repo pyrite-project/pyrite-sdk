@@ -97,6 +97,10 @@ class Bridge:
                                 self.refresh()
                             else:
                                 print("Warning: path response missing path")
+
+                        case "ide.router.sync":
+                            payload = RouterSyncPayload(**env.payload)
+                            self.plugin.router._sync(payload.page, payload.stack)
                 
                 if env.reply_to and env.reply_to in self.callbacks:
                     callback = self.callbacks.pop(env.reply_to)
