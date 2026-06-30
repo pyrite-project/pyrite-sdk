@@ -206,7 +206,13 @@ class Envelope(BaseModel):
 
 
 def request(type_: str, payload: Optional[BaseModel] = None, data: Optional[Any] = None) -> Envelope:
-    return Envelope(type=type_, payload=payload.dict() if payload else {}, data=data)
+    if payload is None:
+        p = {}
+    elif isinstance(payload, dict):
+        p = payload
+    else:
+        p = payload.dict()
+    return Envelope(type=type_, payload=p, data=data)
 
 
 def ok(original: Envelope, data: Any = None) -> Envelope:
