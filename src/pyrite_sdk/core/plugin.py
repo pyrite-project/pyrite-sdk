@@ -10,6 +10,7 @@ from ..api.ui.router import Router
 from ..api.persistence import Persistence
 from ..api.data import Theme, I18n
 from ..api.settings import Settings
+from ..api.serial import Serial
 
 class Plugin(ABC):
     def __init__(self, queue_size: int = 10) -> None:
@@ -26,6 +27,7 @@ class Plugin(ABC):
         self.theme = Theme(self.bridge)
         self.i18n = I18n(self.bridge)
         self.settings = Settings(self.bridge)
+        self.serial = Serial(self.bridge)
 
     @property
     def assets(self) -> Optional[Path]:
