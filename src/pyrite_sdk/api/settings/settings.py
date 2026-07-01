@@ -78,6 +78,21 @@ class EditorSettings:
     def set_cancel_shortcut(self, value: str, callback: Optional[Callable] = None):
         self._set("editor.cancel_shortcut", value, callback)
 
+    def get_code_folding(self, callback: Optional[Callable] = None): self._get("editor.code_folding", callback)
+    def set_code_folding(self, value: bool, callback: Optional[Callable] = None): self._set("editor.code_folding", value, callback)
+    def get_guide_lines(self, callback: Optional[Callable] = None): self._get("editor.guide_lines", callback)
+    def set_guide_lines(self, value: bool, callback: Optional[Callable] = None): self._set("editor.guide_lines", value, callback)
+    def get_local_suggestions(self, callback: Optional[Callable] = None): self._get("editor.local_suggestions", callback)
+    def set_local_suggestions(self, value: bool, callback: Optional[Callable] = None): self._set("editor.local_suggestions", value, callback)
+    def get_keyboard_suggestions(self, callback: Optional[Callable] = None): self._get("editor.keyboard_suggestions", callback)
+    def set_keyboard_suggestions(self, value: bool, callback: Optional[Callable] = None): self._set("editor.keyboard_suggestions", value, callback)
+    def get_use_space_as_tab(self, callback: Optional[Callable] = None): self._get("editor.use_space_as_tab", callback)
+    def set_use_space_as_tab(self, value: bool, callback: Optional[Callable] = None): self._set("editor.use_space_as_tab", value, callback)
+    def get_tab_size(self, callback: Optional[Callable] = None): self._get("editor.tab_size", callback)
+    def set_tab_size(self, value: int, callback: Optional[Callable] = None): self._set("editor.tab_size", value, callback)
+    def get_gutter_divider(self, callback: Optional[Callable] = None): self._get("editor.gutter_divider", callback)
+    def set_gutter_divider(self, value: bool, callback: Optional[Callable] = None): self._set("editor.gutter_divider", value, callback)
+
 
 class LspSettings:
     """语言服务器相关设置"""
@@ -139,12 +154,59 @@ class LspSettings:
     def set_disable_error(self, value: bool, callback: Optional[Callable] = None):
         self._set("lsp.disable_error", value, callback)
 
+    def get_semantic_highlighting(self, callback: Optional[Callable] = None): self._get("lsp.semantic_highlighting", callback)
+    def set_semantic_highlighting(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.semantic_highlighting", value, callback)
+    def get_code_completion(self, callback: Optional[Callable] = None): self._get("lsp.code_completion", callback)
+    def set_code_completion(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.code_completion", value, callback)
+    def get_hover_info(self, callback: Optional[Callable] = None): self._get("lsp.hover_info", callback)
+    def set_hover_info(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.hover_info", value, callback)
+    def get_code_action(self, callback: Optional[Callable] = None): self._get("lsp.code_action", callback)
+    def set_code_action(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.code_action", value, callback)
+    def get_signature_help(self, callback: Optional[Callable] = None): self._get("lsp.signature_help", callback)
+    def set_signature_help(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.signature_help", value, callback)
+    def get_document_color(self, callback: Optional[Callable] = None): self._get("lsp.document_color", callback)
+    def set_document_color(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.document_color", value, callback)
+    def get_document_highlight(self, callback: Optional[Callable] = None): self._get("lsp.document_highlight", callback)
+    def set_document_highlight(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.document_highlight", value, callback)
+    def get_code_folding(self, callback: Optional[Callable] = None): self._get("lsp.code_folding", callback)
+    def set_code_folding(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.code_folding", value, callback)
+    def get_inlay_hint(self, callback: Optional[Callable] = None): self._get("lsp.inlay_hint", callback)
+    def set_inlay_hint(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.inlay_hint", value, callback)
+    def get_go_to_definition(self, callback: Optional[Callable] = None): self._get("lsp.go_to_definition", callback)
+    def set_go_to_definition(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.go_to_definition", value, callback)
+    def get_rename(self, callback: Optional[Callable] = None): self._get("lsp.rename", callback)
+    def set_rename(self, value: bool, callback: Optional[Callable] = None): self._set("lsp.rename", value, callback)
+
+
+class SerialSettings:
+    def __init__(self, bridge: Bridge): self._bridge = bridge
+    def _get(self, name: str, callback: Optional[Callable] = None): self._bridge.push_wait_response(request("sdk.settings.get", payload={"name": name}), callback=callback)
+    def _set(self, name: str, value: Any, callback: Optional[Callable] = None): self._bridge.push_wait_response(request("sdk.settings.set", payload={"name": name, "value": value}), callback=callback)
+    def get_default_baud_rate(self, callback: Optional[Callable] = None): self._get("serial.default_baud_rate", callback)
+    def set_default_baud_rate(self, value: int, callback: Optional[Callable] = None): self._set("serial.default_baud_rate", value, callback)
+    def get_auto_reconnect(self, callback: Optional[Callable] = None): self._get("serial.auto_reconnect", callback)
+    def set_auto_reconnect(self, value: bool, callback: Optional[Callable] = None): self._set("serial.auto_reconnect", value, callback)
+
+
+class TerminalSettings:
+    def __init__(self, bridge: Bridge): self._bridge = bridge
+    def _get(self, name: str, callback: Optional[Callable] = None): self._bridge.push_wait_response(request("sdk.settings.get", payload={"name": name}), callback=callback)
+    def _set(self, name: str, value: Any, callback: Optional[Callable] = None): self._bridge.push_wait_response(request("sdk.settings.set", payload={"name": name, "value": value}), callback=callback)
+    def get_font_family(self, callback: Optional[Callable] = None): self._get("terminal.font_family", callback)
+    def set_font_family(self, value: str, callback: Optional[Callable] = None): self._set("terminal.font_family", value, callback)
+    def get_font_size(self, callback: Optional[Callable] = None): self._get("terminal.font_size", callback)
+    def set_font_size(self, value: float, callback: Optional[Callable] = None): self._set("terminal.font_size", value, callback)
+    def get_line_height(self, callback: Optional[Callable] = None): self._get("terminal.line_height", callback)
+    def set_line_height(self, value: float, callback: Optional[Callable] = None): self._set("terminal.line_height", value, callback)
+
 
 class Settings:
     def __init__(self, bridge: Bridge):
         self._bridge = bridge
         self.editor = EditorSettings(bridge)
         self.lsp = LspSettings(bridge)
+        self.serial = SerialSettings(bridge)
+        self.terminal = TerminalSettings(bridge)
 
     def get(self, name: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
