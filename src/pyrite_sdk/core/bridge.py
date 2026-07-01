@@ -6,6 +6,7 @@ import os
 import sys
 import threading
 import traceback
+import queue
 from pathlib import Path
 from typing import Optional, Callable, TYPE_CHECKING
 from ..models.consts import *
@@ -115,6 +116,7 @@ class Bridge:
         self.message_queue: Optional[asyncio.Queue] = None
         # self.response_queue: Optional[asyncio.Queue] = None
         self.callbacks: dict[str, Callable[[dict], Any]] = {}
+        self._path_responses: dict[str, queue.Queue[Path]] = {}
         self.asyncio_loop: Optional[asyncio.AbstractEventLoop] = None
         self.queue_size = queue_size
         self.port = int(os.environ.get("PYRITE_IDE_PLUGIN_PORT"))  # type: ignore
@@ -219,9 +221,19 @@ class Bridge:
 
                         case "ide.response.path":
                             payload = PathResponsePayload(**env.payload)
+                            response_plugin_id = env.payload.get("plugin_id", "") if env.payload else ""
+                            if response_plugin_id and self.plugin_id and response_plugin_id != self.plugin_id:
+                                self._log_internal(
+                                    f"Warning: ignored path response for plugin {response_plugin_id}, current {self.plugin_id}"
+                                )
+                                continue
                             if payload.path:
-                                self.plugin.assets = Path(payload.path)
-                                self.refresh()
+                                if payload.scope == PathScope.ASSETS:
+                                    self.plugin.assets = Path(payload.path)
+                                    self.refresh()
+                                waiter = self._path_responses.pop(payload.scope.value, None)
+                                if waiter is not None:
+                                    waiter.put(Path(payload.path))
                             else:
                                 self._log_internal("Warning: path response missing path")
 
@@ -305,6 +317,17 @@ class Bridge:
             self.callbacks[env_id] = callback
         self.push(envelope, client)
 
+    def request_path(self, scope: PathScope, timeout: float = 5.0) -> Path:
+        if self.plugin.assets is not None and scope == PathScope.PLUGIN:
+            return self.plugin.assets
+        waiter: queue.Queue[Path] = queue.Queue(maxsize=1)
+        self._path_responses[scope.value] = waiter
+        self.push(request("sdk.path.request", PathRequestPayload(scope=scope)))
+        try:
+            return waiter.get(timeout=timeout)
+        except queue.Empty as exc:
+            raise TimeoutError(f"Timed out waiting for plugin path: {scope.value}") from exc
+
     def let(self, name: Var, value: Any):
         paths = list(name.paths)
         if paths and paths[0] in {"data", "args", "state"}:
@@ -357,3 +380,8 @@ class Bridge:
             asyncio.run(self.main())
         except KeyboardInterrupt:
             self.running = False
+
+    def stop(self):
+        self.running = False
+        if self.server is not None:
+            self.server.close()

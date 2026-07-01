@@ -1,105 +1,29 @@
-from pyrite_sdk.core.plugin import Plugin
+from pyrite_sdk.core.plugin import DataPlugin
 
 
-class ZhLangPlugin(Plugin):
-    def on_start(self):
-        print("Chinese Language Pack: registering locales...")
-        self.i18n.register("zh-CN", {
-            "app.name": "Pyrite IDE",
-            "menu.file": "文件",
-            "menu.edit": "编辑",
-            "menu.view": "视图",
-            "menu.tools": "工具",
-            "menu.settings": "设置",
-            "menu.plugins": "插件",
-            "menu.about": "关于",
-            "status.ready": "就绪",
-            "status.running": "运行中",
-            "status.error": "错误",
-            "status.connected": "已连接",
-            "status.disconnected": "已断开",
-            "editor.new_file": "新建文件",
-            "editor.open_file": "打开文件",
-            "editor.save": "保存",
-            "editor.save_as": "另存为",
-            "editor.close": "关闭",
-            "editor.undo": "撤销",
-            "editor.redo": "重做",
-            "editor.cut": "剪切",
-            "editor.copy": "复制",
-            "editor.paste": "粘贴",
-            "editor.find": "查找",
-            "editor.replace": "替换",
-            "editor.select_all": "全选",
-            "editor.goto_line": "跳转到行",
-            "settings.theme": "主题",
-            "settings.font": "字体",
-            "settings.editor": "编辑器设置",
-            "settings.appearance": "外观与风格",
-            "settings.language": "语言",
-            "settings.about": "关于",
-            "file.new_file": "新建文件",
-            "file.new_folder": "新建文件夹",
-            "file.rename": "重命名",
-            "file.delete": "删除",
-            "file.copy": "复制",
-            "file.paste": "粘贴",
-            "dialog.confirm": "确认",
-            "dialog.cancel": "取消",
-            "dialog.delete_confirm": "确定要删除吗？",
-            "dialog.overwrite_confirm": "文件已存在，是否覆盖？",
-        })
-
-        self.i18n.register("en", {
-            "app.name": "Pyrite IDE",
-            "menu.file": "File",
-            "menu.edit": "Edit",
-            "menu.view": "View",
-            "menu.tools": "Tools",
-            "menu.settings": "Settings",
-            "menu.plugins": "Plugins",
-            "menu.about": "About",
-            "status.ready": "Ready",
-            "status.running": "Running",
-            "status.error": "Error",
-            "status.connected": "Connected",
-            "status.disconnected": "Disconnected",
-            "editor.new_file": "New File",
-            "editor.open_file": "Open File",
-            "editor.save": "Save",
-            "editor.save_as": "Save As",
-            "editor.close": "Close",
-            "editor.undo": "Undo",
-            "editor.redo": "Redo",
-            "editor.cut": "Cut",
-            "editor.copy": "Copy",
-            "editor.paste": "Paste",
-            "editor.find": "Find",
-            "editor.replace": "Replace",
-            "editor.select_all": "Select All",
-            "editor.goto_line": "Go to Line",
-            "settings.theme": "Theme",
-            "settings.font": "Font",
-            "settings.editor": "Editor Settings",
-            "settings.appearance": "Appearance & Style",
-            "settings.language": "Language",
-            "settings.about": "About",
-            "file.new_file": "New File",
-            "file.new_folder": "New Folder",
-            "file.rename": "Rename",
-            "file.delete": "Delete",
-            "file.copy": "Copy",
-            "file.paste": "Paste",
-            "dialog.confirm": "Confirm",
-            "dialog.cancel": "Cancel",
-            "dialog.delete_confirm": "Are you sure you want to delete?",
-            "dialog.overwrite_confirm": "File already exists. Overwrite?",
-        })
-        print("Chinese Language Pack: registered successfully")
-
-    def on_dispose(self):
-        print("Chinese Language Pack: disposed")
+class LanguagePackPlugin(DataPlugin):
+    def on_contribute(self):
+        self.i18n.contribute(
+            "zh-CN",
+            {
+                "app.name": "Pyrite IDE",
+                "menu.file": "文件",
+                "menu.edit": "编辑",
+                "menu.view": "视图",
+                "menu.settings": "设置",
+            },
+        )
+        self.i18n.contribute(
+            "en",
+            {
+                "app.name": "Pyrite IDE",
+                "menu.file": "File",
+                "menu.edit": "Edit",
+                "menu.view": "View",
+                "menu.settings": "Settings",
+            },
+        )
 
 
-plugin = ZhLangPlugin()
-plugin.start()
+plugin = LanguagePackPlugin()
+plugin.run_once()

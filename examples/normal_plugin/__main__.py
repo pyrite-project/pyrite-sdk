@@ -3,7 +3,7 @@ from pyrite_sdk.api.ui.page import Page
 from pyrite_sdk.api.ui.event import Event
 from pyrite_sdk.api.ui.sentence import *
 from pyrite_sdk.models.consts import Package, Ui
-from pyrite_sdk.core.plugin import Plugin
+from pyrite_sdk.core.plugin import UiPlugin
 
 page = Page(packages=[Package.core.widgets, Package.core.material])
 
@@ -667,7 +667,7 @@ with Scaffold(
 
 home_nav_root = root  # root is already the home page's root widget
 
-class MyPlugin(Plugin):
+class MyPlugin(UiPlugin):
     def __init__(self):
         super().__init__()
         self.pages = {

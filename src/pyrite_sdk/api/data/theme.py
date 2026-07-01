@@ -10,12 +10,27 @@ class Theme:
     def __init__(self, bridge: Bridge):
         self._bridge = bridge
 
-    def register(self, name: str, data: Any, callback: Optional[Callable] = None):
+    def contribute(self, name: str, data: Any, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.theme.register",
+                "sdk.theme.contribute",
                 payload={"name": name, "data": data},
             ),
+            callback=callback,
+        )
+
+    def register_runtime(self, name: str, data: Any, callback: Optional[Callable] = None):
+        self._bridge.push_wait_response(
+            request(
+                "sdk.theme.register_runtime",
+                payload={"name": name, "data": data},
+            ),
+            callback=callback,
+        )
+
+    def revoke(self, name: str, callback: Optional[Callable] = None):
+        self._bridge.push_wait_response(
+            request("sdk.theme.revoke", payload={"name": name}),
             callback=callback,
         )
 

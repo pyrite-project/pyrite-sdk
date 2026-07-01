@@ -1,0 +1,15 @@
+[general]
+name = "MicroPython Stubs Example"
+id = "micropython-stubs-example"
+version = "1.0.0"
+author = "Pyrite Examples"
+type = "data"
+
+[permissions]
+data = true
+
+[platform]
+linux = true
+macos = true
+windows = true
+android = true

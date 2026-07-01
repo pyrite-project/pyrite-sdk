@@ -10,12 +10,27 @@ class I18n:
     def __init__(self, bridge: Bridge):
         self._bridge = bridge
 
-    def register(self, locale: str, messages: Any, callback: Optional[Callable] = None):
+    def contribute(self, locale: str, messages: Any, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request(
-                "sdk.i18n.register",
+                "sdk.i18n.contribute",
                 payload={"locale": locale, "messages": messages},
             ),
+            callback=callback,
+        )
+
+    def register_runtime(self, locale: str, messages: Any, callback: Optional[Callable] = None):
+        self._bridge.push_wait_response(
+            request(
+                "sdk.i18n.register_runtime",
+                payload={"locale": locale, "messages": messages},
+            ),
+            callback=callback,
+        )
+
+    def revoke(self, locale: str, callback: Optional[Callable] = None):
+        self._bridge.push_wait_response(
+            request("sdk.i18n.revoke", payload={"locale": locale}),
             callback=callback,
         )
 

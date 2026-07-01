@@ -1,7 +1,7 @@
-from pyrite_sdk.core.plugin import Plugin
+from pyrite_sdk.core.plugin import ServicePlugin
 
 
-class FileWatcherPlugin(Plugin):
+class FileWatcherPlugin(ServicePlugin):
     def __init__(self):
         super().__init__()
         self._watching = False

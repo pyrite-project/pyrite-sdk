@@ -2,6 +2,7 @@ from enum import StrEnum, Enum
 
 
 class PathScope(str, Enum):
+    PLUGIN = "plugin"
     ASSETS = "assets"
     CACHE = "cache"
     DATA = "data"

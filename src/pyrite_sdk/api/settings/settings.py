@@ -200,6 +200,20 @@ class TerminalSettings:
     def set_line_height(self, value: float, callback: Optional[Callable] = None): self._set("terminal.line_height", value, callback)
 
 
+class MicroPythonStubsSettings:
+    def __init__(self, bridge: Bridge): self._bridge = bridge
+    def _get(self, name: str, callback: Optional[Callable] = None): self._bridge.push_wait_response(request("sdk.settings.get", payload={"name": name}), callback=callback)
+    def _set(self, name: str, value: Any, callback: Optional[Callable] = None): self._bridge.push_wait_response(request("sdk.settings.set", payload={"name": name, "value": value}), callback=callback)
+    def get_enabled(self, callback: Optional[Callable] = None): self._get("micropython.stubs.enabled", callback)
+    def set_enabled(self, value: bool, callback: Optional[Callable] = None): self._set("micropython.stubs.enabled", value, callback)
+    def get_auto_detect_layers(self, callback: Optional[Callable] = None): self._get("micropython.stubs.auto_detect_layers", callback)
+    def set_auto_detect_layers(self, value: bool, callback: Optional[Callable] = None): self._set("micropython.stubs.auto_detect_layers", value, callback)
+    def get_layers(self, callback: Optional[Callable] = None): self._get("micropython.stubs.layers", callback)
+    def set_layers(self, value: list[dict[str, str]], callback: Optional[Callable] = None): self._set("micropython.stubs.layers", value, callback)
+    def get_extra_paths(self, callback: Optional[Callable] = None): self._get("micropython.stubs.extra_paths", callback)
+    def set_extra_paths(self, value: list[str], callback: Optional[Callable] = None): self._set("micropython.stubs.extra_paths", value, callback)
+
+
 class Settings:
     def __init__(self, bridge: Bridge):
         self._bridge = bridge
@@ -207,6 +221,7 @@ class Settings:
         self.lsp = LspSettings(bridge)
         self.serial = SerialSettings(bridge)
         self.terminal = TerminalSettings(bridge)
+        self.micropython_stubs = MicroPythonStubsSettings(bridge)
 
     def get(self, name: str, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
