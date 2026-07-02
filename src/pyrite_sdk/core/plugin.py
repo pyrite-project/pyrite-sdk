@@ -12,6 +12,7 @@ from ..api.data import Theme, I18n, Stubs
 from ..api.settings import Settings
 from ..api.serial import Serial
 from ..api.path import Path as SdkPath
+from ..api.message import Message
 
 class BasePlugin(ABC):
     def __init__(self, queue_size: int = 10) -> None:
@@ -22,6 +23,7 @@ class BasePlugin(ABC):
         self.run = self.bridge.start
         self.path = SdkPath(self.bridge)
         self.settings = Settings(self.bridge)
+        self.message = Message(self.bridge)
 
     @property
     def assets(self) -> Optional[FilePath]:
@@ -85,7 +87,7 @@ class DataPlugin(BasePlugin):
 
     def on_start(self):
         self.on_contribute()
-        self.bridge.stop()
+        self.bridge.stop_when_idle()
 
     @abstractmethod
     def on_contribute(self): ...

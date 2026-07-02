@@ -116,6 +116,8 @@ class Bridge:
         self.message_queue: Optional[asyncio.Queue] = None
         # self.response_queue: Optional[asyncio.Queue] = None
         self.callbacks: dict[str, Callable[[dict], Any]] = {}
+        self._pending_responses = 0
+        self._stop_when_idle = False
         self._path_responses: dict[str, queue.Queue[Path]] = {}
         self.asyncio_loop: Optional[asyncio.AbstractEventLoop] = None
         self.queue_size = queue_size
@@ -250,6 +252,10 @@ class Bridge:
                         self._log_internal(f"[DEBUG] Callback invoked successfully")
                     except Exception as e:
                         self._log_internal(f"Error in callback: {e}")
+                    finally:
+                        self._pending_responses = max(0, self._pending_responses - 1)
+                        if self._stop_when_idle and self._pending_responses == 0:
+                            self.stop()
                 elif env.reply_to:
                     self._log_internal(f"[DEBUG] reply_to={env.reply_to} not found in callbacks, type={env.type}")
         except websockets.exceptions.ConnectionClosed:
@@ -313,9 +319,14 @@ class Bridge:
                            callback: Optional[Callable[[dict], Any]]=None,
                            client=None):
         env_id = envelope.id
-        if callback:
-            self.callbacks[env_id] = callback
+        self._pending_responses += 1
+        self.callbacks[env_id] = callback or (lambda **_: None)
         self.push(envelope, client)
+
+    def stop_when_idle(self):
+        self._stop_when_idle = True
+        if self._pending_responses == 0:
+            self.stop()
 
     def request_path(self, scope: PathScope, timeout: float = 5.0) -> Path:
         if self.plugin.assets is not None and scope == PathScope.PLUGIN:
