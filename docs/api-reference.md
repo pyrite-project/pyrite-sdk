@@ -202,7 +202,7 @@ with Center():
 ### 3.5 Expanded 弹性填充
 
 ```python
-Expanded(**kwargs)
+Expanded(flex=None, **kwargs)
 ```
 
 在 `Row` 或 `Column` 中填充剩余空间。
@@ -217,10 +217,30 @@ with Row():
 ### 3.6 FittedBox 自适应
 
 ```python
-FittedBox(**kwargs)
+FittedBox(fit=None, alignment=None, clip_behavior=None, **kwargs)
 ```
 
 将其子组件缩放以适应可用空间。
+
+### 3.6.1 常用布局与滚动组件
+
+以下组件均继承 `Widget`，支持 `with` 嵌套和 `**kwargs` 透传：
+
+| 组件 | 主要参数 | 说明 |
+|------|----------|------|
+| `Padding` | `padding` | 内边距容器 |
+| `SizedBox` | `width`, `height` | 固定尺寸或空白间距 |
+| `Align` | `alignment`, `width_factor`, `height_factor` | 对齐子组件 |
+| `Flexible` | `flex`, `fit` | 弹性布局子项 |
+| `Spacer` | `flex` | 弹性空白 |
+| `Stack` | `alignment`, `fit`, `clip_behavior` | 多子组件叠放 |
+| `Positioned` | `left`, `top`, `right`, `bottom`, `width`, `height` | `Stack` 内定位 |
+| `SafeArea` | `left`, `top`, `right`, `bottom`, `minimum` | 避开系统安全区 |
+| `SingleChildScrollView` | `scroll_direction`, `reverse`, `padding`, `primary` | 单子组件滚动 |
+| `ListView` | `scroll_direction`, `reverse`, `padding`, `shrink_wrap` | 多子组件滚动列表 |
+| `Wrap` | `direction`, `spacing`, `run_spacing` | 自动换行布局 |
+| `Divider` | `height`, `thickness`, `indent`, `end_indent`, `color` | 分割线 |
+| `Card` | `color`, `elevation`, `margin`, `shape` | Material 卡片 |
 
 ### 3.7 Text 文本
 
@@ -229,6 +249,11 @@ Text(
     text: str | list | DataParser,  # 文本内容（支持变量拼接）
     style=None,                      # 文本样式
     text_direction=None,             # 文本方向
+    text_align=None,
+    soft_wrap=None,
+    overflow=None,
+    max_lines=None,
+    semantics_label=None,
     **kwargs
 )
 ```
@@ -245,13 +270,22 @@ Text(["Hello, ", data.name])
 Text("RTL 文本", text_direction=Ui.LTR)
 ```
 
-### 3.8 TextButton 文本按钮
+### 3.8 按钮组件
 
 ```python
 TextButton(
     on_pressed: Event = None,  # 点击事件
+    on_long_press: Event = None,
+    style=None,
+    autofocus=None,
     **kwargs
 )
+
+ElevatedButton(on_pressed=None, on_long_press=None, style=None, autofocus=None, **kwargs)
+OutlinedButton(on_pressed=None, on_long_press=None, style=None, autofocus=None, **kwargs)
+FilledButton(on_pressed=None, on_long_press=None, style=None, autofocus=None, **kwargs)
+IconButton(icon, on_pressed=None, tooltip=None, icon_size=None, color=None, **kwargs)
+FloatingActionButton(on_pressed=None, tooltip=None, background_color=None, mini=None, **kwargs)
 ```
 
 **示例**:
@@ -260,7 +294,44 @@ with TextButton(on_pressed=Event(on_click, args={"id": 0})):
     Text("点击我")
 ```
 
-### 3.9 GestureDetector 手势检测器
+### 3.9 输入与选择组件
+
+```python
+TextField(
+    decoration=None,
+    keyboard_type=None,
+    text_input_action=None,
+    max_lines=None,
+    enabled=None,
+    read_only=None,
+    on_changed=None,
+    on_submitted=None,
+    on_tap=None,
+    **kwargs
+)
+
+TextFormField(**kwargs)
+Checkbox(value=None, on_changed=None, tristate=None, active_color=None, **kwargs)
+Switch(value=None, on_changed=None, active_color=None, **kwargs)
+Radio(value=None, group_value=None, on_changed=None, active_color=None, **kwargs)
+Slider(value=None, on_changed=None, min=None, max=None, divisions=None, label=None, **kwargs)
+```
+
+`on_changed` 等回调参数可传 `Event`，也可传 `let(...)` 等 RFW 语句。
+
+### 3.10 媒体与列表组件
+
+```python
+Icon(icon, size=None, color=None, semantic_label=None, **kwargs)
+Image(image, width=None, height=None, fit=None, alignment=None, **kwargs)
+ListTile(leading=None, title=None, subtitle=None, trailing=None, on_tap=None, **kwargs)
+CircularProgressIndicator(value=None, background_color=None, color=None, stroke_width=None)
+LinearProgressIndicator(value=None, background_color=None, color=None, min_height=None)
+```
+
+当组件作为另一个组件的参数传入时，不会再被当前 `with` 上下文误挂载为兄弟节点。
+
+### 3.11 GestureDetector 手势检测器
 
 ```python
 GestureDetector(
@@ -286,10 +357,19 @@ GestureDetector(
 )
 ```
 
-### 3.10 Scaffold 脚手架
+### 3.12 Scaffold 脚手架
 
 ```python
-Scaffold(**kwargs)
+Scaffold(
+    app_bar=None,
+    floating_action_button=None,
+    drawer=None,
+    end_drawer=None,
+    background_color=None,
+    bottom_navigation_bar=None,
+    resize_to_avoid_bottom_inset=None,
+    **kwargs
+)
 ```
 
 子组件通过 `body` 键名挂载（与其他组件的 `children`/`child` 不同）。
@@ -300,20 +380,29 @@ with Scaffold():
         Text("页面内容")
 ```
 
-### 3.11 AppBar 应用栏
+### 3.13 AppBar 应用栏
 
 ```python
-AppBar(**kwargs)
+AppBar(
+    title=None,
+    leading=None,
+    actions=None,
+    background_color=None,
+    foreground_color=None,
+    elevation=None,
+    center_title=None,
+    **kwargs
+)
 ```
 
 通常与 `Scaffold` 配合使用。
 
-### 3.12 NewWidget 自定义组件定义
+### 3.14 NewWidget 自定义组件定义
 
 ```python
 NewWidget(
     name: str,                    # 组件名
-    states: dict[str, Any] = {},  # 初始状态
+    states: dict[str, Any] | None = None,  # 初始状态
     **kwargs
 )
 ```
@@ -344,7 +433,7 @@ with Container().add_to(root):
         Text("按钮内容")
 ```
 
-### 3.13 Widget 引用已有组件
+### 3.15 Widget 引用已有组件
 
 ```python
 Widget(
@@ -361,7 +450,7 @@ with Widget("Button", on_pressed=Event(handler)):
         Text("按钮内容")
 ```
 
-### 3.14 VarWidget 变量组件
+### 3.16 VarWidget 变量组件
 
 ```python
 VarWidget(var: Var)
@@ -374,7 +463,7 @@ VarWidget(data.label)
 VarWidget(args.child)
 ```
 
-### 3.15 组件通用方法
+### 3.17 组件通用方法
 
 | 方法 | 说明 |
 |------|------|
@@ -384,7 +473,7 @@ VarWidget(args.child)
 | `to_rfw() -> str` | 序列化为 RFW 字符串 |
 | `print_tree(indent, print_args)` | 打印组件树 |
 
-### 3.16 组件子组件键名规则
+### 3.18 组件子组件键名规则
 
 | 组件 | 键名 | multi_child |
 |------|------|-------------|
@@ -439,9 +528,39 @@ let(var: Var, value: Any) -> DataSerializer
 let(state.down, True)          # "set state.down = true"
 let(data.counter, 42)          # "set data.counter = 42"
 let(data.name, "Pyrite")       # "set data.name = \"Pyrite\""
+let(state.next_count, data.counter + 1)
 ```
 
-### 4.3 Match / Case 条件匹配
+### 4.3 Expr 表达式
+
+`Var` 继承自 `Expr`，可直接组合 RFW 表达式，避免手写 `raw()` 字符串。
+
+```python
+data.counter + 1              # "(data.counter + 1)"
+data.count > 0                # "(data.count > 0)"
+(data.count > 0) & state.enabled
+(data.kind == "fallback") | ~state.enabled
+ternary(state.enabled, "on", "off")
+Icons.person
+EdgeInsets.all(8)
+BoxDecoration(color=Colors.green, border_radius=BorderRadius.circular(8))
+TextStyle(font_size=16, font_weight=FontWeight.bold)
+```
+
+支持的 helper:
+
+| helper | 说明 |
+|--------|------|
+| `expr(value)` | 将值包装为 RFW 表达式 |
+| `ref(*parts)` / `Ref` | 生成命名空间引用，如 `ref("Icons").person` |
+| `call(name, *args, **kwargs)` | 生成 RFW 函数/构造调用，关键字参数会从 snake_case 转 camelCase |
+| `ternary(condition, when_true, when_false)` | 生成三元条件表达式 |
+
+常用命名空间已预置：`Icons`、`Colors`、`EdgeInsets`、`Alignment`、`Border`、`BorderRadius`、`BoxDecoration`、`Radius`、`TextStyle`、`FontWeight`、`FontStyle`、`MainAxisAlignment`、`CrossAxisAlignment`、`MainAxisSize`、`TextAlign`、`TextDirection`、`Axis`、`BoxFit`、`Clip`。
+
+比较可用 Python 操作符：`==`、`!=`、`<`、`<=`、`>`、`>=`。布尔组合使用 `&`、`|`、`~`，也保留方法形式：`eq()`、`ne()`、`lt()`、`le()`、`gt()`、`ge()`、`and_()`、`or_()`、`not_()`。不要用 Python 的 `and` / `or`，因为它们会在 Python 运行期求值。
+
+### 4.4 Match / Case 条件匹配
 
 ```python
 Match(var: Var, *cases: Case)
@@ -464,7 +583,7 @@ color=Match(
     Case("error", "0xFFF44336"),
     Case("warning", "0xFFFF9800"),
     Case("success", "0xFF4CAF50"),
-    Case("default", "0xFF000000")
+    DefaultCase("0xFF000000")
 )
 
 # 嵌套使用
@@ -473,7 +592,7 @@ Text(
         data.count,
         Case(0, "无数据"),
         Case(1, "一条数据"),
-        Case("default", "多条数据")
+        DefaultCase("多条数据")
     )
 )
 ```
@@ -483,26 +602,32 @@ Text(
 switch state.down { false: [0, 0, 8, 8], true: [8, 8, 0, 0] }
 ```
 
-### 4.4 ForLoop 循环
+### 4.5 ForLoop 循环
 
 ```python
-ForLoop(var: str, in_list: Var, *widgets: WidgetType)
+ForLoop(var: str, in_list: Var | RFWSerializable | str, *widgets: WidgetType)
 ```
 
 生成 RFW `for` 循环语句。
 
 ```python
+# 构造参数写法
 ForLoop(
     "item",
     data.items,
-    Text(["- ", Var("item")])
+    Text(["- ", Var("item").label])
 )
+
+# with 嵌套写法
+with Column():
+    with ForLoop("item", data.items):
+        Text(["- ", Var("item").label])
 ```
 
 **RFW 输出**:
 ```
 ...for item in data.items:
-  Text(["- ", item]),
+  Text(text: ["- ", item.label]),
 ```
 
 ---
@@ -514,7 +639,7 @@ ForLoop(
 ```python
 Event(
     callback: Callable,      # 回调函数
-    args: dict[str, Any],    # 传递给回调的参数
+    args: dict[str, Any] | None = None,  # 传递给回调的参数，默认 {}
     event: str = ""          # 事件名（可选，自动生成）
 )
 ```
@@ -529,7 +654,7 @@ def on_click(**kwargs):
 button = TextButton(on_pressed=Event(on_click, args={"id": 0}))
 
 # 内联 lambda
-button = TextButton(on_pressed=Event(lambda **kw: print(kw), args={"id": 1}))
+button = TextButton(on_pressed=Event(lambda **kw: print(kw)))
 ```
 
 ### 5.2 事件注册流程
@@ -628,9 +753,11 @@ def on_submit(**kwargs):
 | `str` | `"string"` |
 | `int` / `float` | `42` / `3.14` |
 | `bool` | `true` / `false` |
+| `None` | `null` |
 | `list` | `[1, 2, 3]` |
 | `dict` | `{"key": "value"}` |
-| `Var` | `data.x` |
+| `Enum` | 序列化其 `.value` |
+| `Var` / `Expr` | `data.x` / `(data.count + 1)` |
 | `RFWSerializable` | 调用 `to_rfw()` |
 
 ---
@@ -789,9 +916,11 @@ page.to_rfw()
 | `3.14` | `3.14` |
 | `True` | `true` |
 | `False` | `false` |
+| `None` | `null` |
 | `[1, 2]` | `[1, 2]` |
 | `{"k": "v"}` | `{"k": "v"}` |
-| `Var("data.x")` | `data.x` |
+| `Var("data", "x")` | `data.x` |
+| `data.count + 1` | `(data.count + 1)` |
 | `Event(...)` | `event "name" {args}` |
 | `DataSerializer(..., serialize=False)` | 不加引号的原始值 |
 

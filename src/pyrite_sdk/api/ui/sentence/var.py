@@ -1,12 +1,17 @@
-from ....utils.ui import _serialize_value, RFWSerializable, DataSerializer, raw
+from ....utils.ui import _serialize_value, DataSerializer, raw
+from .expression import Expr
 from typing import Any
 
-class Var(RFWSerializable):
+class Var(Expr):
     def __init__(self, *paths: str) -> None:
+        super().__init__(".".join(map(str, paths)))
         self.paths: tuple[str, ...] = paths
 
     def __getattr__(self, key: str) -> "Var":
         return Var(*self.paths, key)
+
+    def __str__(self) -> str:
+        return self.to_rfw()
 
     def to_rfw(self) -> str:
         return ".".join(map(str, self.paths))

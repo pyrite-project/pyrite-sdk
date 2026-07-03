@@ -82,11 +82,8 @@ def _interactive_mode() -> dict:
         else []
     )
 
-    params["requirements"] = [
-        f"-r{req_txt_input}" if req_txt_input else "",
-        *requirements,
-        *pip_args,
-    ]
+    params["requirements_file"] = req_txt_input
+    params["requirements"] = [*requirements, *pip_args]
 
     # Step 5: options
     _console.print(f"\n[bold]Step 5:[/bold] 打包选项")
@@ -124,7 +121,11 @@ def _interactive_mode() -> dict:
     summary.add_row("源目录", str(params["source_dir"]))
     summary.add_row("平台", str(params["platform"]))
     summary.add_row("架构", ", ".join(params["arch"]) if params["arch"] else "默认")
-    summary.add_row("依赖", ", ".join(params["requirements"]) if params["requirements"] else "无")
+    dependency_summary = [
+        *([f"-r {params['requirements_file']}"] if params["requirements_file"] else []),
+        *params["requirements"],
+    ]
+    summary.add_row("依赖", ", ".join(dependency_summary) if dependency_summary else "无")
     summary.add_row("编译应用", "是" if params["compile_app"] else "否")
     summary.add_row("编译包", "是" if params["compile_packages"] else "否")
     summary.add_row("清理", "是" if params["cleanup"] else "否")
@@ -174,6 +175,14 @@ def package(
             "-r",
             "--requirements",
             help="要安装的依赖列表，允许任何 pip 选项",
+        ),
+    ] = None,
+    requirements_file: Annotated[
+        Optional[str],
+        typer.Option(
+            "-rf",
+            "--requirements-file",
+            help='依赖文件路径，等同于 -r "-r" -r "requirements.txt"',
         ),
     ] = None,
     asset: Annotated[
@@ -274,7 +283,7 @@ def package(
     use_interactive = interactive or (
         not platform
         and source_dir is None
-        and not any([arch, requirements])
+        and not any([arch, requirements, requirements_file])
     )
 
     if use_interactive:
@@ -284,7 +293,10 @@ def package(
             source_dir=params.get("source_dir"),
             platform=params["platform"],
             arch=params.get("arch", []),
-            requirements=params.get("requirements", []),
+            requirements=_build_requirements(
+                params.get("requirements"),
+                params.get("requirements_file"),
+            ),
             asset=params.get("asset"),
             exclude=params.get("exclude", []),
             skip_site_packages=params.get("skip_site_packages", False),
@@ -305,7 +317,7 @@ def package(
         source_dir=source_dir,
         platform=platform,
         arch=arch or [],
-        requirements=requirements or [],
+        requirements=_build_requirements(requirements, requirements_file),
         asset=asset,
         exclude=exclude or [],
         skip_site_packages=skip_site_packages,
@@ -319,6 +331,18 @@ def package(
         verbose=verbose,
         pip_tool=pip_tool,
     )
+
+
+def _build_requirements(
+    requirements: Optional[List[str] | object],
+    requirements_file: Optional[str | object],
+) -> list[str]:
+    result: list[str] = []
+    if isinstance(requirements_file, str) and requirements_file:
+        result.extend(["-r", requirements_file])
+    if isinstance(requirements, list):
+        result.extend(requirements)
+    return result
 
 
 def main() -> None:

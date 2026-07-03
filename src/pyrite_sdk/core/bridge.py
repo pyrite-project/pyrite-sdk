@@ -13,6 +13,7 @@ from ..models.consts import *
 from ..models.schema import *
 from ..api.ui.sentence.var import Var
 from ..interfaces.ui import PageType
+from ..utils.ui import to_data
 
 if TYPE_CHECKING:
     from ..interfaces.plugin import PluginType
@@ -350,7 +351,7 @@ class Bridge:
                 "sdk.var.set",
                 VarSetPayload(
                     name=var_name,
-                    value=value,
+                    value=to_data(value),
                 ),
             )
         )

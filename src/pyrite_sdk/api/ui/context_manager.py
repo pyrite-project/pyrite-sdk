@@ -6,6 +6,7 @@ class ContextNode(RFWSerializable):
     _stack: list[ContextNodeType] = []
 
     def __init__(self, name: str, multi_child: bool = False, **kwargs: Any) -> None:
+        add_to_parent = kwargs.pop("add_to_parent", True)
         self.name: str = name
         self.kwargs: dict[str, Any] = kwargs
         self.parent: Optional[ContextNodeType] = self.get_parent_node()
@@ -15,7 +16,7 @@ class ContextNode(RFWSerializable):
         self.alias_name: Optional[str] = None
         self._child_nodes: list[ContextNodeType] = []
 
-        if self.parent is not None and self.kwargs.get("add_to_parent", True):
+        if self.parent is not None and add_to_parent:
             self.parent._child_nodes.append(self)
 
     def __enter__(self) -> ContextNodeType:

@@ -24,9 +24,3 @@ class GestureDetector(Widget):
                          onTapCancel=on_tap_cancel,
                          **kwargs
                          )
-
-    def setup(self) -> None:
-        super().setup()
-        for event in self.args.values():
-            if isinstance(event, EventType):
-                self.setup_event(event)

@@ -105,8 +105,16 @@ SDK 提供了一套声明式的 UI 构建 API，使用 Python 上下文管理器
 | `Center` | 居中布局 |
 | `Expanded` | 弹性填充 |
 | `FittedBox` | 自适应缩放 |
+| `Padding` / `SizedBox` / `Align` | 常用布局辅助 |
+| `Stack` / `Positioned` / `Wrap` | 多子组件布局 |
+| `SingleChildScrollView` / `ListView` | 滚动列表 |
+| `SafeArea` / `Divider` / `Card` | 常用 Material/布局组件 |
 | `Text` | 文本组件 |
-| `TextButton` | 文本按钮 |
+| `TextField` / `TextFormField` | 文本输入组件 |
+| `Checkbox` / `Switch` / `Radio` / `Slider` | 选择与滑动输入 |
+| `TextButton` / `ElevatedButton` / `OutlinedButton` / `FilledButton` / `IconButton` / `FloatingActionButton` | 按钮组件 |
+| `Icon` / `Image` / `ListTile` | 图标、图片和列表项 |
+| `CircularProgressIndicator` / `LinearProgressIndicator` | 进度指示器 |
 | `GestureDetector` | 手势检测器 |
 | `Scaffold` / `AppBar` | 页面脚手架 |
 | `NewWidget` | 自定义组件定义 |
@@ -118,9 +126,10 @@ SDK 提供了一套声明式的 UI 构建 API，使用 Python 上下文管理器
 | 语句 | 说明 |
 |------|------|
 | `Var` | 变量引用（`data.xxx`, `args.xxx`, `state.xxx`） |
+| `Expr` / `Ref` / `expr` / `ref` / `call` / `ternary` | RFW 表达式、命名空间引用、调用和三元条件 |
 | `let` | 变量赋值语句 |
-| `Match` / `Case` | 模式匹配（条件渲染） |
-| `ForLoop` | 循环语句 |
+| `Match` / `Case` / `DefaultCase` | 模式匹配（条件渲染） |
+| `ForLoop` | 循环语句，支持构造参数或 `with` 嵌套子组件 |
 
 #### 事件系统
 

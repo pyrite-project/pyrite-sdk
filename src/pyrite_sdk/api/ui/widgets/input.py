@@ -1,0 +1,62 @@
+from .base import Widget
+from ....interfaces.ui import EventType
+from typing import Any, Optional
+
+
+class TextField(Widget):
+    def __init__(
+        self,
+        value: Optional[Any] = None,
+        initial_value: Optional[Any] = None,
+        controller: Optional[Any] = None,
+        focus_node: Optional[Any] = None,
+        decoration: Optional[Any] = None,
+        keyboard_type: Optional[Any] = None,
+        text_input_action: Optional[Any] = None,
+        text_capitalization: Optional[Any] = None,
+        style: Optional[Any] = None,
+        text_align: Optional[Any] = None,
+        text_direction: Optional[Any] = None,
+        autofocus: Optional[bool] = None,
+        obscure_text: Optional[bool] = None,
+        autocorrect: Optional[bool] = None,
+        max_lines: Optional[int] = None,
+        min_lines: Optional[int] = None,
+        max_length: Optional[int] = None,
+        enabled: Optional[bool] = None,
+        read_only: Optional[bool] = None,
+        on_changed: Optional[EventType] = None,
+        on_submitted: Optional[EventType] = None,
+        on_tap: Optional[EventType] = None,
+        **kwargs: Any
+    ) -> None:
+        super().__init__("TextField",
+                        value=value,
+                        initialValue=initial_value,
+                        controller=controller,
+                        focusNode=focus_node,
+                        decoration=decoration,
+                        keyboardType=keyboard_type,
+                        textInputAction=text_input_action,
+                        textCapitalization=text_capitalization,
+                        style=style,
+                        textAlign=text_align,
+                        textDirection=text_direction,
+                        autofocus=autofocus,
+                        obscureText=obscure_text,
+                        autocorrect=autocorrect,
+                        maxLines=max_lines,
+                        minLines=min_lines,
+                        maxLength=max_length,
+                        enabled=enabled,
+                        readOnly=read_only,
+                        onChanged=on_changed,
+                        onSubmitted=on_submitted,
+                        onTap=on_tap,
+                        **kwargs)
+
+
+class TextFormField(TextField):
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.name = "TextFormField"
