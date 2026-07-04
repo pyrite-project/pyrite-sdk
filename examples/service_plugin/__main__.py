@@ -24,7 +24,7 @@ class FileWatcherPlugin(ServicePlugin):
 
     def _scan_files(self):
         """Scan workspace root directory."""
-        self.local_workspace.get_root_dir(
+        self.file.get_root_dir(
             lambda **cb: self._on_root_dir(cb)
         )
 
@@ -32,7 +32,7 @@ class FileWatcherPlugin(ServicePlugin):
         root = result.get("path", "")
         if root:
             print(f"File Watcher: workspace root = {root}")
-            self.local_workspace.get_dir_list(
+            self.file.get_file_list(
                 "/",
                 lambda **cb: self._on_file_list(cb)
             )
