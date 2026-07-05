@@ -1,0 +1,16 @@
+[general]
+name = "File Counter"
+id = "file-counter"
+version = "1.0.0"
+author = "Pyrite Examples"
+type = "ui"
+
+[permissions]
+ui = true
+file=true
+
+[platform]
+linux = true
+macos = true
+windows = true
+android = true

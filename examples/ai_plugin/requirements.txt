@@ -1,0 +1,2 @@
+pyrite-sdk==0.0.0
+patch-ng>=1.18,<2
