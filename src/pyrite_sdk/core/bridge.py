@@ -278,8 +278,9 @@ class Bridge:
         for client in self.connected_clients.copy():
             await self.send(client, envelope)
 
-    def refresh(self):
-        self.plugin.on_refresh()
+    def refresh(self, call_on_refresh: bool = True):
+        if call_on_refresh:
+            self.plugin.on_refresh()
         if not hasattr(self.plugin, "pages"):
             self._log_internal("Warning: Plugin has no pages to refresh")
             return

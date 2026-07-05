@@ -63,6 +63,11 @@ class FileRequestUniqueNamePayload(BaseModel):
     is_folder: bool = False
 
 
+class DialogOpenFolderPayload(BaseModel):
+    title: Optional[str] = None
+    initial_directory: Optional[str] = None
+
+
 class EditorSetTextPayload(BaseModel):
     text: str
 

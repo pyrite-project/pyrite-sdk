@@ -13,6 +13,7 @@ from ..api.settings import Settings
 from ..api.serial import Serial
 from ..api.path import Path as SdkPath
 from ..api.message import Message
+from ..api.dialog import Dialog
 
 class BasePlugin(ABC):
     def __init__(self, queue_size: int = 10) -> None:
@@ -24,6 +25,7 @@ class BasePlugin(ABC):
         self.path = SdkPath(self.bridge)
         self.settings = Settings(self.bridge)
         self.message = Message(self.bridge)
+        self.dialog = Dialog(self.bridge)
 
     @property
     def assets(self) -> Optional[FilePath]:

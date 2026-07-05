@@ -164,6 +164,12 @@ button = TextButton(on_pressed=Event(on_button_click, args={"id": 0}))
 | `save_current_file_as()` | 另存为 |
 | `upload_selected_local_file_item()` | 上传选中的本地文件 |
 
+#### Dialog（系统对话框）
+
+| 方法 | 说明 |
+|------|------|
+| `open_folder(title=None, initial_directory=None, callback=None)` | 打开系统文件夹选择器，回调的 `data` 为选中的目录路径，取消时为 `None` |
+
 ## 4. 快速开始
 
 ### 4.1 安装依赖

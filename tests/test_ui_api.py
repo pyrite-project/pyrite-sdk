@@ -20,6 +20,7 @@ from pyrite_sdk.api.ui.sentence import (
     TextStyle,
     Var,
     call,
+    color,
     data,
     let,
     state,
@@ -35,6 +36,9 @@ from pyrite_sdk.api.ui.widgets import (
     Icon,
     IconButton,
     ListTile,
+    Markdown,
+    MarkdownBlock,
+    MarkdownWidget,
     NewWidget,
     Padding,
     Scaffold,
@@ -235,6 +239,35 @@ class UiApiTest(unittest.TestCase):
         self.assertEqual(rfw.count('Icon(icon: {"icon": 0xe491, "fontFamily": "MaterialIcons"})'), 1)
         self.assertEqual(rfw.count('Text(text: "Profile")'), 1)
 
+    def test_markdown_wrappers_serialize_events(self) -> None:
+        page, root = self.make_page()
+        with Column().add_to(root):
+            MarkdownBlock(
+                "# Title\n\n[Docs](https://example.com)",
+                selectable=False,
+                padding=EdgeInsets.all(12),
+                on_tap_link=Event(noop),
+            )
+            MarkdownWidget(data.body, shrink_wrap=True, on_tap_link=Event(noop))
+            Markdown(
+                "Plain **markdown**",
+                selectable=True,
+                code_block_text_style=TextStyle(font_family="Menlo"),
+                code_block_style_not_matched=TextStyle(color=color(0xFF1F2937)),
+                code_block_theme="dark",
+                inline_code_text_style=TextStyle(
+                    font_family="Menlo",
+                    background_color=color(0xFFEFF4FA),
+                ),
+            )
+
+        rfw = page.to_rfw()
+
+        self.assertEqual(list(page.events), ["event_0", "event_1"])
+        self.assertIn('MarkdownBlock(data: "# Title\\n\\n[Docs](https://example.com)", selectable: false, padding: [12.0], onTapLink: event "event_0" {})', rfw)
+        self.assertIn('MarkdownWidget(data: data.body, shrinkWrap: true, onTapLink: event "event_1" {})', rfw)
+        self.assertIn('Markdown(data: "Plain **markdown**", selectable: true, codeBlockTextStyle: {"fontFamily": "Menlo"}, codeBlockStyleNotMatched: {"color": 0xff1f2937}, codeBlockTheme: "dark", inlineCodeTextStyle: {"fontFamily": "Menlo", "backgroundColor": 0xffeff4fa})', rfw)
+
     def test_ui_plugin_example_uses_only_registered_rfw_widget_names(self) -> None:
         from pyrite_sdk.core.bridge import Bridge
 
@@ -280,6 +313,66 @@ class UiApiTest(unittest.TestCase):
         self.assertIn('Text(text: ["Notes: ", data.notes]', rfw)
         self.assertNotIn("data.counter", rfw)
         self.assertNotIn("data.enabled", rfw)
+
+    def test_markdown_plugin_example_uses_markdown_block(self) -> None:
+        from pyrite_sdk.core.bridge import Bridge
+
+        original_start = Bridge.start
+        original_port = os.environ.get("PYRITE_IDE_PLUGIN_PORT")
+        os.environ["PYRITE_IDE_PLUGIN_PORT"] = "65530"
+        Bridge.start = lambda self: None
+        try:
+            namespace = runpy.run_path("examples/markdown_plugin/__main__.py")
+        finally:
+            Bridge.start = original_start
+            if original_port is None:
+                os.environ.pop("PYRITE_IDE_PLUGIN_PORT", None)
+            else:
+                os.environ["PYRITE_IDE_PLUGIN_PORT"] = original_port
+
+        rfw = namespace["plugin"].pages["home"].to_rfw()
+
+        self.assertIn("MarkdownBlock(", rfw)
+        self.assertIn('onTapLink: event "event_0" {}', rfw)
+        self.assertIn('Text(text: ["Last link: ", data.last_link]', rfw)
+        self.assertIn('onPressed: event "event_1" {}', rfw)
+        self.assertIn('Text(text: "Reset link state")', rfw)
+        self.assertNotIn("set data.", rfw)
+
+    def test_ai_plugin_home_serializes_reasoning_and_diff_content(self) -> None:
+        namespace = runpy.run_path("examples/ai_plugin/__main__.py")
+        content = """这里会修改文件：
+
+[DIFF:hello.py]
+```diff
+--- hello.py
++++ hello.py
+@@ -1,1 +1,1 @@
+-print("old")
++print("new")
+```
+
+修改完成。"""
+
+        page = namespace["build_home_page"](
+            [
+                {
+                    "role": "assistant",
+                    "reasoning_content": "需要先确认文件内容。",
+                    "show_reasoning": True,
+                    "content": content,
+                }
+            ],
+            False,
+            "",
+            False,
+        )
+
+        rfw = page.to_rfw()
+
+        self.assertIn('Text(text: "思考"', rfw)
+        self.assertIn('Text(text: ["Diff: ", "hello.py"]', rfw)
+        self.assertIn("MarkdownBlock(", rfw)
 
 
 if __name__ == "__main__":

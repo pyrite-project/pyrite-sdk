@@ -34,7 +34,7 @@ class ContextNode(RFWSerializable):
         if alias_name not in self.child_nodes:
             self.child_nodes[alias_name] = []
         elif "child" in self.child_nodes and not self.multi_child:
-            print(f"Too many child in {self.name}")
+            raise Exception(f"Too many child in {self.name}")
         self.child_nodes[alias_name].append(child)
         return child
 
@@ -44,12 +44,16 @@ class ContextNode(RFWSerializable):
     def add(self, *children: ContextNodeType) -> list[ContextNodeType]: ...
 
     def add(self, child: ContextNodeType, *children: ContextNodeType) -> list[ContextNodeType] | ContextNodeType:
+        if self.parent and child in self.parent._child_nodes:
+            self.parent._child_nodes.remove(child)
         self._add(child)
         for c in children:
             self._add(c)
         return list(children) if children else child
 
     def add_to(self, parent: ContextNodeType) -> ContextNodeType:
+        if self.parent and self in self.parent._child_nodes:
+            self.parent._child_nodes.remove(self)
         parent.add(self)
         return self
 

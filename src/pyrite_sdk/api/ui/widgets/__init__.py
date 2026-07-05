@@ -34,6 +34,7 @@ from .media import (Icon,
                     ListTile,
                     CircularProgressIndicator,
                     LinearProgressIndicator)
+from .markdown import Markdown, MarkdownWidget, MarkdownBlock
 from .gesture_detector import GestureDetector
 from .new_widget import NewWidget
 from .scaffold import Scaffold, AppBar
@@ -76,6 +77,9 @@ __all__ = [
     "Icon",
     "Image",
     "ListTile",
+    "Markdown",
+    "MarkdownWidget",
+    "MarkdownBlock",
     "CircularProgressIndicator",
     "LinearProgressIndicator",
     "NewWidget",

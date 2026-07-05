@@ -954,6 +954,14 @@ page.to_rfw()
 
 通过 `plugin.board` 访问。当前为占位实现，暂无可用方法。
 
+### 9.3 Dialog
+
+通过 `plugin.dialog` 访问。
+
+| 方法 | 参数 | 说明 |
+|------|------|------|
+| `open_folder(title=None, initial_directory=None, callback=None)` | `title?: str, initial_directory?: str, callback(**kwargs)` | 打开系统文件夹选择器，回调的 `data` 为选中的目录路径，取消时为 `None` |
+
 **回调格式**: `callback(**kwargs)` — kwargs 包含 IDE 返回的数据。
 
 ```python
