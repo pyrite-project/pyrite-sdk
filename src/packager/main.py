@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Annotated, Dict, List, Optional
 import typer
 from rich.console import Console
@@ -311,6 +312,9 @@ def package(
             pip_tool=params.get("pip_tool", "uv"),
         )
         return
+
+    requirements_file = requirements_file or str(Path(source_dir) / "requirements.txt")
+    print(f"使用依赖文件: {requirements_file}")
 
     cmd = PackageCommand()
     cmd.run(

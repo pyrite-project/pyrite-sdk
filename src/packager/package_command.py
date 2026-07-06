@@ -174,7 +174,7 @@ class PackageCommand:
 
             # asset path
             if asset_path is None:
-                asset_path = "build/app.zip"
+                asset_path = f"build/{Path(source_dir).name}.zip"
             elif asset_path.startswith("/") or asset_path.startswith("\\"):
                 asset_path = asset_path[1:]
 
@@ -358,7 +358,7 @@ class PackageCommand:
                                     "--index-strategy",
                                     "unsafe-best-match",
                                 ]
-
+                            print("运行安装依赖包命令:", " ".join(install_cmd))
                             result = subprocess.run(
                                 install_cmd,
                                 env={
