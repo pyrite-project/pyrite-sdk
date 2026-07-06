@@ -46,6 +46,9 @@ class ContextNode(RFWSerializable):
     def add(self, child: ContextNodeType, *children: ContextNodeType) -> list[ContextNodeType] | ContextNodeType:
         if self.parent and child in self.parent._child_nodes:
             self.parent._child_nodes.remove(child)
+        stack_parent = ContextNode.get_parent_node()
+        if stack_parent and child in stack_parent._child_nodes:
+            stack_parent._child_nodes.remove(child)
         self._add(child)
         for c in children:
             self._add(c)
