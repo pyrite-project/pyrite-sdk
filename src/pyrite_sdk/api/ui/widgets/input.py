@@ -54,9 +54,3 @@ class TextField(Widget):
                         onSubmitted=on_submitted,
                         onTap=on_tap,
                         **kwargs)
-
-
-class TextFormField(TextField):
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.name = "TextFormField"

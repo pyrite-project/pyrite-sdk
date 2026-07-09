@@ -22,6 +22,7 @@ from pyrite_sdk.api.ui.sentence import (
     call,
     color,
     data,
+    input_decoration,
     let,
     state,
     ternary,
@@ -32,6 +33,7 @@ from pyrite_sdk.api.ui.widgets import (
     Column,
     Container,
     ElevatedButton,
+    FilledButton,
     GestureDetector,
     Icon,
     IconButton,
@@ -41,13 +43,14 @@ from pyrite_sdk.api.ui.widgets import (
     MarkdownWidget,
     NewWidget,
     Padding,
+    RadioGroup,
     Scaffold,
     SingleChildScrollView,
     SizedBox,
+    Slider,
     Switch,
     Text,
     TextField,
-    TextFormField,
 )
 from pyrite_sdk.models.consts import Package
 from pyrite_sdk.utils.ui import DataParser
@@ -163,7 +166,15 @@ class UiApiTest(unittest.TestCase):
         ).to_rfw()
         text_style = TextStyle(font_size=16, font_weight=FontWeight.bold).to_rfw()
         custom_call = call("CustomWidget", item_count=2).to_rfw()
-        input_decoration = call("InputDecoration", label_text="Search").to_rfw()
+        call_input_decoration = call("InputDecoration", label_text="Search").to_rfw()
+        field_decoration = input_decoration(
+            label_text="Name",
+            hint_text="Type here",
+            helper_text=None,
+            prefix_text="$",
+            suffix_text=".00",
+            is_dense=True,
+        ).to_rfw()
 
         self.assertEqual(
             condition.to_rfw(),
@@ -190,7 +201,11 @@ class UiApiTest(unittest.TestCase):
             '{"fontSize": 16.0, "fontWeight": "w700"}',
         )
         self.assertEqual(custom_call, "CustomWidget(itemCount: 2)")
-        self.assertEqual(input_decoration, '{"labelText": "Search"}')
+        self.assertEqual(call_input_decoration, '{"labelText": "Search"}')
+        self.assertEqual(
+            field_decoration,
+            '{"labelText": "Name", "hintText": "Type here", "prefixText": "$", "suffixText": ".00", "isDense": true}',
+        )
         count_ref = data.count
         self.assertEqual({count_ref: "count"}[count_ref], "count")
         with self.assertRaises(TypeError):
@@ -208,12 +223,42 @@ class UiApiTest(unittest.TestCase):
                 on_changed=Event(noop),
                 max_lines=1,
             )
-            TextFormField(on_submitted=Event(noop))
+            with FilledButton(
+                on_pressed=Event(noop),
+                style={"backgroundColor": color(0xFF1565C0), "minimumSize": [120.0, 40.0]},
+            ):
+                Text("Run")
             Checkbox(
                 value=state.enabled,
-                on_changed=let(state.enabled, state.enabled.not_()),
+                on_changed=Event(noop),
+                active_color=Colors.blue,
+                check_color=Colors.white,
+                semantic_label="Enabled",
             )
-            Switch(value=state.enabled, on_changed=let(state.enabled, data.value))
+            Switch(
+                value=state.enabled,
+                on_changed=Event(noop),
+                active_thumb_color=Colors.green,
+                inactive_track_color=Colors.grey,
+            )
+            RadioGroup(
+                group_value=data.choice,
+                on_changed=Event(noop),
+                items=[
+                    {"value": "a", "label": "Choice A", "subtitle": "First"},
+                    {"value": "b", "label": "Choice B", "enabled": False},
+                ],
+                active_color=Colors.blue,
+                dense=True,
+            )
+            Slider(
+                value=data.level,
+                min=0.0,
+                max=1.0,
+                divisions=4,
+                label="Level",
+                on_changed=Event(noop),
+            )
             ListTile(
                 leading=Icon(Icons.person),
                 title=Text("Profile"),
@@ -224,18 +269,20 @@ class UiApiTest(unittest.TestCase):
 
         rfw = page.to_rfw()
 
-        self.assertEqual(list(page.events), ["event_0", "event_1", "event_2", "event_3"])
+        self.assertEqual(list(page.events), ["event_0", "event_1", "event_2", "event_3", "event_4", "event_5", "event_6", "event_7"])
         self.assertIn('TextField(decoration: {"labelText": "Name"}, maxLines: 1, onChanged: event "event_0" {})', rfw)
-        self.assertIn('TextFormField(onSubmitted: event "event_1" {})', rfw)
-        self.assertIn("GestureDetector(onTap: set state.enabled = switch state.enabled { true: false, default: true }, child: Container(width: 24.0", rfw)
-        self.assertIn("GestureDetector(onTap: set state.enabled = switch state.enabled { true: false, default: true }, child: Container(width: 48.0", rfw)
+        self.assertIn('FilledButton(onPressed: event "event_1" {}, style: {"backgroundColor": 0xff1565c0, "minimumSize": [120.0, 40.0]}, child: Text(text: "Run"))', rfw)
+        self.assertIn('Checkbox(value: state.enabled, onChanged: event "event_2" {}, activeColor: 0xff2196f3, checkColor: 0xffffffff, semanticLabel: "Enabled")', rfw)
+        self.assertIn('Switch(value: state.enabled, onChanged: event "event_3" {}, activeThumbColor: 0xff4caf50, inactiveTrackColor: 0xff9e9e9e)', rfw)
+        self.assertIn('RadioGroup(groupValue: data.choice, onChanged: event "event_4" {}, items: [{"value": "a", "label": "Choice A", "subtitle": "First"}, {"value": "b", "label": "Choice B", "enabled": false}], activeColor: 0xff2196f3, dense: true)', rfw)
+        self.assertIn('Slider(value: data.level, onChanged: event "event_5" {}, min: 0.0, max: 1.0, divisions: 4, label: "Level")', rfw)
         self.assertIn('ListTile(leading: Icon(icon: {"icon": 0xe491, "fontFamily": "MaterialIcons"})', rfw)
-        self.assertIn('trailing: GestureDetector(onTap: event "event_2" {}, child: Container', rfw)
+        self.assertIn('trailing: GestureDetector(onTap: event "event_6" {}, child: Container', rfw)
         self.assertIn('child: Icon(icon: {"icon": 0xe15f, "fontFamily": "MaterialIcons"})', rfw)
-        self.assertIn('onTap: event "event_3" {}', rfw)
+        self.assertIn('onTap: event "event_7" {}', rfw)
         self.assertIn("Padding(padding: [8.0])", rfw)
-        for unsupported in ("Checkbox", "Switch", "Radio", "IconButton"):
-            self.assertNotIn(f"{unsupported}(", rfw)
+        for unsupported in ("Radio(", "TextFormField(", "IconButton("):
+            self.assertNotIn(unsupported, rfw)
         self.assertEqual(rfw.count('Icon(icon: {"icon": 0xe491, "fontFamily": "MaterialIcons"})'), 1)
         self.assertEqual(rfw.count('Text(text: "Profile")'), 1)
 
@@ -284,33 +331,24 @@ class UiApiTest(unittest.TestCase):
             else:
                 os.environ["PYRITE_IDE_PLUGIN_PORT"] = original_port
 
-        rfw = namespace["home_page"].to_rfw()
+        rfw = namespace["plugin"].pages["home"].to_rfw()
 
         for unsupported in (
             "AnimatedContainer",
-            "Checkbox",
-            "FilledButton",
             "IconButton",
+            "TextFormField",
             "Radio",
-            "Switch",
         ):
             self.assertNotIn(f"{unsupported}(", rfw)
-        self.assertIn("Container(duration: 120", rfw)
-        self.assertIn("GestureDetector(onTap: event", rfw)
-        self.assertIn('"counter": 0', rfw)
-        self.assertIn('Text(text: ["Counter: ", switch state.counter', rfw)
-        self.assertIn("FloatingActionButton(onPressed: set state.counter = switch state.counter", rfw)
-        self.assertIn("...for item in state.items:", rfw)
-        self.assertIn('TextField(value: data.query, decoration: {"labelText": "Search UI APIs"', rfw)
+        self.assertIn("Checkbox(value: data.checkbox, onChanged: event", rfw)
+        self.assertIn("Switch(value: data.switch, onChanged: event", rfw)
+        self.assertIn('TextField(decoration: {"labelText": "Start typing", "hintText": "Hello PyriteProject", "isDense": true})', rfw)
+        self.assertIn('ElevatedButton(onPressed: event "event_3" {}, child: Text(text: "Button1"))', rfw)
+        self.assertIn('TextButton(onPressed: event "event_4" {}, child: Text(text: "Button2"))', rfw)
         self.assertIn(
-            'TextField(value: data.notes, initialValue: "", decoration: {"labelText": "Notes", "hintText": "Write multiple lines"}',
+            'RadioGroup(groupValue: data.radio_group_value, onChanged: event "event_5" {}, items: [{"value": "opt1", "label":',
             rfw,
         )
-        self.assertIn('keyboardType: "multiline"', rfw)
-        self.assertIn('textInputAction: "newline"', rfw)
-        self.assertIn("minLines: 3", rfw)
-        self.assertIn("maxLines: 5", rfw)
-        self.assertIn('Text(text: ["Notes: ", data.notes]', rfw)
         self.assertNotIn("data.counter", rfw)
         self.assertNotIn("data.enabled", rfw)
 

@@ -24,10 +24,10 @@ from .button import (TextButton,
                      FilledButton,
                      IconButton,
                      FloatingActionButton)
-from .input import TextField, TextFormField
+from .input import TextField
 from .selection import (Checkbox,
                         Switch,
-                        Radio,
+                        RadioGroup,
                         Slider)
 from .media import (Icon,
                     Image,
@@ -69,10 +69,9 @@ __all__ = [
     "IconButton",
     "FloatingActionButton",
     "TextField",
-    "TextFormField",
     "Checkbox",
     "Switch",
-    "Radio",
+    "RadioGroup",
     "Slider",
     "Icon",
     "Image",

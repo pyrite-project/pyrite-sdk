@@ -1,165 +1,132 @@
 from .base import Widget
 from ....interfaces.ui import EventType
-from ....utils.ui import DataSerializer, RFWSerializable, _serialize_value, raw
-from ..event import Event
-from ..sentence import Alignment, BorderRadius, BoxDecoration, Colors, EdgeInsets, TextStyle, ternary
 from typing import Any, Optional
-
-
-def _bind_value(action: Optional[EventType | Any], value: Any) -> Optional[Any]:
-    if action is None:
-        return None
-    if isinstance(action, Event):
-        args = dict(action.args)
-        args.setdefault("value", value)
-        event_name = action.event if getattr(action, "_explicit_event", False) else ""
-        return Event(action.callback, args=args, event=event_name)
-    if isinstance(action, DataSerializer) and isinstance(action.data, str):
-        replacement = _serialize_value(value)
-        return raw(action.data.replace("data.value", replacement))
-    if isinstance(action, RFWSerializable):
-        replacement = _serialize_value(value)
-        return raw(action.to_rfw().replace("data.value", replacement))
-    return action
-
-
-def _box(
-    *,
-    width: float,
-    height: float,
-    decoration: Any,
-    child: Optional[Any] = None,
-    alignment: Optional[Any] = None,
-    padding: Optional[Any] = None,
-) -> Widget:
-    return Widget(
-        "Container",
-        width=width,
-        height=height,
-        alignment=alignment,
-        padding=padding,
-        decoration=decoration,
-        child=child,
-        add_to_parent=False,
-    )
 
 
 class Checkbox(Widget):
     def __init__(
         self,
-        value: Optional[Any] = None,
+        value: Optional[bool] = False,
         on_changed: Optional[EventType | Any] = None,
         tristate: Optional[bool] = None,
         active_color: Optional[Any] = None,
         check_color: Optional[Any] = None,
+        focus_color: Optional[Any] = None,
+        hover_color: Optional[Any] = None,
+        splash_radius: Optional[Any] = None,
+        material_tap_target_size: Optional[Any] = None,
+        visual_density: Optional[Any] = None,
         autofocus: Optional[bool] = None,
+        is_error: Optional[bool] = None,
+        semantic_label: Optional[str] = None,
         **kwargs: Any
     ) -> None:
-        checked = value if value is not None else False
-        next_value = ternary(checked, False, True)
-        mark = Widget(
-            "Text",
-            text=ternary(checked, "x", ""),
-            style=TextStyle(
-                color=check_color or Colors.white,
-                font_size=16,
-                font_weight="w700",
-            ),
-            add_to_parent=False,
+        super().__init__(
+            "Checkbox",
+            value=value,
+            onChanged=on_changed,
+            tristate=tristate,
+            activeColor=active_color,
+            checkColor=check_color,
+            focusColor=focus_color,
+            hoverColor=hover_color,
+            splashRadius=splash_radius,
+            materialTapTargetSize=material_tap_target_size,
+            visualDensity=visual_density,
+            autofocus=autofocus,
+            isError=is_error,
+            semanticLabel=semantic_label,
+            **kwargs
         )
-        child = _box(
-            width=24.0,
-            height=24.0,
-            alignment=Alignment.center,
-            decoration=BoxDecoration(
-                color=ternary(checked, active_color or Colors.blue, Colors.grey),
-                border_radius=BorderRadius.circular(4),
-            ),
-            child=mark,
-        )
-        super().__init__("GestureDetector",
-                        onTap=_bind_value(on_changed, next_value),
-                        child=child,
-                        **kwargs)
 
 
 class Switch(Widget):
     def __init__(
         self,
-        value: Optional[Any] = None,
+        value: Optional[bool] = False,
         on_changed: Optional[EventType | Any] = None,
         active_color: Optional[Any] = None,
+        active_thumb_color: Optional[Any] = None,
         active_track_color: Optional[Any] = None,
         inactive_thumb_color: Optional[Any] = None,
         inactive_track_color: Optional[Any] = None,
+        focus_color: Optional[Any] = None,
+        hover_color: Optional[Any] = None,
+        splash_radius: Optional[Any] = None,
+        material_tap_target_size: Optional[Any] = None,
         autofocus: Optional[bool] = None,
+        padding: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        selected = value if value is not None else False
-        next_value = ternary(selected, False, True)
-        thumb = _box(
-            width=22.0,
-            height=22.0,
-            decoration=BoxDecoration(
-                color=ternary(selected, active_color or Colors.white, inactive_thumb_color or Colors.white),
-                border_radius=BorderRadius.circular(11),
-            ),
+        super().__init__(
+            "Switch",
+            value=value,
+            onChanged=on_changed,
+            activeColor=active_color,
+            activeThumbColor=active_thumb_color,
+            activeTrackColor=active_track_color,
+            inactiveThumbColor=inactive_thumb_color,
+            inactiveTrackColor=inactive_track_color,
+            focusColor=focus_color,
+            hoverColor=hover_color,
+            splashRadius=splash_radius,
+            materialTapTargetSize=material_tap_target_size,
+            autofocus=autofocus,
+            padding=padding,
+            **kwargs
         )
-        aligned_thumb = Widget(
-            "Align",
-            alignment=ternary(selected, Alignment.center_right, Alignment.center_left),
-            child=thumb,
-            add_to_parent=False,
-        )
-        child = _box(
-            width=48.0,
-            height=28.0,
-            padding=EdgeInsets.all(3),
-            decoration=BoxDecoration(
-                color=ternary(selected, active_track_color or Colors.blue, inactive_track_color or Colors.grey),
-                border_radius=BorderRadius.circular(14),
-            ),
-            child=aligned_thumb,
-        )
-        super().__init__("GestureDetector",
-                        onTap=_bind_value(on_changed, next_value),
-                        child=child,
-                        **kwargs)
 
-
-class Radio(Widget):
+class RadioGroup(Widget):
     def __init__(
         self,
-        value: Optional[Any] = None,
-        group_value: Optional[Any] = None,
+        group_value: Optional[str] = "",
         on_changed: Optional[EventType | Any] = None,
+        items: Optional[list[dict]] = None,
+        enabled: Optional[bool] = None,
+        toggleable: Optional[bool] = None,
         active_color: Optional[Any] = None,
+        hover_color: Optional[Any] = None,
+        splash_radius: Optional[Any] = None,
+        material_tap_target_size: Optional[Any] = None,
+        dense: Optional[bool] = None,
+        selected: Optional[bool] = None,
+        control_affinity: Optional[Any] = None,
         autofocus: Optional[bool] = None,
+        content_padding: Optional[Any] = None,
+        visual_density: Optional[Any] = None,
+        enable_feedback: Optional[bool] = None,
+        horizontal_title_gap: Optional[Any] = None,
+        min_vertical_padding: Optional[Any] = None,
+        min_leading_width: Optional[Any] = None,
+        min_tile_height: Optional[Any] = None,
+        radio_scale_factor: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        selected = group_value == value if group_value is not None else False
-        dot = _box(
-            width=12.0,
-            height=12.0,
-            decoration=BoxDecoration(
-                color=ternary(selected, active_color or Colors.blue, Colors.white),
-                border_radius=BorderRadius.circular(6),
-            ),
+        super().__init__(
+            "RadioGroup",
+            groupValue=group_value,
+            onChanged=on_changed,
+            items=items or [],
+            enabled=enabled,
+            toggleable=toggleable,
+            activeColor=active_color,
+            hoverColor=hover_color,
+            splashRadius=splash_radius,
+            materialTapTargetSize=material_tap_target_size,
+            dense=dense,
+            selected=selected,
+            controlAffinity=control_affinity,
+            autofocus=autofocus,
+            contentPadding=content_padding,
+            visualDensity=visual_density,
+            enableFeedback=enable_feedback,
+            horizontalTitleGap=horizontal_title_gap,
+            minVerticalPadding=min_vertical_padding,
+            minLeadingWidth=min_leading_width,
+            minTileHeight=min_tile_height,
+            radioScaleFactor=radio_scale_factor,
+            **kwargs
         )
-        child = _box(
-            width=24.0,
-            height=24.0,
-            alignment=Alignment.center,
-            decoration=BoxDecoration(
-                color=ternary(selected, Colors.white, Colors.grey),
-                border_radius=BorderRadius.circular(12),
-            ),
-            child=dot,
-        )
-        super().__init__("GestureDetector",
-                        onTap=_bind_value(on_changed, value),
-                        child=child,
-                        **kwargs)
 
 
 class Slider(Widget):
@@ -171,17 +138,31 @@ class Slider(Widget):
         max: Optional[Any] = None,
         divisions: Optional[int] = None,
         label: Optional[Any] = None,
+        secondary_track_value: Optional[Any] = None,
+        on_change_start: Optional[EventType | Any] = None,
+        on_change_end: Optional[EventType | Any] = None,
         active_color: Optional[Any] = None,
         inactive_color: Optional[Any] = None,
+        secondary_active_color: Optional[Any] = None,
+        thumb_color: Optional[Any] = None,
+        autofocus: Optional[bool] = None,
+        padding: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
         super().__init__("Slider",
                         value=value,
+                        secondaryTrackValue=secondary_track_value,
                         onChanged=on_changed,
+                        onChangeStart=on_change_start,
+                        onChangeEnd=on_change_end,
                         min=min,
                         max=max,
                         divisions=divisions,
                         label=label,
                         activeColor=active_color,
                         inactiveColor=inactive_color,
+                        secondaryActiveColor=secondary_active_color,
+                        thumbColor=thumb_color,
+                        autofocus=autofocus,
+                        padding=padding,
                         **kwargs)

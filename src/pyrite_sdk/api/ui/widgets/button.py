@@ -56,15 +56,21 @@ class FilledButton(Widget):
         self,
         on_pressed: Optional[EventType] = None,
         on_long_press: Optional[EventType] = None,
+        on_hover: Optional[EventType] = None,
+        on_focus_change: Optional[EventType] = None,
         style: Optional[Any] = None,
         autofocus: Optional[bool] = None,
+        clip_behavior: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("ElevatedButton",
+        super().__init__("FilledButton",
                         onPressed = on_pressed,
                         onLongPress = on_long_press,
+                        onHover = on_hover,
+                        onFocusChange = on_focus_change,
                         style = style,
                         autofocus = autofocus,
+                        clipBehavior = clip_behavior,
                         **kwargs)
 
 class IconButton(Widget):

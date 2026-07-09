@@ -110,8 +110,8 @@ SDK 提供了一套声明式的 UI 构建 API，使用 Python 上下文管理器
 | `SingleChildScrollView` / `ListView` | 滚动列表 |
 | `SafeArea` / `Divider` / `Card` | 常用 Material/布局组件 |
 | `Text` | 文本组件 |
-| `TextField` / `TextFormField` | 文本输入组件 |
-| `Checkbox` / `Switch` / `Radio` / `Slider` | 选择与滑动输入 |
+| `TextField` | 文本输入组件 |
+| `Checkbox` / `Switch` / `RadioGroup` / `Slider` | 选择与滑动输入 |
 | `TextButton` / `ElevatedButton` / `OutlinedButton` / `FilledButton` / `IconButton` / `FloatingActionButton` | 按钮组件 |
 | `Icon` / `Image` / `ListTile` | 图标、图片和列表项 |
 | `CircularProgressIndicator` / `LinearProgressIndicator` | 进度指示器 |

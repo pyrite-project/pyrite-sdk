@@ -283,7 +283,7 @@ TextButton(
 
 ElevatedButton(on_pressed=None, on_long_press=None, style=None, autofocus=None, **kwargs)
 OutlinedButton(on_pressed=None, on_long_press=None, style=None, autofocus=None, **kwargs)
-FilledButton(on_pressed=None, on_long_press=None, style=None, autofocus=None, **kwargs)
+FilledButton(on_pressed=None, on_long_press=None, on_hover=None, on_focus_change=None, style=None, autofocus=None, clip_behavior=None, **kwargs)
 IconButton(icon, on_pressed=None, tooltip=None, icon_size=None, color=None, **kwargs)
 FloatingActionButton(on_pressed=None, tooltip=None, background_color=None, mini=None, **kwargs)
 ```
@@ -310,11 +310,10 @@ TextField(
     **kwargs
 )
 
-TextFormField(**kwargs)
 Checkbox(value=None, on_changed=None, tristate=None, active_color=None, **kwargs)
 Switch(value=None, on_changed=None, active_color=None, **kwargs)
-Radio(value=None, group_value=None, on_changed=None, active_color=None, **kwargs)
-Slider(value=None, on_changed=None, min=None, max=None, divisions=None, label=None, **kwargs)
+RadioGroup(group_value="", on_changed=None, items=None, active_color=None, dense=None, **kwargs)
+Slider(value=None, on_changed=None, min=None, max=None, divisions=None, label=None, on_change_start=None, on_change_end=None, **kwargs)
 ```
 
 `on_changed` 等回调参数可传 `Event`，也可传 `let(...)` 等 RFW 语句。

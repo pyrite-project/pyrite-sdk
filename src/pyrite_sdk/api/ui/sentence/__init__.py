@@ -4,8 +4,8 @@ from .expression import (Alignment, Axis, Border, BorderRadius, BoxDecoration,
                          BoxFit, Clip, Colors, CrossAxisAlignment, EdgeInsets,
                          Expr, FontStyle, FontWeight, Icons, MainAxisAlignment,
                          MainAxisSize, RFWData, RFWLiteral, Radius, Ref, TextAlign,
-                         TextDirection, TextStyle, call, color, expr,
-                         icon_data, ref, ternary)
+                         TextDirection, TextStyle, call, color, expr, icon_data,
+                         input_decoration, ref, ternary, button_style)
 from .var import (Var, data, args, state,
                   data_, args_, state_, let)
 
@@ -19,6 +19,8 @@ __all__ = [
     "call",
     "color",
     "icon_data",
+    "input_decoration",
+    "button_style",
     "ternary",
     "Icons",
     "Colors",

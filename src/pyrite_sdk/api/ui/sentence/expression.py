@@ -251,6 +251,79 @@ def call(name: str | RFWSerializable, *args: Any, **kwargs: Any) -> Expr:
     return Expr(f"{rendered_name}({', '.join(rendered_args)})")
 
 
+def input_decoration(
+    *args,
+    label_text: str | None = None,
+    hint_text: str | None = None,
+    helper_text: str | None = None,
+    error_text: str | None = None,
+    prefix_text: str | None = None,
+    suffix_text: str | None = None,
+    prefix_icon: Any = None,
+    suffix_icon: Any = None,
+    is_dense: bool | None = None,
+    **kwargs
+) -> RFWData:
+    return _rfw_map(
+        *args,
+        label_text=label_text,
+        hint_text=hint_text,
+        helper_text=helper_text,
+        error_text=error_text,
+        prefix_text=prefix_text,
+        suffix_text=suffix_text,
+        prefix_icon=prefix_icon,
+        suffix_icon=suffix_icon,
+        is_dense=is_dense,
+        **kwargs
+    )
+
+def button_style(
+    foreground_color: RFWSerializable | None = None,
+    background_color: RFWSerializable | None = None,
+    disabled_foreground_color: RFWSerializable | None = None,
+    disabled_background_color: RFWSerializable | None = None,
+    shadow_color: RFWSerializable | None = None,
+    surface_tint_color: RFWSerializable | None = None,
+    elevation: float | int | None = None,
+    text_style: RFWData | None = None,
+    padding: RFWData | None = None,
+    minimum_size: list[float | int] | None = None,
+    fixed_size: list[float | int] | None = None,
+    maximum_size: list[float | int] | None = None,
+    **kwargs
+):
+    style = {}
+    if foreground_color:
+        style["foregroundColor"] = foreground_color
+    if background_color:
+        style["backgroundColor"] = background_color
+    if disabled_foreground_color:
+        style["disabledForegroundColor"] = disabled_foreground_color
+    if disabled_background_color:
+        style["disabledBackgroundColor"] = disabled_background_color
+    if shadow_color:
+        style["shadowColor"] = shadow_color
+    if surface_tint_color:
+        style["surfaceTintColor"] = surface_tint_color
+    if elevation:
+        style["elevation"] = elevation
+    if text_style:
+        style["textStyle"] = text_style
+    if padding:
+        style["padding"] = padding
+    if minimum_size:
+        style["minimumSize"] = minimum_size
+    if fixed_size:
+        style["fixedSize"] = fixed_size
+    if maximum_size:
+        style["maximumSize"] = maximum_size
+    for k, v in kwargs.items():
+        style[k] = v
+    return style
+
+
+
 def ternary(condition: Any, when_true: Any, when_false: Any) -> SwitchExpr:
     if isinstance(condition, ComparisonExpr):
         return condition.to_switch(when_true, when_false)
