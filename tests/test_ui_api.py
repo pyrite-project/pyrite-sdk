@@ -57,6 +57,7 @@ from pyrite_sdk.api.ui.widgets import (
 from pyrite_sdk.models.consts import Package
 from pyrite_sdk.models.schema import (
     CallbackBindingPayload,
+    CallbackPayload,
     EventCallbackPayload,
     request,
 )
@@ -155,6 +156,40 @@ class UiApiTest(unittest.TestCase):
         second = Text("Second")
 
         self.assertEqual(second.widget_id, first.widget_id + 1)
+
+    def test_refresh_sends_required_callback_names(self) -> None:
+        bridge = self.make_bridge()
+        envelopes = []
+        bridge.push = lambda envelope, client=None: envelopes.append(envelope)
+        widgets = {}
+
+        def build_pages():
+            page, root = self.make_page()
+            column = Column().add_to(root)
+            widgets['binding'] = Switch(value=data.enabled).add_to(column)
+            button = ElevatedButton(on_pressed=Event(noop)).add_to(column)
+            widgets['button'] = button
+            with button:
+                Text('Run')
+            bridge.plugin.pages = {'home': page}
+
+        bridge.plugin.on_refresh = build_pages
+
+        bridge.refresh()
+
+        callback_envelope = next(
+            envelope for envelope in envelopes if envelope.type == 'sdk.callback.set'
+        )
+        payload = CallbackPayload(**callback_envelope.payload)
+        self.assertEqual(
+            payload.callbacks,
+            [self.callback_name(widgets['button'], 'onPressed')],
+        )
+        self.assertNotIn(
+            'callback_{}_onChanged'.format(widgets['binding'].widget_id),
+            payload.callbacks,
+        )
+        bridge.clear_callback_binding()
 
     def test_register_callback_binding_sends_payload_and_binds_widget_event(self) -> None:
         bridge = self.make_bridge()

@@ -301,14 +301,27 @@ class Bridge:
                 self.let(data_var, binding[-1])
             self.register_callback_binding(*binding[:3])
         try:
+            pages = {
+                name: page.to_rfw()
+                for name, page in self.plugin.pages.items()
+            }
+            self.push(
+                request(
+                    'sdk.callback.set',
+                    CallbackPayload(
+                        callbacks=[
+                            event
+                            for page in self.plugin.pages.values()
+                            for event in page.events
+                        ],
+                    ),
+                )
+            )
             self.push(
                 request(
                     "sdk.page.push",
                     PagePayload(
-                        pages={
-                            name: page.to_rfw()
-                            for name, page in self.plugin.pages.items()
-                        },
+                        pages=pages,
                     ),
                 )
             )

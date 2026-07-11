@@ -16,6 +16,10 @@ class PagePayload(BaseModel):
     pages: Dict[str, str]
 
 
+class CallbackPayload(BaseModel):
+    callbacks: List[str]
+
+
 class VarSetPayload(BaseModel):
     name: str
     value: Any
