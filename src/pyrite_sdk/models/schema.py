@@ -21,6 +21,11 @@ class VarSetPayload(BaseModel):
     value: Any
 
 
+class CallbackBindingPayload(BaseModel):
+    name: str
+    var: str
+
+
 class PathRequestPayload(BaseModel):
     scope: PathScope
 

@@ -6,10 +6,14 @@ class Event(RFWSerializable):
         self.callback: Callable[..., Any] = callback
         self.event: str = event
         self._explicit_event: bool = bool(event)
+        self._default_event: Optional[str] = None
         self.args: dict[str, Any] = args or {}
         self.events: Optional[dict[str, Callable[..., Any]]] = None
         self._setup_done: bool = False
         self._setup_events: Optional[dict[str, Callable[..., Any]]] = None
+
+    def set_default_event(self, widget_id: int, event: str) -> None:
+        self._default_event = f"callback-{widget_id}-{event}"
 
     def get_event_name(self) -> Optional[str]:
         if self.events is None:
@@ -18,7 +22,11 @@ class Event(RFWSerializable):
             if self.event in self.events:
                 raise Exception(f"Event {self.event} already exists")
             return self.event
-        return f"event_{len(self.events)}"
+        if self._default_event is None:
+            raise Exception("Event default name requires a widget event")
+        if self._default_event in self.events:
+            raise Exception(f"Event {self._default_event} already exists")
+        return self._default_event
 
     def setup(self) -> None:
         if self.events is None:

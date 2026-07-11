@@ -1,4 +1,4 @@
-from .base import Widget
+from .base import Widget, Var
 from ....interfaces.ui import EventType
 from typing import Any, Optional
 
@@ -28,6 +28,7 @@ class TextField(Widget):
         on_changed: Optional[EventType] = None,
         on_submitted: Optional[EventType] = None,
         on_tap: Optional[EventType] = None,
+        auto_bind: bool = True,
         **kwargs: Any
     ) -> None:
         super().__init__("TextField",
@@ -54,3 +55,4 @@ class TextField(Widget):
                         onSubmitted=on_submitted,
                         onTap=on_tap,
                         **kwargs)
+        self.register_callback_binding("")

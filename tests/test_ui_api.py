@@ -1,8 +1,10 @@
+import asyncio
 import contextlib
 import io
 import os
 import runpy
 import unittest
+from types import SimpleNamespace
 
 from pyrite_sdk.api.ui.event import Event
 from pyrite_sdk.api.ui.page import Page
@@ -53,11 +55,29 @@ from pyrite_sdk.api.ui.widgets import (
     TextField,
 )
 from pyrite_sdk.models.consts import Package
+from pyrite_sdk.models.schema import (
+    CallbackBindingPayload,
+    EventCallbackPayload,
+    request,
+)
 from pyrite_sdk.utils.ui import DataParser
 
 
 def noop(**kwargs):
     return None
+
+
+class FakeWebSocket:
+    def __init__(self, messages):
+        self.messages = list(messages)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if not self.messages:
+            raise StopAsyncIteration
+        return self.messages.pop(0)
 
 
 class UiApiTest(unittest.TestCase):
@@ -66,45 +86,123 @@ class UiApiTest(unittest.TestCase):
         root = NewWidget("root").add_to(page)
         return page, root
 
+    def make_bridge(self, pages=None):
+        from pyrite_sdk.core.bridge import Bridge
+
+        original_port = os.environ.get("PYRITE_IDE_PLUGIN_PORT")
+        os.environ["PYRITE_IDE_PLUGIN_PORT"] = "65530"
+        try:
+            return Bridge(SimpleNamespace(pages=pages or {}))
+        finally:
+            if original_port is None:
+                os.environ.pop("PYRITE_IDE_PLUGIN_PORT", None)
+            else:
+                os.environ["PYRITE_IDE_PLUGIN_PORT"] = original_port
+
+    def callback_name(self, widget, event: str) -> str:
+        return f"callback-{widget.widget_id}-{event}"
+
     def test_page_to_rfw_has_no_debug_stdout_and_event_args_default(self) -> None:
         page, root = self.make_page()
-        with ElevatedButton(on_pressed=Event(noop)).add_to(root):
+        button = ElevatedButton(on_pressed=Event(noop)).add_to(root)
+        with button:
             Text("Run")
 
         stdout = io.StringIO()
         with contextlib.redirect_stdout(stdout):
             rfw = page.to_rfw()
 
+        event_name = self.callback_name(button, "onPressed")
         self.assertEqual(stdout.getvalue(), "")
-        self.assertIn('event "event_0" {}', rfw)
-        self.assertEqual(list(page.events), ["event_0"])
+        self.assertIn(f'event "{event_name}" {{}}', rfw)
+        self.assertEqual(list(page.events), [event_name])
 
     def test_gesture_detector_event_is_registered_once(self) -> None:
         page, root = self.make_page()
-        with GestureDetector(on_tap=Event(noop)).add_to(root):
+        detector = GestureDetector(on_tap=Event(noop)).add_to(root)
+        with detector:
             Text("Tap")
 
         rfw = page.to_rfw()
 
-        self.assertIn('onTap: event "event_0" {}', rfw)
-        self.assertEqual(list(page.events), ["event_0"])
+        event_name = self.callback_name(detector, "onTap")
+        self.assertIn(f'onTap: event "{event_name}" {{}}', rfw)
+        self.assertEqual(list(page.events), [event_name])
 
     def test_same_auto_event_can_be_reused_on_different_pages(self) -> None:
         event = Event(noop)
 
         first, first_root = self.make_page()
-        with ElevatedButton(on_pressed=event).add_to(first_root):
+        first_button = ElevatedButton(on_pressed=event).add_to(first_root)
+        with first_button:
             Text("First")
         first.to_rfw()
 
         second, second_root = self.make_page()
-        with ElevatedButton(on_pressed=event).add_to(second_root):
+        second_button = ElevatedButton(on_pressed=event).add_to(second_root)
+        with second_button:
             Text("Second")
         rfw = second.to_rfw()
 
-        self.assertEqual(list(first.events), ["event_0"])
-        self.assertEqual(list(second.events), ["event_0"])
-        self.assertIn('event "event_0" {}', rfw)
+        first_event = self.callback_name(first_button, "onPressed")
+        second_event = self.callback_name(second_button, "onPressed")
+        self.assertEqual(list(first.events), [first_event])
+        self.assertEqual(list(second.events), [second_event])
+        self.assertIn(f'event "{second_event}" {{}}', rfw)
+
+    def test_widget_has_auto_incrementing_id(self) -> None:
+        first = Text("First")
+        second = Text("Second")
+
+        self.assertEqual(second.widget_id, first.widget_id + 1)
+
+    def test_register_callback_binding_sends_payload_and_binds_widget_event(self) -> None:
+        bridge = self.make_bridge()
+        envelopes = []
+        bridge.push = lambda envelope, client=None: envelopes.append(envelope)
+        widget = Switch(value=data.enabled)
+
+        bridge.register_callback_binding(widget, "onChanged", data.enabled)
+
+        event_name = f"callback-{widget.widget_id}-onChanged"
+        self.assertEqual(envelopes[0].type, "sdk.callback.register")
+        self.assertEqual(
+            CallbackBindingPayload(**envelopes[0].payload),
+            CallbackBindingPayload(name=event_name, var="enabled"),
+        )
+        self.assertIn(event_name, bridge._callback_binding_names)
+        self.assertIn(f'onChanged: event "{event_name}" {{}}', widget.to_rfw())
+
+    def test_register_callback_binding_reuses_event_callback_name(self) -> None:
+        bridge = self.make_bridge()
+        bridge.push = lambda envelope, client=None: None
+        event = Event(noop)
+        widget = Switch(value=data.enabled, on_changed=event)
+
+        bridge.register_callback_binding(widget, "onChanged", data.enabled)
+        page, root = self.make_page()
+        widget.add_to(root)
+        rfw = page.to_rfw()
+
+        event_name = f"callback-{widget.widget_id}-onChanged"
+        self.assertEqual(list(page.events), [event_name])
+        self.assertIn(f'onChanged: event "{event_name}" {{}}', rfw)
+
+    def test_registered_callback_binding_without_python_event_is_acknowledged(self) -> None:
+        bridge = self.make_bridge(pages={"home": SimpleNamespace(events={})})
+        bridge._callback_binding_names.add("callback-1-onChanged")
+        payload = EventCallbackPayload(
+            page="home",
+            name="callback-1-onChanged",
+            args={"value": True},
+        )
+        raw = request("ide.event.callback", payload).json()
+        pushed = []
+        bridge.push = lambda envelope, client=None: pushed.append(envelope)
+
+        asyncio.run(bridge.handler(FakeWebSocket([raw])))
+
+        self.assertEqual(pushed[-1].type, "ide.response.ok")
 
     def test_for_loop_can_be_used_as_context_child(self) -> None:
         page, root = self.make_page()
@@ -136,17 +234,19 @@ class UiApiTest(unittest.TestCase):
 
     def test_nested_widget_args_register_events(self) -> None:
         page, root = self.make_page()
+        action = ElevatedButton(on_pressed=Event(noop))
         app_bar = AppBar(
             title=Text("Home"),
-            actions=[ElevatedButton(on_pressed=Event(noop))],
+            actions=[action],
         )
         with Scaffold(app_bar=app_bar).add_to(root):
             Text("Body")
 
         rfw = page.to_rfw()
 
-        self.assertEqual(list(page.events), ["event_0"])
-        self.assertIn('actions: [ElevatedButton(onPressed: event "event_0" {})]', rfw)
+        event_name = self.callback_name(action, "onPressed")
+        self.assertEqual(list(page.events), [event_name])
+        self.assertIn(f'actions: [ElevatedButton(onPressed: event "{event_name}" {{}})]', rfw)
 
     def test_data_parser_and_default_case(self) -> None:
         parsed = DataParser({"title": "Hi $[data.name]", "count": 3}).to_rfw()
@@ -218,30 +318,31 @@ class UiApiTest(unittest.TestCase):
     def test_input_selection_and_media_wrappers_serialize_events(self) -> None:
         page, root = self.make_page()
         with Column().add_to(root):
-            TextField(
+            text_field = TextField(
                 decoration={"labelText": "Name"},
                 on_changed=Event(noop),
                 max_lines=1,
             )
-            with FilledButton(
+            filled_button = FilledButton(
                 on_pressed=Event(noop),
                 style={"backgroundColor": color(0xFF1565C0), "minimumSize": [120.0, 40.0]},
-            ):
+            )
+            with filled_button:
                 Text("Run")
-            Checkbox(
+            checkbox = Checkbox(
                 value=state.enabled,
                 on_changed=Event(noop),
                 active_color=Colors.blue,
                 check_color=Colors.white,
                 semantic_label="Enabled",
             )
-            Switch(
+            switch = Switch(
                 value=state.enabled,
                 on_changed=Event(noop),
                 active_thumb_color=Colors.green,
                 inactive_track_color=Colors.grey,
             )
-            RadioGroup(
+            radio_group = RadioGroup(
                 group_value=data.choice,
                 on_changed=Event(noop),
                 items=[
@@ -251,7 +352,7 @@ class UiApiTest(unittest.TestCase):
                 active_color=Colors.blue,
                 dense=True,
             )
-            Slider(
+            slider = Slider(
                 value=data.level,
                 min=0.0,
                 max=1.0,
@@ -259,27 +360,36 @@ class UiApiTest(unittest.TestCase):
                 label="Level",
                 on_changed=Event(noop),
             )
-            ListTile(
+            icon_button = IconButton(icon=Icon(Icons.chevron_right), on_pressed=Event(noop))
+            list_tile = ListTile(
                 leading=Icon(Icons.person),
                 title=Text("Profile"),
-                trailing=IconButton(icon=Icon(Icons.chevron_right), on_pressed=Event(noop)),
+                trailing=icon_button,
                 on_tap=Event(noop),
             )
             Padding(EdgeInsets.all(8))
 
         rfw = page.to_rfw()
 
-        self.assertEqual(list(page.events), ["event_0", "event_1", "event_2", "event_3", "event_4", "event_5", "event_6", "event_7"])
-        self.assertIn('TextField(decoration: {"labelText": "Name"}, maxLines: 1, onChanged: event "event_0" {})', rfw)
-        self.assertIn('FilledButton(onPressed: event "event_1" {}, style: {"backgroundColor": 0xff1565c0, "minimumSize": [120.0, 40.0]}, child: Text(text: "Run"))', rfw)
-        self.assertIn('Checkbox(value: state.enabled, onChanged: event "event_2" {}, activeColor: 0xff2196f3, checkColor: 0xffffffff, semanticLabel: "Enabled")', rfw)
-        self.assertIn('Switch(value: state.enabled, onChanged: event "event_3" {}, activeThumbColor: 0xff4caf50, inactiveTrackColor: 0xff9e9e9e)', rfw)
-        self.assertIn('RadioGroup(groupValue: data.choice, onChanged: event "event_4" {}, items: [{"value": "a", "label": "Choice A", "subtitle": "First"}, {"value": "b", "label": "Choice B", "enabled": false}], activeColor: 0xff2196f3, dense: true)', rfw)
-        self.assertIn('Slider(value: data.level, onChanged: event "event_5" {}, min: 0.0, max: 1.0, divisions: 4, label: "Level")', rfw)
+        text_event = self.callback_name(text_field, "onChanged")
+        filled_event = self.callback_name(filled_button, "onPressed")
+        checkbox_event = self.callback_name(checkbox, "onChanged")
+        switch_event = self.callback_name(switch, "onChanged")
+        radio_event = self.callback_name(radio_group, "onChanged")
+        slider_event = self.callback_name(slider, "onChanged")
+        icon_event = self.callback_name(icon_button, "onTap")
+        tile_event = self.callback_name(list_tile, "onTap")
+        self.assertEqual(list(page.events), [text_event, filled_event, checkbox_event, switch_event, radio_event, slider_event, icon_event, tile_event])
+        self.assertIn(f'TextField(decoration: {{"labelText": "Name"}}, maxLines: 1, onChanged: event "{text_event}" {{}})', rfw)
+        self.assertIn(f'FilledButton(onPressed: event "{filled_event}" {{}}, style: {{"backgroundColor": 0xff1565c0, "minimumSize": [120.0, 40.0]}}, child: Text(text: "Run"))', rfw)
+        self.assertIn(f'Checkbox(value: state.enabled, onChanged: event "{checkbox_event}" {{}}, activeColor: 0xff2196f3, checkColor: 0xffffffff, semanticLabel: "Enabled")', rfw)
+        self.assertIn(f'Switch(value: state.enabled, onChanged: event "{switch_event}" {{}}, activeThumbColor: 0xff4caf50, inactiveTrackColor: 0xff9e9e9e)', rfw)
+        self.assertIn(f'RadioGroup(groupValue: data.choice, onChanged: event "{radio_event}" {{}}, items: [{{"value": "a", "label": "Choice A", "subtitle": "First"}}, {{"value": "b", "label": "Choice B", "enabled": false}}], activeColor: 0xff2196f3, dense: true)', rfw)
+        self.assertIn(f'Slider(value: data.level, onChanged: event "{slider_event}" {{}}, min: 0.0, max: 1.0, divisions: 4, label: "Level")', rfw)
         self.assertIn('ListTile(leading: Icon(icon: {"icon": 0xe491, "fontFamily": "MaterialIcons"})', rfw)
-        self.assertIn('trailing: GestureDetector(onTap: event "event_6" {}, child: Container', rfw)
+        self.assertIn(f'trailing: GestureDetector(onTap: event "{icon_event}" {{}}, child: Container', rfw)
         self.assertIn('child: Icon(icon: {"icon": 0xe15f, "fontFamily": "MaterialIcons"})', rfw)
-        self.assertIn('onTap: event "event_7" {}', rfw)
+        self.assertIn(f'onTap: event "{tile_event}" {{}}', rfw)
         self.assertIn("Padding(padding: [8.0])", rfw)
         for unsupported in ("Radio(", "TextFormField(", "IconButton("):
             self.assertNotIn(unsupported, rfw)
@@ -289,13 +399,13 @@ class UiApiTest(unittest.TestCase):
     def test_markdown_wrappers_serialize_events(self) -> None:
         page, root = self.make_page()
         with Column().add_to(root):
-            MarkdownBlock(
+            markdown_block = MarkdownBlock(
                 "# Title\n\n[Docs](https://example.com)",
                 selectable=False,
                 padding=EdgeInsets.all(12),
                 on_tap_link=Event(noop),
             )
-            MarkdownWidget(data.body, shrink_wrap=True, on_tap_link=Event(noop))
+            markdown_widget = MarkdownWidget(data.body, shrink_wrap=True, on_tap_link=Event(noop))
             Markdown(
                 "Plain **markdown**",
                 selectable=True,
@@ -310,9 +420,11 @@ class UiApiTest(unittest.TestCase):
 
         rfw = page.to_rfw()
 
-        self.assertEqual(list(page.events), ["event_0", "event_1"])
-        self.assertIn('MarkdownBlock(data: "# Title\\n\\n[Docs](https://example.com)", selectable: false, padding: [12.0], onTapLink: event "event_0" {})', rfw)
-        self.assertIn('MarkdownWidget(data: data.body, shrinkWrap: true, onTapLink: event "event_1" {})', rfw)
+        block_event = self.callback_name(markdown_block, "onTapLink")
+        widget_event = self.callback_name(markdown_widget, "onTapLink")
+        self.assertEqual(list(page.events), [block_event, widget_event])
+        self.assertIn(f'MarkdownBlock(data: "# Title\\n\\n[Docs](https://example.com)", selectable: false, padding: [12.0], onTapLink: event "{block_event}" {{}})', rfw)
+        self.assertIn(f'MarkdownWidget(data: data.body, shrinkWrap: true, onTapLink: event "{widget_event}" {{}})', rfw)
         self.assertIn('Markdown(data: "Plain **markdown**", selectable: true, codeBlockTextStyle: {"fontFamily": "Menlo"}, codeBlockStyleNotMatched: {"color": 0xff1f2937}, codeBlockTheme: "dark", inlineCodeTextStyle: {"fontFamily": "Menlo", "backgroundColor": 0xffeff4fa})', rfw)
 
     def test_ui_plugin_example_uses_only_registered_rfw_widget_names(self) -> None:
@@ -343,12 +455,9 @@ class UiApiTest(unittest.TestCase):
         self.assertIn("Checkbox(value: data.checkbox, onChanged: event", rfw)
         self.assertIn("Switch(value: data.switch, onChanged: event", rfw)
         self.assertIn('TextField(decoration: {"labelText": "Start typing", "hintText": "Hello PyriteProject", "isDense": true})', rfw)
-        self.assertIn('ElevatedButton(onPressed: event "event_3" {}, child: Text(text: "Button1"))', rfw)
-        self.assertIn('TextButton(onPressed: event "event_4" {}, child: Text(text: "Button2"))', rfw)
-        self.assertIn(
-            'RadioGroup(groupValue: data.radio_group_value, onChanged: event "event_5" {}, items: [{"value": "opt1", "label":',
-            rfw,
-        )
+        self.assertRegex(rfw, r'ElevatedButton\(onPressed: event "callback-\d+-onPressed" \{\}, child: Text\(text: "Button1"\)\)')
+        self.assertRegex(rfw, r'TextButton\(onPressed: event "callback-\d+-onPressed" \{\}, child: Text\(text: "Button2"\)\)')
+        self.assertRegex(rfw, r'RadioGroup\(groupValue: data\.radio_group_value, onChanged: event "callback-\d+-onChanged" \{\}, items: \[\{"value": "opt1", "label":')
         self.assertNotIn("data.counter", rfw)
         self.assertNotIn("data.enabled", rfw)
 
@@ -371,9 +480,9 @@ class UiApiTest(unittest.TestCase):
         rfw = namespace["plugin"].pages["home"].to_rfw()
 
         self.assertIn("MarkdownBlock(", rfw)
-        self.assertIn('onTapLink: event "event_0" {}', rfw)
+        self.assertRegex(rfw, r'onTapLink: event "callback-\d+-onTapLink" \{\}')
         self.assertIn('Text(text: ["Last link: ", data.last_link]', rfw)
-        self.assertIn('onPressed: event "event_1" {}', rfw)
+        self.assertRegex(rfw, r'onPressed: event "callback-\d+-onPressed" \{\}')
         self.assertIn('Text(text: "Reset link state")', rfw)
         self.assertNotIn("set data.", rfw)
 

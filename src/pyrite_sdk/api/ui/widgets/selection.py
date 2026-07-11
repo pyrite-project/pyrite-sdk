@@ -38,6 +38,7 @@ class Checkbox(Widget):
             semanticLabel=semantic_label,
             **kwargs
         )
+        self.register_callback_binding(False)
 
 
 class Switch(Widget):
@@ -75,6 +76,7 @@ class Switch(Widget):
             padding=padding,
             **kwargs
         )
+        self.register_callback_binding(False)
 
 class RadioGroup(Widget):
     def __init__(
@@ -127,6 +129,10 @@ class RadioGroup(Widget):
             radioScaleFactor=radio_scale_factor,
             **kwargs
         )
+        default = ""
+        if items:
+            default = items[0]['value']
+        self.register_callback_binding(default, "groupValue")
 
 
 class Slider(Widget):
@@ -149,20 +155,23 @@ class Slider(Widget):
         padding: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Slider",
-                        value=value,
-                        secondaryTrackValue=secondary_track_value,
-                        onChanged=on_changed,
-                        onChangeStart=on_change_start,
-                        onChangeEnd=on_change_end,
-                        min=min,
-                        max=max,
-                        divisions=divisions,
-                        label=label,
-                        activeColor=active_color,
-                        inactiveColor=inactive_color,
-                        secondaryActiveColor=secondary_active_color,
-                        thumbColor=thumb_color,
-                        autofocus=autofocus,
-                        padding=padding,
-                        **kwargs)
+        super().__init__(
+            "Slider",
+            value=value,
+            secondaryTrackValue=secondary_track_value,
+            onChanged=on_changed,
+            onChangeStart=on_change_start,
+            onChangeEnd=on_change_end,
+            min=min,
+            max=max,
+            divisions=divisions,
+            label=label,
+            activeColor=active_color,
+            inactiveColor=inactive_color,
+            secondaryActiveColor=secondary_active_color,
+            thumbColor=thumb_color,
+            autofocus=autofocus,
+            padding=padding,
+            **kwargs
+        )
+        self.register_callback_binding(0)

@@ -13,7 +13,8 @@ from ..models.consts import *
 from ..models.schema import *
 from ..api.ui.sentence.var import Var
 from ..interfaces.ui import PageType
-from ..utils.ui import to_data
+from ..utils.ui import RFWSerializable, to_data
+from ..api.ui.widgets.base import Widget
 
 if TYPE_CHECKING:
     from ..interfaces.plugin import PluginType
@@ -110,7 +111,7 @@ class BridgeOutputRouter:
 
 
 class Bridge:
-    def __init__(self, plugin: PluginType, queue_size: int = 10):
+    def __init__(self, plugin: PluginType, queue_size: int = 50):
         self.plugin = plugin
         self.running = True
         self.connected_clients = set()
@@ -128,6 +129,8 @@ class Bridge:
         self._stderr = getattr(BridgeOutputRouter._stderr, "original", sys.stderr)
         self._output_redirected = False
         self._pending_output: list[tuple[str, str]] = []
+        self._callback_binding_names: set[str] = set()
+        self.pushed_data = {}
 
     def redirect_output(self):
         BridgeOutputRouter.install()
@@ -192,6 +195,9 @@ class Bridge:
                             page: PageType = _page
                             event = page.events.get(payload.name)
                             if not event:
+                                if payload.name in self._callback_binding_names:
+                                    self.push(ok(env), websocket)
+                                    return
                                 self.push(err(env, ErrorCode.KEY_NOT_FOUND,
                                             f"Event '{payload.name}' not found"), websocket)
                                 return
@@ -279,6 +285,8 @@ class Bridge:
             await self.send(client, envelope)
 
     def refresh(self, call_on_refresh: bool = True):
+        self.clear_callback_binding()
+        Widget.next_widget_id = 0
         if call_on_refresh:
             self.plugin.on_refresh()
         if not hasattr(self.plugin, "pages"):
@@ -287,6 +295,11 @@ class Bridge:
         if not self.plugin.pages:
             self._log_internal("Warning: Plugin has empty pages to refresh")
             return
+        for binding in Widget.callback_binding_names:
+            data_var = binding[-2]
+            if data_var not in self.pushed_data:
+                self.let(data_var, binding[-1])
+            self.register_callback_binding(*binding[:3])
         try:
             self.push(
                 request(
@@ -342,11 +355,9 @@ class Bridge:
             raise TimeoutError(f"Timed out waiting for plugin path: {scope.value}") from exc
 
     def let(self, name: Var, value: Any):
-        paths = list(name.paths)
-        if paths and paths[0] in {"data", "args", "state"}:
-            paths.pop(0)
-        var_name = Var(*paths).to_rfw()
+        var_name = self._to_var_name(name)
         self._log_internal(f"[DEBUG] let() called: name={var_name}, value={value}")
+        self.pushed_data[var_name] = value
         self.push(
             request(
                 "sdk.var.set",
@@ -357,6 +368,46 @@ class Bridge:
             )
         )
         self._log_internal(f"[DEBUG] let() pushed sdk.var.set to queue")
+    
+    def clear_callback_binding(self):
+        self._callback_binding_names.clear()
+        Widget.callback_binding_names.clear()
+        self.push(request("sdk.callback.clear"))
+
+    def register_callback_binding(self, widget, event: str, var: Var):
+        widget_id = getattr(widget, "widget_id")
+        event_name = f"callback_{widget_id}_{event}"
+        self._bind_widget_callback_event(widget, event, event_name)
+        self._callback_binding_names.add(event_name)
+        self.push(
+            request(
+                "sdk.callback.register",
+                CallbackBindingPayload(
+                    name=event_name,
+                    var=self._to_var_name(var),
+                ),
+            )
+        )
+
+    def _bind_widget_callback_event(self, widget, event: str, event_name: str):
+        current = widget.args.get(event)
+        if current is None:
+            widget.args[event] = _CallbackEvent(event_name)
+            return
+        if hasattr(current, "event"):
+            previous_name = current.event
+            current.event = event_name
+            if hasattr(current, "_explicit_event"):
+                current._explicit_event = True
+            events = getattr(current, "events", None)
+            if events is not None and previous_name in events:
+                events[event_name] = events.pop(previous_name)
+
+    def _to_var_name(self, name: Var) -> str:
+        paths = list(name.paths)
+        if paths and paths[0] in {"data", "args", "state"}:
+            paths.pop(0)
+        return Var(*paths).to_rfw()
 
     async def loop(self):
         while self.running:
@@ -398,3 +449,11 @@ class Bridge:
         self.running = False
         if self.server is not None:
             self.server.close()
+
+
+class _CallbackEvent(RFWSerializable):
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def to_rfw(self) -> str:
+        return f'event "{self.name}" {{}}'
