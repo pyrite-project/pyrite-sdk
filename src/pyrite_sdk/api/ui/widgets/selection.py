@@ -175,3 +175,7 @@ class Slider(Widget):
             **kwargs
         )
         self.register_callback_binding(0)
+
+def RadioItem(label, value=None):
+    value = value if value else label
+    return {'value': value, 'label': label}

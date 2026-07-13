@@ -6,6 +6,63 @@ if TYPE_CHECKING:
     from ...core.bridge import Bridge
 
 
+class ThemeSettings:
+    """Appearance and style settings."""
+
+    def __init__(self, bridge: Bridge):
+        self._bridge = bridge
+
+    def _get(self, name: str, callback: Optional[Callable] = None):
+        self._bridge.push_wait_response(
+            request("sdk.settings.get", payload={"name": name}),
+            callback=callback,
+        )
+
+    def _set(self, name: str, value: Any, callback: Optional[Callable] = None):
+        self._bridge.push_wait_response(
+            request("sdk.settings.set", payload={"name": name, "value": value}),
+            callback=callback,
+        )
+
+    def get_mode(self, callback: Optional[Callable] = None):
+        self._get("theme.mode", callback)
+
+    def set_mode(self, value: str, callback: Optional[Callable] = None):
+        self._set("theme.mode", value, callback)
+
+    def get_style(self, callback: Optional[Callable] = None):
+        self._get("theme.style", callback)
+
+    def set_style(self, value: str, callback: Optional[Callable] = None):
+        self._set("theme.style", value, callback)
+
+    def get_color(self, callback: Optional[Callable] = None):
+        self._get("theme.color", callback)
+
+    def set_color(self, value: Optional[int], callback: Optional[Callable] = None):
+        self._set("theme.color", value, callback)
+
+    def get_active_plugin_theme_id(self, callback: Optional[Callable] = None):
+        self._get("theme.active_plugin_theme_id", callback)
+
+    def set_active_plugin_theme_id(
+        self,
+        value: Optional[str],
+        callback: Optional[Callable] = None,
+    ):
+        self._set("theme.active_plugin_theme_id", value, callback)
+
+    def get_use_material_context_menu(self, callback: Optional[Callable] = None):
+        self._get("theme.use_material_context_menu", callback)
+
+    def set_use_material_context_menu(
+        self,
+        value: bool,
+        callback: Optional[Callable] = None,
+    ):
+        self._set("theme.use_material_context_menu", value, callback)
+
+
 class EditorSettings:
     """编辑器相关设置"""
 
@@ -217,6 +274,7 @@ class MicroPythonStubsSettings:
 class Settings:
     def __init__(self, bridge: Bridge):
         self._bridge = bridge
+        self.theme = ThemeSettings(bridge)
         self.editor = EditorSettings(bridge)
         self.lsp = LspSettings(bridge)
         self.serial = SerialSettings(bridge)

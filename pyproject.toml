@@ -3,24 +3,20 @@ name = "pyrite-sdk"
 version = "0.0.0"
 description = "Expand your PyriteIDE"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.14"
 dependencies = [
-    "pydantic==1.8.2",
     "websockets>=16.0",
     "build>=1.4.3",
     "setuptools>=82.0.1",
+    "pydantic>=2.13.4",
+    "typer>=0.25.1",
+    "rich>=13.0.0",
 ]
 authors = [
     {name = "Can1425", email = "myqf1425@126.com"},
     {name = "kaixin1106", email = "kaixin168kx@163.com"},
 ]
 keywords = ["pyrite", "PyriteIDE", "PyriteSDK", "MicroPython"]
-
-[project.optional-dependencies]
-packager = [
-    "typer>=0.25.1",
-    "rich>=13.0.0",
-]
 
 [project.scripts]
 pyrsdk = "packager.main:app"
@@ -34,4 +30,4 @@ where = ["src"]
 include = ["pyrite_sdk*", "packager*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.py", "*.toml", "*.md", "*.pyi"]
+"*" = ["*.py", "*.toml", "*.md", "*.pyi", "py.typed"]

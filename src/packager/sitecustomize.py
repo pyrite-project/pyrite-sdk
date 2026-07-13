@@ -9,7 +9,6 @@ custom_mac_ver = "{mac_ver}"
 import collections
 import platform
 import sysconfig
-import sys
 
 if custom_system:
     platform.system = lambda: custom_system
@@ -26,20 +25,22 @@ if custom_mac_ver:
 
   platform.mac_ver = custom_mac_ver_impl
 
-if custom_system == "iOS":
-  IOSVersionInfo = collections.namedtuple(
-      "IOSVersionInfo",
-      ["system", "release", "model", "is_simulator"]
+if custom_system == "Android":
+  AndroidVer = collections.namedtuple(
+      "AndroidVer",
+      ["release", "api_level", "manufacturer", "model", "device", "is_emulator"]
   )
 
   tag_parts = custom_platform.split("-")
+  try:
+      api_level = int(tag_parts[1])
+  except (IndexError, ValueError):
+      api_level = 24
 
-  def custom_ios_ver(system="", release="", model="", is_simulator=False):
-      return IOSVersionInfo(custom_system, tag_parts[1], "iPhone", "simulator" in tag_parts[3])
+  def custom_android_ver():
+      return AndroidVer("", api_level, "", "", "", False)
 
-  platform.ios_ver = custom_ios_ver
-
-  sys.implementation._multiarch = f"{tag_parts[2]}_{tag_parts[3]}"
+  platform.android_ver = custom_android_ver
 
 orig_platform_version = platform.version
 platform.version = lambda: orig_platform_version() + ";embedded"

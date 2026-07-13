@@ -238,7 +238,7 @@ windows = true
 
 ## 5. 打包工具（Packager）
 
-SDK 包含一个 CLI 打包工具，用于将 Python 应用打包为 Flutter 资产（ZIP 格式），支持多平台交叉编译。
+SDK 包含一个 CLI 打包工具，用于为 serious_python 处理 Python 应用和依赖。
 
 ### 5.1 使用方式
 
@@ -247,15 +247,15 @@ SDK 包含一个 CLI 打包工具，用于将 Python 应用打包为 Flutter 资
 pyrsdk package -i
 
 # 命令行模式
-pyrsdk package . -p Android --arch arm64-v8a -r requests -a build/app.zip
+pyrsdk package . -p Android --python-version 3.14 \
+  --arch arm64-v8a -r requests -a build/app.zip
 ```
 
 ### 5.2 支持的平台
 
 | 平台 | 架构 |
 |------|------|
-| Android | arm64-v8a, armeabi-v7a, x86_64, x86 |
-| iOS | (无架构选项) |
+| Android | arm64-v8a, armeabi-v7a, x86_64 |
 | macOS (Darwin) | arm64, x86_64 |
 | Windows | (默认) |
 | Linux | (默认) |
@@ -266,8 +266,8 @@ pyrsdk package . -p Android --arch arm64-v8a -r requests -a build/app.zip
 2. （可选）编译 Python 源文件为 .pyc
 3. （可选）清理不必要的文件
 4. （可选）安装 Python 依赖包（支持 `uv` 或 `pip`）
-5. 创建 ZIP 存档
-6. 生成 SHA256 哈希文件
+5. 设置 `SERIOUS_PYTHON_APP` 时暂存原生应用目录；否则创建插件 ZIP
+6. ZIP 输出生成 SHA256 哈希文件
 
 ### 5.4 主要参数
 
@@ -275,12 +275,18 @@ pyrsdk package . -p Android --arch arm64-v8a -r requests -a build/app.zip
 |------|------|
 | `source_dir` | 源代码目录 |
 | `-p, --platform` | 目标平台 |
+| `--python-version` | 目标 Python 版本（3.12/3.13/3.14） |
 | `--arch` | 目标架构 |
 | `-r, --requirements` | 依赖包列表 |
 | `-a, --asset` | 输出路径（默认 `build/app.zip`） |
 | `--compile-app` | 编译 Python 源码 |
 | `--cleanup` | 清理冗余文件 |
 | `--pip-tool` | 依赖安装工具（uv/pip） |
+
+`SERIOUS_PYTHON_VERSION` 可设置默认目标版本；`--python-version` 优先。
+依赖目录可通过 `SERIOUS_PYTHON_SITE_PACKAGES` 指定。设置
+`SERIOUS_PYTHON_APP` 后，未显式传入 `--asset` 的原生打包会把处理后的
+应用暂存到该目录。显式传入 `--asset` 时仍生成 ZIP 和哈希文件。
 
 ## 6. 依赖项
 

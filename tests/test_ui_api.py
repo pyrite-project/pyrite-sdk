@@ -24,6 +24,7 @@ from pyrite_sdk.api.ui.sentence import (
     call,
     color,
     data,
+    icon_data,
     input_decoration,
     let,
     state,
@@ -395,7 +396,16 @@ class UiApiTest(unittest.TestCase):
                 label="Level",
                 on_changed=Event(noop),
             )
-            icon_button = IconButton(icon=Icon(Icons.chevron_right), on_pressed=Event(noop))
+            icon_button = IconButton(
+                icon=Icon(Icons.chevron_right),
+                on_pressed=Event(noop),
+                tooltip="Next",
+                icon_size=28.0,
+                color=Colors.blue,
+                disabled_color=Colors.grey,
+                splash_radius=24.0,
+                autofocus=True,
+            )
             list_tile = ListTile(
                 leading=Icon(Icons.person),
                 title=Text("Profile"),
@@ -412,7 +422,7 @@ class UiApiTest(unittest.TestCase):
         switch_event = self.callback_name(switch, "onChanged")
         radio_event = self.callback_name(radio_group, "onChanged")
         slider_event = self.callback_name(slider, "onChanged")
-        icon_event = self.callback_name(icon_button, "onTap")
+        icon_event = self.callback_name(icon_button, "onPressed")
         tile_event = self.callback_name(list_tile, "onTap")
         self.assertEqual(list(page.events), [text_event, filled_event, checkbox_event, switch_event, radio_event, slider_event, icon_event, tile_event])
         self.assertIn(f'TextField(decoration: {{"labelText": "Name"}}, maxLines: 1, onChanged: event "{text_event}" {{}})', rfw)
@@ -421,15 +431,92 @@ class UiApiTest(unittest.TestCase):
         self.assertIn(f'Switch(value: state.enabled, onChanged: event "{switch_event}" {{}}, activeThumbColor: 0xff4caf50, inactiveTrackColor: 0xff9e9e9e)', rfw)
         self.assertIn(f'RadioGroup(groupValue: data.choice, onChanged: event "{radio_event}" {{}}, items: [{{"value": "a", "label": "Choice A", "subtitle": "First"}}, {{"value": "b", "label": "Choice B", "enabled": false}}], activeColor: 0xff2196f3, dense: true)', rfw)
         self.assertIn(f'Slider(value: data.level, onChanged: event "{slider_event}" {{}}, min: 0.0, max: 1.0, divisions: 4, label: "Level")', rfw)
-        self.assertIn('ListTile(leading: Icon(icon: {"icon": 0xe491, "fontFamily": "MaterialIcons"})', rfw)
-        self.assertIn(f'trailing: GestureDetector(onTap: event "{icon_event}" {{}}, child: Container', rfw)
-        self.assertIn('child: Icon(icon: {"icon": 0xe15f, "fontFamily": "MaterialIcons"})', rfw)
+        self.assertIn('ListTile(leading: Icon(icon: 0xe491, fontFamily: "MaterialIcons")', rfw)
+        self.assertIn(
+            f'trailing: IconButton(icon: Icon(icon: 0xe15f, fontFamily: "MaterialIcons", matchTextDirection: true), onPressed: event "{icon_event}" {{}}, tooltip: "Next", iconSize: 28.0, color: 0xff2196f3, disabledColor: 0xff9e9e9e, splashRadius: 24.0, autofocus: true)',
+            rfw,
+        )
         self.assertIn(f'onTap: event "{tile_event}" {{}}', rfw)
         self.assertIn("Padding(padding: [8.0])", rfw)
-        for unsupported in ("Radio(", "TextFormField(", "IconButton("):
+        for unsupported in ("Radio(", "TextFormField("):
             self.assertNotIn(unsupported, rfw)
-        self.assertEqual(rfw.count('Icon(icon: {"icon": 0xe491, "fontFamily": "MaterialIcons"})'), 1)
+        self.assertEqual(rfw.count('Icon(icon: 0xe491, fontFamily: "MaterialIcons")'), 1)
         self.assertEqual(rfw.count('Text(text: "Profile")'), 1)
+
+    def test_icon_data_is_flattened_for_icon_and_icon_button(self) -> None:
+        page, root = self.make_page()
+        with Column().add_to(root):
+            Icon(Icons.person)
+            Icon(icon_data(0xE047))
+            Icon({"icon": 0xE33D, "fontFamily": "MaterialIcons"})
+            IconButton(icon=Icons.chevron_right)
+
+        rfw = page.to_rfw()
+
+        self.assertIn('Icon(icon: 0xe491, fontFamily: "MaterialIcons")', rfw)
+        self.assertIn('Icon(icon: 0xe047, fontFamily: "MaterialIcons")', rfw)
+        self.assertIn('Icon(icon: 58173, fontFamily: "MaterialIcons")', rfw)
+        self.assertIn(
+            'Icon(icon: 0xe15f, fontFamily: "MaterialIcons", matchTextDirection: true)',
+            rfw,
+        )
+        self.assertIn(
+            'IconButton(icon: Icon(icon: 0xe15f, fontFamily: "MaterialIcons", matchTextDirection: true))',
+            rfw,
+        )
+        self.assertNotIn('Icon(icon: {"icon":', rfw)
+
+    def test_icon_button_serializes_native_rfw_widget(self) -> None:
+        page, root = self.make_page()
+        with Column().add_to(root):
+            icon_button = IconButton(
+                icon=Icons.chevron_right,
+                on_pressed=Event(noop),
+                on_long_press=Event(noop),
+                on_hover=Event(noop),
+                selected_icon=Icons.person,
+                is_selected=True,
+                tooltip="Next",
+                icon_size=28.0,
+                visual_density={"horizontal": 1.0, "vertical": -1.0},
+                padding=[4.0, 8.0],
+                alignment={"x": 1.0, "y": 0.0},
+                color=Colors.blue,
+                disabled_color=Colors.grey,
+                focus_color=color(0xFF00BCD4),
+                hover_color=Colors.green,
+                highlight_color=color(0xFFFFEB3B),
+                splash_color=color(0xFF9C27B0),
+                splash_radius=24.0,
+                autofocus=True,
+                enable_feedback=False,
+                constraints={"minWidth": 40.0, "minHeight": 42.0},
+            )
+
+        rfw = page.to_rfw()
+        press_event = self.callback_name(icon_button, "onPressed")
+        long_press_event = self.callback_name(icon_button, "onLongPress")
+        hover_event = self.callback_name(icon_button, "onHover")
+
+        self.assertEqual(
+            list(page.events),
+            [press_event, long_press_event, hover_event],
+        )
+        self.assertIn(
+            f'IconButton(icon: Icon(icon: 0xe15f, fontFamily: "MaterialIcons", matchTextDirection: true), selectedIcon: Icon(icon: 0xe491, fontFamily: "MaterialIcons"), onPressed: event "{press_event}" {{}}, onLongPress: event "{long_press_event}" {{}}, onHover: event "{hover_event}" {{}}',
+            rfw,
+        )
+        self.assertIn('visualDensity: {"horizontal": 1.0, "vertical": -1.0}', rfw)
+        self.assertIn('padding: [4.0, 8.0], alignment: {"x": 1.0, "y": 0.0}', rfw)
+        self.assertIn(
+            'color: 0xff2196f3, disabledColor: 0xff9e9e9e, focusColor: 0xff00bcd4, hoverColor: 0xff4caf50, highlightColor: 0xffffeb3b, splashColor: 0xff9c27b0',
+            rfw,
+        )
+        self.assertIn(
+            'splashRadius: 24.0, autofocus: true, enableFeedback: false, constraints: {"minWidth": 40.0, "minHeight": 42.0}, isSelected: true',
+            rfw,
+        )
+        self.assertNotIn("GestureDetector(", rfw)
 
     def test_markdown_wrappers_serialize_events(self) -> None:
         page, root = self.make_page()

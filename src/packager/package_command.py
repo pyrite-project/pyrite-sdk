@@ -1,10 +1,13 @@
 import fnmatch
 import hashlib
 import os
+import platform as host_platform
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
+import urllib.request
 import zipfile
 from pathlib import Path
 from typing import Optional
@@ -24,21 +27,23 @@ from rich.panel import Panel
 from rich.rule import Rule
 
 from .utils import macos_utils
+from .python_versions import PythonRelease, resolve_python_release
 from .sitecustomize import sitecustomize_py
 
 mobile_pypi_url = "https://pypi.flet.dev"
 
 default_site_packages_dir = "site-packages"
-site_packages_env_var = "serious_python_site_packages"
+site_packages_env_var = "SERIOUS_PYTHON_SITE_PACKAGES"
+legacy_site_packages_env_var = "serious_python_site_packages"
+app_environment_var = "SERIOUS_PYTHON_APP"
 flutter_packages_flutter_env_var = "SERIOUS_PYTHON_FLUTTER_PACKAGES"
 allow_source_distros_env_var = "SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS"
 
 platforms = {
     "Android": {
-        "arm64-v8a": {"tag": "android-24-arm64-v8a", "mac_ver": ""},
-        "armeabi-v7a": {"tag": "android-24-armeabi-v7a", "mac_ver": ""},
+        "arm64-v8a": {"tag": "android-24-arm64_v8a", "mac_ver": ""},
+        "armeabi-v7a": {"tag": "android-24-armeabi_v7a", "mac_ver": ""},
         "x86_64": {"tag": "android-24-x86_64", "mac_ver": ""},
-        "x86": {"tag": "android-24-x86", "mac_ver": ""},
     },
     "Darwin": {
         "arm64": {"tag": "", "mac_ver": "arm64"},
@@ -79,6 +84,8 @@ class PackageCommand:
     def __init__(self):
         self._verbose = False
         self._build_dir: Optional[Path] = None
+        self._python_dir: Optional[Path] = None
+        self._release: Optional[PythonRelease] = None
         self._console = Console()
 
     def _log(self, msg: str, style: str = "") -> None:
@@ -116,6 +123,7 @@ class PackageCommand:
         cleanup_package_files: list,
         verbose: bool = False,
         pip_tool: str = "uv",
+        python_version: Optional[str] = None,
     ) -> None:
         self._console.print(
             Panel.fit(
@@ -145,6 +153,11 @@ class PackageCommand:
             cleanup_packages: bool = cleanup_packages
             cleanup_package_files: list = cleanup_package_files
             self._verbose = verbose
+            self._release = resolve_python_release(python_version)
+            self._log(
+                f"目标 Python: [cyan]{self._release.short_version}[/cyan] "
+                f"(CPython {self._release.full_version})"
+            )
 
             if not Path(source_dir_path).is_absolute():
                 source_dir_path = str(current_path / source_dir_path)
@@ -159,7 +172,7 @@ class PackageCommand:
                 self._console.print("[red]源目录不存在.[/red]")
                 sys.exit(2)
 
-            is_mobile = platform in ("iOS", "Android")
+            is_mobile = platform == "Android"
 
             junk_files = junk_files_mobile if is_mobile else junk_files_desktop
 
@@ -173,6 +186,8 @@ class PackageCommand:
                 self._build_dir.mkdir()
 
             # asset path
+            app_staging_root = os.environ.get(app_environment_var)
+            legacy_asset_requested = asset_path is not None and bool(asset_path.strip())
             if asset_path is None:
                 asset_path = f"build/{Path(source_dir).name}.zip"
             elif asset_path.startswith("/") or asset_path.startswith("\\"):
@@ -207,7 +222,14 @@ class PackageCommand:
                     "[bold green]正在编译 Python 源文件..."
                 ) as _status:
                     subprocess.run(
-                        [sys.executable, "-m", "compileall", "-b", str(temp_dir)]
+                        [
+                            str(self._target_python()),
+                            "-m",
+                            "compileall",
+                            "-b",
+                            str(temp_dir),
+                        ],
+                        check=True,
                     )
                 self._verbose_log("正在删除原始 .py 文件...")
                 self.cleanup_dir(temp_dir, ["**.py"])
@@ -229,23 +251,37 @@ class PackageCommand:
             # ── Step: install requirements ──
             if requirements and not skip_site_packages:
                 self._header("安装依赖包")
-                site_packages_root = None
-
-                if site_packages_env_var in os.environ:
-                    site_packages_root = os.environ[site_packages_env_var]
-                if site_packages_root is None or site_packages_root == "":
+                site_packages_root = os.environ.get(
+                    site_packages_env_var
+                ) or os.environ.get(legacy_site_packages_env_var)
+                if not site_packages_root and app_staging_root:
+                    site_packages_root = str(
+                        self._build_dir / default_site_packages_dir
+                    )
+                if not site_packages_root:
                     site_packages_root = str(temp_dir / "site-packages")
 
                 if Path(site_packages_root).exists():
                     for f in Path(site_packages_root).iterdir():
                         if not f.name.startswith("."):
-                            shutil.rmtree(str(f))
+                            if f.is_dir():
+                                shutil.rmtree(str(f))
+                            else:
+                                f.unlink()
 
                 flutter_packages_copied = False
                 selected_archs = [
-                    a for a in platforms[platform]
-                    if not arch_arg or a in arch_arg
+                    a
+                    for a in platforms[platform]
+                    if (not arch_arg or a in arch_arg)
+                    and (platform != "Android" or a in self._release.android_abis)
                 ]
+                if arch_arg:
+                    unsupported = sorted(set(arch_arg) - set(selected_archs))
+                    if unsupported:
+                        raise ValueError(
+                            "目标 Python 不发布这些架构: " + ", ".join(unsupported)
+                        )
 
                 # Progress bar for multi-arch install
                 progress = Progress(
@@ -303,8 +339,9 @@ class PackageCommand:
                             )
 
                             pip_env = {
-                                "PYTHONPATH": sitecustomize_dir,
+                                "PYTHONPATH": str(sitecustomize_dir),
                                 "PYTHONNOUSERSITE": "1",
+                                "PIP_REQUIRE_VIRTUALENV": "false",
                             }
 
                             if arch_key:
@@ -335,29 +372,12 @@ class PackageCommand:
                             for index in extra_pypi_indexes:
                                 pip_args.extend(["--extra-index-url", index])
 
-                            if pip_tool == "pip":
-                                install_cmd = [
-                                    sys.executable, "-m", "pip", "install",
-                                    "--upgrade",
-                                    *pip_args,
-                                    "--target",
-                                    site_packages_dir,
-                                    *requirements,
-                                ]
-                            else:
-                                install_cmd = [
-                                    "uv",
-                                    "pip",
-                                    "install",
-                                    "--upgrade",
-                                    "--no-progress",
-                                    *pip_args,
-                                    "--target",
-                                    site_packages_dir,
-                                    *requirements,
-                                    "--index-strategy",
-                                    "unsafe-best-match",
-                                ]
+                            install_cmd = self._build_install_command(
+                                pip_tool=pip_tool,
+                                pip_args=pip_args,
+                                site_packages_dir=site_packages_dir,
+                                requirements=requirements,
+                            )
                             print("运行安装依赖包命令:", " ".join(install_cmd))
                             result = subprocess.run(
                                 install_cmd,
@@ -424,12 +444,13 @@ class PackageCommand:
                                 ) as _status:
                                     subprocess.run(
                                         [
-                                            sys.executable,
+                                            str(self._target_python()),
                                             "-m",
                                             "compileall",
                                             "-b",
                                             site_packages_dir,
-                                        ]
+                                        ],
+                                        check=True,
                                     )
                                 self._verbose_log("删除原始 .py 文件")
                                 self.cleanup_dir(
@@ -481,40 +502,52 @@ class PackageCommand:
                 if sync_sh.exists():
                     self.run_exec("/bin/sh", [str(sync_sh)])
 
-            # ── Step: create archive ──
-            self._header("创建应用存档")
-            self._log(
-                f"  输出: [green]{dest}[/green]"
-            )
-            with Progress(
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                TaskProgressColumn(),
-                TimeElapsedColumn(),
-                console=self._console,
-            ) as progress:
-                task = progress.add_task("打包中...", total=0)
-                self.zip_directory_posix(temp_dir, dest, progress, task)
-            self._log("  [green]✔ 存档创建完成[/green]")
+            if app_staging_root and not legacy_asset_requested:
+                staging_path = Path(app_staging_root)
+                self._header("暂存应用目录")
+                self._log(f"  输出: [green]{staging_path}[/green]")
+                if staging_path.exists():
+                    shutil.rmtree(staging_path)
+                staging_path.mkdir(parents=True, exist_ok=True)
+                self.copy_directory(temp_dir, staging_path, str(temp_dir), [])
+            else:
+                # ── Step: create archive ──
+                self._header("创建应用存档")
+                self._log(f"  输出: [green]{dest}[/green]")
+                with Progress(
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    TaskProgressColumn(),
+                    TimeElapsedColumn(),
+                    console=self._console,
+                ) as progress:
+                    task = progress.add_task("打包中...", total=0)
+                    self.zip_directory_posix(temp_dir, dest, progress, task)
+                self._log("  [green]✔ 存档创建完成[/green]")
 
-            # ── Step: hash ──
-            self._log(
-                f"  哈希: [green]{dest}.hash[/green]"
-            )
-            Path(f"{dest}.hash").write_text(
-                self.calculate_file_hash(str(dest))
-            )
+                # ── Step: hash ──
+                self._log(f"  哈希: [green]{dest}.hash[/green]")
+                Path(f"{dest}.hash").write_text(self.calculate_file_hash(str(dest)))
 
             # ── Done ──
             self._console.print()
-            self._console.print(
-                Panel.fit(
-                    "[bold green]✔ 打包完成[/bold green]\n\n"
-                    f"[white]存档:[/white]  [cyan]{dest}[/cyan]\n"
-                    f"[white]哈希:[/white]  [cyan]{dest}.hash[/cyan]",
-                    border_style="green",
+            if app_staging_root and not legacy_asset_requested:
+                self._console.print(
+                    Panel.fit(
+                        "[bold green]✔ 打包完成[/bold green]\n\n"
+                        f"[white]目录:[/white]  [cyan]{app_staging_root}[/cyan]",
+                        border_style="green",
+                    )
                 )
-            )
+            else:
+                self._console.print(
+                    Panel.fit(
+                        "[bold green]✔ 打包完成[/bold green]\n\n"
+                        f"[white]存档:[/white]  [cyan]{dest}[/cyan]\n"
+                        f"[white]哈希:[/white]  [cyan]{dest}.hash[/cyan]",
+                        border_style="green",
+                    )
+                )
 
         except Exception as e:
             self._console.print(f"\n[bold red]错误: {e}[/bold red]")
@@ -522,6 +555,146 @@ class PackageCommand:
             if temp_dir is not None and temp_dir.exists():
                 self._verbose_log("删除临时目录...")
                 shutil.rmtree(str(temp_dir))
+
+    def _target_python(self) -> Path:
+        """Return the cached standalone interpreter for the selected version."""
+        if self._python_dir is not None:
+            return self._python_executable(self._python_dir)
+        if self._build_dir is None or self._release is None:
+            raise RuntimeError("Python runtime has not been selected")
+
+        system = host_platform.system()
+        machine = host_platform.machine().lower()
+        if system == "Windows":
+            archive_arch = "x86_64-pc-windows-msvc"
+        elif system == "Darwin":
+            archive_arch = (
+                "aarch64-apple-darwin"
+                if machine in {"arm64", "aarch64"}
+                else "x86_64-apple-darwin"
+            )
+        elif system == "Linux":
+            archive_arch = (
+                "aarch64-unknown-linux-gnu"
+                if machine in {"arm64", "aarch64"}
+                else "x86_64-unknown-linux-gnu"
+            )
+        else:
+            raise RuntimeError(f"不支持的打包主机平台: {system}")
+
+        release = self._release
+        archive_name = (
+            f"cpython-{release.full_version}+{release.standalone_release_date}"
+            f"-{archive_arch}-install_only_stripped.tar.gz"
+        )
+        extract_name = (
+            f"build_python_{release.full_version}-{release.standalone_release_date}"
+        )
+        python_dir = self._build_dir / extract_name
+        marker = python_dir / ".python_build_id"
+        build_id = f"{release.full_version}-{release.standalone_release_date}"
+
+        if not (
+            python_dir.exists() and marker.exists() and marker.read_text() == build_id
+        ):
+            cache_root = os.environ.get("FLET_CACHE_DIR")
+            if cache_root:
+                cache_base = Path(cache_root)
+            else:
+                home = os.environ.get("USERPROFILE") or os.environ.get(
+                    "HOME", str(self._build_dir)
+                )
+                cache_base = Path(home) / ".flet" / "cache"
+            cache_dir = (
+                cache_base / "python-build-standalone" / release.standalone_release_date
+            )
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            archive_path = cache_dir / archive_name
+            if not archive_path.exists():
+                url = (
+                    "https://github.com/astral-sh/python-build-standalone/"
+                    f"releases/download/{release.standalone_release_date}/{archive_name}"
+                )
+                tmp_path = archive_path.with_suffix(archive_path.suffix + ".tmp")
+                self._log(f"下载 Python runtime: [dim]{url}[/dim]")
+                try:
+                    with (
+                        urllib.request.urlopen(url) as response,
+                        tmp_path.open("wb") as output,
+                    ):
+                        if getattr(response, "status", 200) != 200:
+                            raise RuntimeError(f"下载失败，HTTP {response.status}")
+                        shutil.copyfileobj(response, output)
+                    os.replace(tmp_path, archive_path)
+                finally:
+                    if tmp_path.exists():
+                        tmp_path.unlink()
+
+            staging_dir = python_dir.with_name(f"{python_dir.name}.tmp")
+            if staging_dir.exists():
+                shutil.rmtree(staging_dir)
+            staging_dir.mkdir(parents=True)
+            try:
+                with tarfile.open(archive_path, "r:gz") as archive:
+                    archive.extractall(staging_dir, filter="data")
+                marker_path = staging_dir / ".python_build_id"
+                marker_path.write_text(build_id, encoding="ascii")
+                if python_dir.exists():
+                    shutil.rmtree(python_dir)
+                os.replace(staging_dir, python_dir)
+            finally:
+                if staging_dir.exists():
+                    shutil.rmtree(staging_dir)
+
+        self._python_dir = python_dir
+        python_executable = self._python_executable(python_dir)
+        if not python_executable.exists():
+            raise RuntimeError(f"Python runtime 缺少解释器: {python_executable}")
+        return python_executable
+
+    @staticmethod
+    def _python_executable(python_dir: Path) -> Path:
+        if host_platform.system() == "Windows":
+            return python_dir / "python" / "python.exe"
+        return python_dir / "python" / "bin" / "python3"
+
+    def _build_install_command(
+        self,
+        *,
+        pip_tool: str,
+        pip_args: list[str],
+        site_packages_dir: str,
+        requirements: list[str],
+    ) -> list[str]:
+        target_python = str(self._target_python())
+        if pip_tool == "pip":
+            return [
+                target_python,
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "--disable-pip-version-check",
+                *pip_args,
+                "--target",
+                site_packages_dir,
+                *requirements,
+            ]
+        return [
+            "uv",
+            "pip",
+            "install",
+            "--upgrade",
+            "--no-progress",
+            "--python",
+            target_python,
+            *pip_args,
+            "--target",
+            site_packages_dir,
+            *requirements,
+            "--index-strategy",
+            "unsafe-best-match",
+        ]
 
     def copy_directory_with_progress(
         self,

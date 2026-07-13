@@ -1,7 +1,16 @@
 from .base import Widget
+from .media import Icon
 from ....interfaces.ui import EventType
 from ....interfaces.ui import WidgetType
 from typing import Any, Optional
+
+
+def _icon_widget(icon: Any) -> WidgetType:
+    return icon if isinstance(icon, WidgetType) else Icon(
+        icon=icon,
+        add_to_parent=False,
+    )
+
 
 class TextButton(Widget):
     def __init__(
@@ -84,34 +93,48 @@ class IconButton(Widget):
         disabled_color: Optional[Any] = None,
         splash_radius: Optional[Any] = None,
         autofocus: Optional[bool] = None,
+        on_long_press: Optional[EventType] = None,
+        on_hover: Optional[EventType] = None,
+        selected_icon: Optional[Any] = None,
+        is_selected: Optional[bool] = None,
+        visual_density: Optional[Any] = None,
+        padding: Optional[Any] = None,
+        alignment: Optional[Any] = None,
+        focus_color: Optional[Any] = None,
+        hover_color: Optional[Any] = None,
+        highlight_color: Optional[Any] = None,
+        splash_color: Optional[Any] = None,
+        enable_feedback: Optional[bool] = None,
+        constraints: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        if isinstance(icon, WidgetType):
-            icon_widget = icon
-            if icon_size is not None and icon_widget.args.get("size") is None:
-                icon_widget.args["size"] = icon_size
-            if color is not None and icon_widget.args.get("color") is None:
-                icon_widget.args["color"] = color
-        else:
-            icon_widget = Widget(
-                "Icon",
-                icon=icon,
-                size=icon_size,
-                color=color if on_pressed is not None else disabled_color,
-                add_to_parent=False,
-            )
-        child = Widget(
-            "Container",
-            width=splash_radius,
-            height=splash_radius,
-            alignment={"x": 0.0, "y": 0.0},
-            child=icon_widget,
-            add_to_parent=False,
+        super().__init__(
+            "IconButton",
+            icon=_icon_widget(icon),
+            selectedIcon=(
+                _icon_widget(selected_icon) if selected_icon is not None else None
+            ),
+            onPressed=on_pressed,
+            onLongPress=on_long_press,
+            onHover=on_hover,
+            tooltip=tooltip,
+            iconSize=icon_size,
+            visualDensity=visual_density,
+            padding=padding,
+            alignment=alignment,
+            color=color,
+            disabledColor=disabled_color,
+            focusColor=focus_color,
+            hoverColor=hover_color,
+            highlightColor=highlight_color,
+            splashColor=splash_color,
+            splashRadius=splash_radius,
+            autofocus=autofocus,
+            enableFeedback=enable_feedback,
+            constraints=constraints,
+            isSelected=is_selected,
+            **kwargs
         )
-        super().__init__("GestureDetector",
-                        onTap=on_pressed,
-                        child=child,
-                        **kwargs)
 
 class FloatingActionButton(Widget):
     def __init__(
@@ -125,12 +148,14 @@ class FloatingActionButton(Widget):
         shape: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("FloatingActionButton",
-                        onPressed=on_pressed,
-                        tooltip=tooltip,
-                        foregroundColor=foreground_color,
-                        backgroundColor=background_color,
-                        elevation=elevation,
-                        mini=mini,
-                        shape=shape,
-                        **kwargs)
+        super().__init__(
+            "FloatingActionButton",
+            onPressed=on_pressed,
+            tooltip=tooltip,
+            foregroundColor=foreground_color,
+            backgroundColor=background_color,
+            elevation=elevation,
+            mini=mini,
+            shape=shape,
+            **kwargs
+        )

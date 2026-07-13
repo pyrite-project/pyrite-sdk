@@ -284,7 +284,30 @@ TextButton(
 ElevatedButton(on_pressed=None, on_long_press=None, style=None, autofocus=None, **kwargs)
 OutlinedButton(on_pressed=None, on_long_press=None, style=None, autofocus=None, **kwargs)
 FilledButton(on_pressed=None, on_long_press=None, on_hover=None, on_focus_change=None, style=None, autofocus=None, clip_behavior=None, **kwargs)
-IconButton(icon, on_pressed=None, tooltip=None, icon_size=None, color=None, **kwargs)
+IconButton(
+    icon,
+    on_pressed=None,
+    tooltip=None,
+    icon_size=None,
+    color=None,
+    disabled_color=None,
+    splash_radius=None,
+    autofocus=None,
+    on_long_press=None,
+    on_hover=None,
+    selected_icon=None,
+    is_selected=None,
+    visual_density=None,
+    padding=None,
+    alignment=None,
+    focus_color=None,
+    hover_color=None,
+    highlight_color=None,
+    splash_color=None,
+    enable_feedback=None,
+    constraints=None,
+    **kwargs
+)
 FloatingActionButton(on_pressed=None, tooltip=None, background_color=None, mini=None, **kwargs)
 ```
 
@@ -981,6 +1004,29 @@ plugin.file.create_file(
     callback=lambda **kw: print("Created:", kw)
 )
 ```
+
+---
+
+### 9.4 ThemeSettings
+
+通过 `plugin.settings.theme` 读取或修改 IDE 的“外观与风格”设置。每个方法都接受
+可选的 `callback`；读取需要 `settings:read` 权限，修改需要 `settings:write` 权限。
+
+| 方法 | 值 |
+| --- | --- |
+| `get_mode` / `set_mode` | `"system"`、`"light"` 或 `"dark"` |
+| `get_style` / `set_style` | `"standard"`、`"compact"` 或 `"comfortable"` |
+| `get_color` / `set_color` | ARGB32 `int`；`None` 表示使用系统动态颜色 |
+| `get_active_plugin_theme_id` / `set_active_plugin_theme_id` | 已注册的 `"plugin_id::theme_name"`；`None` 表示内置主题 |
+| `get_use_material_context_menu` / `set_use_material_context_menu` | `bool` |
+
+```python
+plugin.settings.theme.get_mode(callback=lambda **response: print(response))
+plugin.settings.theme.set_color(0xFF008080)
+plugin.settings.theme.set_active_plugin_theme_id(None)
+```
+
+GET 回调收到 `data={"name": ..., "value": ...}`，SET 成功时收到 `data=True`。
 
 ---
 

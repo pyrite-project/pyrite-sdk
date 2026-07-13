@@ -1,6 +1,15 @@
 from .base import Widget
 from ....interfaces.ui import EventType
+from ..sentence import RFWData
 from typing import Any, Optional
+
+
+def _icon_args(icon: Any) -> dict[str, Any]:
+    """Return the flattened RFW arguments expected by the host Icon builder."""
+    value = icon.value if isinstance(icon, RFWData) else icon
+    if isinstance(value, dict) and "icon" in value:
+        return dict(value)
+    return {"icon": icon}
 
 
 class Icon(Widget):
@@ -13,13 +22,15 @@ class Icon(Widget):
         text_direction: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Icon",
-                        icon=icon,
-                        size=size,
-                        color=color,
-                        semanticLabel=semantic_label,
-                        textDirection=text_direction,
-                        **kwargs)
+        icon_args = _icon_args(icon)
+        icon_args.update(
+            size=size,
+            color=color,
+            semanticLabel=semantic_label,
+            textDirection=text_direction,
+        )
+        icon_args.update(kwargs)
+        super().__init__("Icon", **icon_args)
 
 
 class Image(Widget):

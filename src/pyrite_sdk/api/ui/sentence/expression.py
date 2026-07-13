@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from ....utils.ui import RFWSerializable, _serialize_value, raw
+from ....utils.ui import RFWSerializable, _serialize_value
+from ._material_icons import (
+    MATERIAL_ICON_CODES,
+    MATERIAL_ICON_MATCH_TEXT_DIRECTION,
+    _MaterialIconNamespaceHints,
+)
+from ._rfw_types import RFWData, RFWLiteral
 from typing import Any
 
 
@@ -174,32 +180,6 @@ class Ref(Expr):
         return call(self, *args, **kwargs)
 
 
-class RFWData(RFWSerializable):
-    def __init__(self, value: Any, data_value: Any = None) -> None:
-        self.value = value
-        self.data_value = value if data_value is None else data_value
-
-    def to_rfw(self) -> str:
-        return _serialize_value(self.value)
-
-    def to_data(self) -> Any:
-        from ....utils.ui import to_data
-
-        return to_data(self.data_value)
-
-
-class RFWLiteral(RFWSerializable):
-    def __init__(self, rfw_value: str, data_value: Any) -> None:
-        self.rfw_value = rfw_value
-        self.data_value = data_value
-
-    def to_rfw(self) -> str:
-        return self.rfw_value
-
-    def to_data(self) -> Any:
-        return self.data_value
-
-
 def expr(value: Any) -> Expr:
     if isinstance(value, Expr):
         return value
@@ -330,23 +310,19 @@ def ternary(condition: Any, when_true: Any, when_false: Any) -> SwitchExpr:
     return SwitchExpr(condition, {True: when_true}, default=when_false)
 
 
-class _IconNamespace:
-    _codes: dict[str, int] = {
-        "add": 0xE047,
-        "arrow_back": 0xE092,
-        "chevron_right": 0xE15F,
-        "info_outline": 0xE33D,
-        "person": 0xE491,
-        "search": 0xE567,
-        "widgets": 0xE6E6,
-    }
+class _IconNamespace(_MaterialIconNamespaceHints):
+    _codes: dict[str, int] = MATERIAL_ICON_CODES
+    _match_text_direction: frozenset[str] = MATERIAL_ICON_MATCH_TEXT_DIRECTION
 
     def __getattr__(self, key: str) -> RFWData:
         if key not in self._codes:
             raise AttributeError(
                 f"Unknown Material icon {key!r}; use icon_data(code_point) for custom icons"
             )
-        return icon_data(self._codes[key])
+        return icon_data(
+            self._codes[key],
+            match_text_direction=True if key in self._match_text_direction else None,
+        )
 
 
 def icon_data(
@@ -362,6 +338,15 @@ def icon_data(
 
 
 class _ColorNamespace:
+    black: RFWSerializable
+    white: RFWSerializable
+    red: RFWSerializable
+    blue: RFWSerializable
+    green: RFWSerializable
+    grey: RFWSerializable
+    blueGrey: RFWSerializable
+    blue_grey: RFWSerializable
+
     _colors: dict[str, int] = {
         "black": 0xFF000000,
         "white": 0xFFFFFFFF,
@@ -416,15 +401,15 @@ class _EdgeInsetsNamespace:
 
 
 class _AlignmentNamespace:
-    center = RFWData({"x": RFWLiteral("0.0", 0.0), "y": RFWLiteral("0.0", 0.0)})
-    center_left = RFWData({"x": RFWLiteral("-1.0", -1.0), "y": RFWLiteral("0.0", 0.0)})
-    center_right = RFWData({"x": RFWLiteral("1.0", 1.0), "y": RFWLiteral("0.0", 0.0)})
-    top_left = RFWData({"x": RFWLiteral("-1.0", -1.0), "y": RFWLiteral("-1.0", -1.0)})
-    top_center = RFWData({"x": RFWLiteral("0.0", 0.0), "y": RFWLiteral("-1.0", -1.0)})
-    top_right = RFWData({"x": RFWLiteral("1.0", 1.0), "y": RFWLiteral("-1.0", -1.0)})
-    bottom_left = RFWData({"x": RFWLiteral("-1.0", -1.0), "y": RFWLiteral("1.0", 1.0)})
-    bottom_center = RFWData({"x": RFWLiteral("0.0", 0.0), "y": RFWLiteral("1.0", 1.0)})
-    bottom_right = RFWData({"x": RFWLiteral("1.0", 1.0), "y": RFWLiteral("1.0", 1.0)})
+    center: RFWData = RFWData({"x": RFWLiteral("0.0", 0.0), "y": RFWLiteral("0.0", 0.0)})
+    center_left: RFWData = RFWData({"x": RFWLiteral("-1.0", -1.0), "y": RFWLiteral("0.0", 0.0)})
+    center_right: RFWData = RFWData({"x": RFWLiteral("1.0", 1.0), "y": RFWLiteral("0.0", 0.0)})
+    top_left: RFWData = RFWData({"x": RFWLiteral("-1.0", -1.0), "y": RFWLiteral("-1.0", -1.0)})
+    top_center: RFWData = RFWData({"x": RFWLiteral("0.0", 0.0), "y": RFWLiteral("-1.0", -1.0)})
+    top_right: RFWData = RFWData({"x": RFWLiteral("1.0", 1.0), "y": RFWLiteral("-1.0", -1.0)})
+    bottom_left: RFWData = RFWData({"x": RFWLiteral("-1.0", -1.0), "y": RFWLiteral("1.0", 1.0)})
+    bottom_center: RFWData = RFWData({"x": RFWLiteral("0.0", 0.0), "y": RFWLiteral("1.0", 1.0)})
+    bottom_right: RFWData = RFWData({"x": RFWLiteral("1.0", 1.0), "y": RFWLiteral("1.0", 1.0)})
 
     def __call__(self, x: Any, y: Any) -> RFWData:
         return RFWData({"x": _as_double(x), "y": _as_double(y)})
@@ -528,6 +513,18 @@ class _EnumNamespace:
 
 
 class _FontWeightNamespace(_EnumNamespace):
+    w100: RFWSerializable
+    w200: RFWSerializable
+    w300: RFWSerializable
+    w400: RFWSerializable
+    w500: RFWSerializable
+    w600: RFWSerializable
+    w700: RFWSerializable
+    w800: RFWSerializable
+    w900: RFWSerializable
+    normal: RFWSerializable
+    bold: RFWSerializable
+
     _aliases: dict[str, str] = {
         "normal": "w400",
         "bold": "w700",
@@ -538,22 +535,85 @@ class _FontWeightNamespace(_EnumNamespace):
         return RFWLiteral(_serialize_value(value), value)
 
 
-Icons = _IconNamespace()
-Colors = _ColorNamespace()
-EdgeInsets = _EdgeInsetsNamespace()
-Alignment = _AlignmentNamespace()
-Border = _BorderNamespace()
-BorderRadius = _BorderRadiusNamespace()
-BoxDecoration = _BoxDecorationNamespace()
-Radius = _RadiusNamespace()
-TextStyle = _TextStyleNamespace()
-FontWeight = _FontWeightNamespace()
-FontStyle = _EnumNamespace()
-MainAxisAlignment = _EnumNamespace()
-CrossAxisAlignment = _EnumNamespace()
-MainAxisSize = _EnumNamespace()
-TextAlign = _EnumNamespace()
-TextDirection = _EnumNamespace()
-Axis = _EnumNamespace()
-BoxFit = _EnumNamespace()
-Clip = _EnumNamespace()
+class _FontStyleNamespace(_EnumNamespace):
+    normal: RFWSerializable
+    italic: RFWSerializable
+
+
+class _MainAxisAlignmentNamespace(_EnumNamespace):
+    start: RFWSerializable
+    end: RFWSerializable
+    center: RFWSerializable
+    space_between: RFWSerializable
+    space_around: RFWSerializable
+    space_evenly: RFWSerializable
+
+
+class _CrossAxisAlignmentNamespace(_EnumNamespace):
+    start: RFWSerializable
+    end: RFWSerializable
+    center: RFWSerializable
+    stretch: RFWSerializable
+    baseline: RFWSerializable
+
+
+class _MainAxisSizeNamespace(_EnumNamespace):
+    min: RFWSerializable
+    max: RFWSerializable
+
+
+class _TextAlignNamespace(_EnumNamespace):
+    left: RFWSerializable
+    right: RFWSerializable
+    center: RFWSerializable
+    justify: RFWSerializable
+    start: RFWSerializable
+    end: RFWSerializable
+
+
+class _TextDirectionNamespace(_EnumNamespace):
+    rtl: RFWSerializable
+    ltr: RFWSerializable
+
+
+class _AxisNamespace(_EnumNamespace):
+    horizontal: RFWSerializable
+    vertical: RFWSerializable
+
+
+class _BoxFitNamespace(_EnumNamespace):
+    fill: RFWSerializable
+    contain: RFWSerializable
+    cover: RFWSerializable
+    fit_width: RFWSerializable
+    fit_height: RFWSerializable
+    none: RFWSerializable
+    scale_down: RFWSerializable
+
+
+class _ClipNamespace(_EnumNamespace):
+    none: RFWSerializable
+    hard_edge: RFWSerializable
+    anti_alias: RFWSerializable
+    anti_alias_with_save_layer: RFWSerializable
+
+
+Icons: _IconNamespace = _IconNamespace()
+Colors: _ColorNamespace = _ColorNamespace()
+EdgeInsets: _EdgeInsetsNamespace = _EdgeInsetsNamespace()
+Alignment: _AlignmentNamespace = _AlignmentNamespace()
+Border: _BorderNamespace = _BorderNamespace()
+BorderRadius: _BorderRadiusNamespace = _BorderRadiusNamespace()
+BoxDecoration: _BoxDecorationNamespace = _BoxDecorationNamespace()
+Radius: _RadiusNamespace = _RadiusNamespace()
+TextStyle: _TextStyleNamespace = _TextStyleNamespace()
+FontWeight: _FontWeightNamespace = _FontWeightNamespace()
+FontStyle: _FontStyleNamespace = _FontStyleNamespace()
+MainAxisAlignment: _MainAxisAlignmentNamespace = _MainAxisAlignmentNamespace()
+CrossAxisAlignment: _CrossAxisAlignmentNamespace = _CrossAxisAlignmentNamespace()
+MainAxisSize: _MainAxisSizeNamespace = _MainAxisSizeNamespace()
+TextAlign: _TextAlignNamespace = _TextAlignNamespace()
+TextDirection: _TextDirectionNamespace = _TextDirectionNamespace()
+Axis: _AxisNamespace = _AxisNamespace()
+BoxFit: _BoxFitNamespace = _BoxFitNamespace()
+Clip: _ClipNamespace = _ClipNamespace()
