@@ -192,6 +192,44 @@ class UiApiTest(unittest.TestCase):
         )
         bridge.clear_callback_binding()
 
+    def test_refresh_rebinds_without_resetting_initialized_data(self) -> None:
+        bridge = self.make_bridge()
+        envelopes = []
+        bridge.push = lambda envelope, client=None: envelopes.append(envelope)
+
+        def build_pages():
+            page, root = self.make_page()
+            column = Column().add_to(root)
+            Switch(value=data.enabled).add_to(column)
+            TextField(value=data.name).add_to(column)
+            Switch(value=True).add_to(column)
+            TextField(value="initial text").add_to(column)
+            bridge.plugin.pages = {"home": page}
+
+        bridge.plugin.on_refresh = build_pages
+
+        bridge.refresh()
+        first_var_sets = [
+            envelope for envelope in envelopes if envelope.type == "sdk.var.set"
+        ]
+        first_var_names = [envelope.payload["name"] for envelope in first_var_sets]
+        envelopes.clear()
+
+        bridge.refresh()
+        second_var_sets = [
+            envelope for envelope in envelopes if envelope.type == "sdk.var.set"
+        ]
+        second_types = [envelope.type for envelope in envelopes]
+
+        self.assertEqual(len(first_var_sets), 4)
+        self.assertIn("enabled", first_var_names)
+        self.assertIn("name", first_var_names)
+        self.assertEqual(second_var_sets, [])
+        self.assertEqual(second_types.count("sdk.callback.clear"), 1)
+        self.assertEqual(second_types.count("sdk.callback.register"), 4)
+        self.assertEqual(second_types.count("sdk.page.push"), 1)
+        bridge.clear_callback_binding()
+
     def test_register_callback_binding_sends_payload_and_binds_widget_event(self) -> None:
         bridge = self.make_bridge()
         envelopes = []

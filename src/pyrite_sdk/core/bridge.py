@@ -8,7 +8,7 @@ import threading
 import traceback
 import queue
 from pathlib import Path
-from typing import Optional, Callable, TYPE_CHECKING
+from typing import Any, Optional, Callable, TYPE_CHECKING
 from ..models.consts import *
 from ..models.schema import *
 from ..api.ui.sentence.var import Var
@@ -130,7 +130,7 @@ class Bridge:
         self._output_redirected = False
         self._pending_output: list[tuple[str, str]] = []
         self._callback_binding_names: set[str] = set()
-        self.pushed_data = {}
+        self.pushed_data: dict[str, Any] = {}
 
     def redirect_output(self):
         BridgeOutputRouter.install()
@@ -297,7 +297,8 @@ class Bridge:
             return
         for binding in Widget.callback_binding_names:
             data_var = binding[-2]
-            if data_var not in self.pushed_data:
+            var_name = self._to_var_name(data_var)
+            if var_name not in self.pushed_data:
                 self.let(data_var, binding[-1])
             self.register_callback_binding(*binding[:3])
         try:
