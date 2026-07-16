@@ -34,12 +34,18 @@ from .selection import (
     Switch,
     RadioGroup,
     Slider,
-    RadioItem
+    DropdownButton,
+    RadioItem,
+    DropdownItem
 )
 from .media import (
     Icon,
     Image,
+    VideoPlayer,
     ListTile,
+    Tooltip,
+    Chip,
+    ExpansionTile,
     CircularProgressIndicator,
     LinearProgressIndicator
 )
@@ -82,10 +88,16 @@ __all__ = [
     "Switch",
     "RadioGroup",
     "Slider",
+    "DropdownButton",
     "RadioItem",
+    "DropdownItem",
     "Icon",
     "Image",
+    "VideoPlayer",
     "ListTile",
+    "Tooltip",
+    "Chip",
+    "ExpansionTile",
     "Markdown",
     "MarkdownWidget",
     "MarkdownBlock",

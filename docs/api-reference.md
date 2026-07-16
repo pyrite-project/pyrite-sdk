@@ -337,18 +337,97 @@ Checkbox(value=None, on_changed=None, tristate=None, active_color=None, **kwargs
 Switch(value=None, on_changed=None, active_color=None, **kwargs)
 RadioGroup(group_value="", on_changed=None, items=None, active_color=None, dense=None, **kwargs)
 Slider(value=None, on_changed=None, min=None, max=None, divisions=None, label=None, on_change_start=None, on_change_end=None, **kwargs)
+DropdownButton(items=None, value=None, on_changed=None, hint=None, disabled_hint=None, **kwargs)
+DropdownItem(label, value=None, enabled=True)
 ```
 
 `on_changed` 等回调参数可传 `Event`，也可传 `let(...)` 等 RFW 语句。
+
+```python
+DropdownButton(
+    items=[
+        DropdownItem("自动", "auto"),
+        DropdownItem("高质量", "high"),
+    ],
+    value=data.quality,
+    on_changed=Event(on_quality_changed),
+)
+```
+
+`DropdownItem` 的 `label` 可以是字符串或组件；传入组件时必须同时提供 `value`。`value` 支持字符串、数字、布尔值或 `None`。
 
 ### 3.10 媒体与列表组件
 
 ```python
 Icon(icon, size=None, color=None, semantic_label=None, **kwargs)
-Image(image, width=None, height=None, fit=None, alignment=None, **kwargs)
+Image(
+    source,
+    source_type="file",
+    width=None,
+    height=None,
+    scale=None,
+    package=None,
+    color=None,
+    color_blend_mode=None,
+    fit=None,
+    alignment=None,
+    repeat=None,
+    semantic_label=None,
+    exclude_from_semantics=None,
+    filter_quality=None,
+    gapless_playback=None,
+    is_anti_alias=None,
+    cache_width=None,
+    cache_height=None,
+    **kwargs
+)
+VideoPlayer(
+    source,
+    source_type="file",
+    width=None,
+    height=None,
+    package=None,
+    autoplay=False,
+    looping=False,
+    muted=False,
+    show_controls=True,
+    fit="contain",
+    **kwargs
+)
 ListTile(leading=None, title=None, subtitle=None, trailing=None, on_tap=None, **kwargs)
+Tooltip(message, padding=None, margin=None, prefer_below=None, on_triggered=None, **kwargs)
+Chip(label, avatar=None, delete_icon=None, on_deleted=None, background_color=None, **kwargs)
+ExpansionTile(title, leading=None, subtitle=None, on_expansion_changed=None, initially_expanded=None, **kwargs)
 CircularProgressIndicator(value=None, background_color=None, color=None, stroke_width=None)
 LinearProgressIndicator(value=None, background_color=None, color=None, min_height=None)
+```
+
+`Image` 和 `VideoPlayer` 的 `source_type` 支持 `"file"`、`"network"` 和 `"asset"`。本地路径使用 `"file"`；网络 URL 使用 `"network"`；Flutter 打包资源使用 `"asset"`。插件 `assets_path` 下的绝对路径仍使用 `"file"`。
+
+```python
+Image(
+    "C:/media/cover.png",
+    source_type="file",
+    width=320,
+    height=180,
+    fit=BoxFit.cover,
+)
+
+VideoPlayer(
+    "C:/media/demo.mp4",
+    source_type="file",
+    autoplay=True,
+    looping=True,
+    show_controls=True,
+)
+
+with Tooltip("播放视频"):
+    Icon(Icons.play_arrow)
+
+Chip(label=Text("Python"), on_deleted=Event(remove_tag))
+
+with ExpansionTile(title=Text("高级选项"), initially_expanded=False):
+    Text("选项内容")
 ```
 
 当组件作为另一个组件的参数传入时，不会再被当前 `with` 上下文误挂载为兄弟节点。

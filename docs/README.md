@@ -111,9 +111,10 @@ SDK 提供了一套声明式的 UI 构建 API，使用 Python 上下文管理器
 | `SafeArea` / `Divider` / `Card` | 常用 Material/布局组件 |
 | `Text` | 文本组件 |
 | `TextField` | 文本输入组件 |
-| `Checkbox` / `Switch` / `RadioGroup` / `Slider` | 选择与滑动输入 |
+| `Checkbox` / `Switch` / `RadioGroup` / `Slider` / `DropdownButton` | 选择与滑动输入 |
 | `TextButton` / `ElevatedButton` / `OutlinedButton` / `FilledButton` / `IconButton` / `FloatingActionButton` | 按钮组件 |
-| `Icon` / `Image` / `ListTile` | 图标、图片和列表项 |
+| `Icon` / `Image` / `VideoPlayer` | 图标、本地/网络/打包资源图片和视频播放 |
+| `ListTile` / `Tooltip` / `Chip` / `ExpansionTile` | 列表项、提示、标签和可展开内容 |
 | `CircularProgressIndicator` / `LinearProgressIndicator` | 进度指示器 |
 | `GestureDetector` | 手势检测器 |
 | `Scaffold` / `AppBar` | 页面脚手架 |

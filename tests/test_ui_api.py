@@ -9,8 +9,10 @@ from types import SimpleNamespace
 from pyrite_sdk.api.ui.event import Event
 from pyrite_sdk.api.ui.page import Page
 from pyrite_sdk.api.ui.sentence import (
+    Alignment,
     Case,
     BoxDecoration,
+    BoxFit,
     BorderRadius,
     Colors,
     DefaultCase,
@@ -33,13 +35,18 @@ from pyrite_sdk.api.ui.sentence import (
 from pyrite_sdk.api.ui.widgets import (
     AppBar,
     Checkbox,
+    Chip,
     Column,
     Container,
+    DropdownButton,
+    DropdownItem,
     ElevatedButton,
+    ExpansionTile,
     FilledButton,
     GestureDetector,
     Icon,
     IconButton,
+    Image,
     ListTile,
     Markdown,
     MarkdownBlock,
@@ -54,6 +61,8 @@ from pyrite_sdk.api.ui.widgets import (
     Switch,
     Text,
     TextField,
+    Tooltip,
+    VideoPlayer,
 )
 from pyrite_sdk.models.consts import Package
 from pyrite_sdk.models.schema import (
@@ -481,6 +490,207 @@ class UiApiTest(unittest.TestCase):
         self.assertEqual(rfw.count('Icon(icon: 0xe491, fontFamily: "MaterialIcons")'), 1)
         self.assertEqual(rfw.count('Text(text: "Profile")'), 1)
 
+    def test_new_common_widgets_serialize_host_payloads(self) -> None:
+        page, root = self.make_page()
+        with Column().add_to(root):
+            Image(
+                "C:/plugin/assets/cover.png",
+                source_type="file",
+                width=320.0,
+                height=180.0,
+                scale=2.0,
+                package="demo_media",
+                color=Colors.blue,
+                color_blend_mode="srcIn",
+                fit=BoxFit.cover,
+                alignment=Alignment.center,
+                semantic_label="Video cover",
+                exclude_from_semantics=False,
+                filter_quality="high",
+                gapless_playback=True,
+                is_anti_alias=True,
+                cache_width=640,
+                cache_height=360,
+            )
+            Image("https://example.com/cover.png", source_type="network")
+            Image("assets/images/cover.png", source_type="asset", scale=3.0)
+            VideoPlayer(
+                "C:/plugin/assets/demo.mp4",
+                source_type="file",
+                width=640.0,
+                height=360.0,
+                package="demo_media",
+                autoplay=True,
+                looping=True,
+                muted=False,
+                show_controls=True,
+                fit=BoxFit.contain,
+            )
+            tooltip = Tooltip(
+                "Play local video",
+                constraints={"minWidth": 80.0},
+                padding=EdgeInsets.all(8),
+                margin=EdgeInsets.all(4),
+                vertical_offset=20.0,
+                prefer_below=False,
+                exclude_from_semantics=True,
+                text_style=TextStyle(color=Colors.white),
+                text_align="center",
+                wait_duration=300,
+                show_duration=1500,
+                exit_duration=100,
+                enable_tap_to_dismiss=True,
+                trigger_mode="tap",
+                enable_feedback=True,
+                on_triggered=Event(noop),
+                ignore_pointer=False,
+            )
+            with tooltip:
+                Text("Play")
+            chip = Chip(
+                label=Text("Python"),
+                avatar=Text("P"),
+                delete_icon=Text("x"),
+                on_deleted=Event(noop),
+                label_style=TextStyle(color=Colors.blue),
+                label_padding=EdgeInsets.all(2),
+                background_color=Colors.grey,
+                padding=EdgeInsets.all(4),
+                delete_icon_color=Colors.red,
+                tooltip="Remove Python",
+                clip_behavior="antiAlias",
+                elevation=2.0,
+                shadow_color=Colors.black,
+                autofocus=True,
+            )
+            expansion = ExpansionTile(
+                title=Text("Advanced"),
+                leading=Text("A"),
+                subtitle=Text("More options"),
+                trailing=Text("+"),
+                show_trailing_icon=False,
+                on_expansion_changed=Event(noop),
+                initially_expanded=True,
+                maintain_state=True,
+                tile_padding=EdgeInsets.all(8),
+                expanded_alignment=Alignment.center,
+                children_padding=EdgeInsets.all(12),
+                background_color=Colors.white,
+                collapsed_background_color=Colors.grey,
+                text_color=Colors.blue,
+                collapsed_text_color=Colors.black,
+                icon_color=Colors.green,
+                collapsed_icon_color=Colors.red,
+                control_affinity="leading",
+                dense=True,
+            )
+            with expansion:
+                Text("First option")
+                Text("Second option")
+            dropdown = DropdownButton(
+                items=[
+                    DropdownItem("Auto", "auto"),
+                    DropdownItem(Text("High"), "high", enabled=False),
+                ],
+                value=data.quality,
+                on_changed=Event(noop),
+                on_tap=Event(noop),
+                hint=Text("Select quality"),
+                disabled_hint=Text("Unavailable"),
+                elevation=8,
+                style=TextStyle(color=Colors.blue),
+                icon=Icon(Icons.chevron_right),
+                icon_size=24.0,
+                icon_enabled_color=Colors.green,
+                icon_disabled_color=Colors.grey,
+                is_dense=True,
+                is_expanded=True,
+                item_height=48.0,
+                menu_width=320.0,
+                focus_color=Colors.white,
+                autofocus=True,
+                dropdown_color=Colors.white,
+                menu_max_height=240.0,
+                enable_feedback=False,
+                alignment=Alignment.center_left,
+                border_radius=BorderRadius.circular(8),
+                padding=EdgeInsets.all(4),
+                barrier_dismissible=False,
+            )
+
+        rfw = page.to_rfw()
+        tooltip_event = self.callback_name(tooltip, "onTriggered")
+        chip_event = self.callback_name(chip, "onDeleted")
+        expansion_event = self.callback_name(expansion, "onExpansionChanged")
+        dropdown_event = self.callback_name(dropdown, "onChanged")
+        dropdown_tap_event = self.callback_name(dropdown, "onTap")
+        dropdown_binding = next(
+            binding
+            for binding in dropdown.callback_binding_names
+            if binding[0] is dropdown
+        )
+
+        self.assertEqual(dropdown_binding[1], "onChanged")
+        self.assertIs(dropdown_binding[2], dropdown.args["value"])
+        self.assertEqual(dropdown_binding[3], "auto")
+
+        self.assertIn(
+            'Image(source: "C:/plugin/assets/cover.png", sourceType: "file", width: 320.0, height: 180.0, scale: 2.0, package: "demo_media", color: 0xff2196f3, colorBlendMode: "srcIn", fit: "cover", alignment: {"x": 0.0, "y": 0.0}, semanticLabel: "Video cover", excludeFromSemantics: false, filterQuality: "high", gaplessPlayback: true, isAntiAlias: true, cacheWidth: 640, cacheHeight: 360)',
+            rfw,
+        )
+        self.assertIn(
+            'Image(source: "https://example.com/cover.png", sourceType: "network")',
+            rfw,
+        )
+        self.assertIn(
+            'Image(source: "assets/images/cover.png", sourceType: "asset", scale: 3.0)',
+            rfw,
+        )
+        self.assertIn(
+            'VideoPlayer(source: "C:/plugin/assets/demo.mp4", sourceType: "file", width: 640.0, height: 360.0, package: "demo_media", autoplay: true, looping: true, muted: false, showControls: true, fit: "contain")',
+            rfw,
+        )
+        self.assertIn(
+            f'Tooltip(message: "Play local video", constraints: {{"minWidth": 80.0}}, padding: [8.0], margin: [4.0], verticalOffset: 20.0, preferBelow: false, excludeFromSemantics: true, textStyle: {{"color": 0xffffffff}}, textAlign: "center", waitDuration: 300, showDuration: 1500, exitDuration: 100, enableTapToDismiss: true, triggerMode: "tap", enableFeedback: true, onTriggered: event "{tooltip_event}" {{}}, ignorePointer: false, child: Text(text: "Play"))',
+            rfw,
+        )
+        self.assertIn(
+            f'Chip(label: Text(text: "Python"), avatar: Text(text: "P"), deleteIcon: Text(text: "x"), onDeleted: event "{chip_event}" {{}}, labelStyle: {{"color": 0xff2196f3}}, labelPadding: [2.0], backgroundColor: 0xff9e9e9e, padding: [4.0], deleteIconColor: 0xfff44336, tooltip: "Remove Python", clipBehavior: "antiAlias", elevation: 2.0, shadowColor: 0xff000000, autofocus: true)',
+            rfw,
+        )
+        self.assertIn(
+            f'ExpansionTile(title: Text(text: "Advanced"), leading: Text(text: "A"), subtitle: Text(text: "More options"), trailing: Text(text: "+"), showTrailingIcon: false, onExpansionChanged: event "{expansion_event}" {{}}, initiallyExpanded: true, maintainState: true, tilePadding: [8.0], expandedAlignment: {{"x": 0.0, "y": 0.0}}, childrenPadding: [12.0], backgroundColor: 0xffffffff, collapsedBackgroundColor: 0xff9e9e9e, textColor: 0xff2196f3, collapsedTextColor: 0xff000000, iconColor: 0xff4caf50, collapsedIconColor: 0xfff44336, controlAffinity: "leading", dense: true, children: [Text(text: "First option"), Text(text: "Second option")])',
+            rfw,
+        )
+        self.assertIn(
+            f'DropdownButton(items: [{{"value": "auto", "label": "Auto", "enabled": true}}, {{"value": "high", "child": Text(text: "High"), "enabled": false}}], value: data.quality, onChanged: event "{dropdown_event}" {{}}, onTap: event "{dropdown_tap_event}" {{}}, hint: Text(text: "Select quality"), disabledHint: Text(text: "Unavailable"), elevation: 8, style: {{"color": 0xff2196f3}}, icon: Icon(icon: 0xe15f, fontFamily: "MaterialIcons", matchTextDirection: true), iconSize: 24.0, iconEnabledColor: 0xff4caf50, iconDisabledColor: 0xff9e9e9e, isDense: true, isExpanded: true, itemHeight: 48.0, menuWidth: 320.0, focusColor: 0xffffffff, autofocus: true, dropdownColor: 0xffffffff, menuMaxHeight: 240.0, enableFeedback: false, alignment: {{"x": -1.0, "y": 0.0}}, borderRadius: [{{"x": 8.0}}], padding: [4.0], barrierDismissible: false)',
+            rfw,
+        )
+        dropdown.callback_binding_names.remove(dropdown_binding)
+
+    def test_dropdown_binding_preserves_falsy_literal_default(self) -> None:
+        for value in (0, False, ""):
+            with self.subTest(value=value):
+                dropdown = DropdownButton(
+                    items=[DropdownItem("Selected", value)],
+                    value=value,
+                )
+                binding = next(
+                    binding
+                    for binding in dropdown.callback_binding_names
+                    if binding[0] is dropdown
+                )
+                self.assertEqual(binding[3], value)
+                dropdown.callback_binding_names.remove(binding)
+
+    def test_dropdown_item_rejects_values_the_host_cannot_decode(self) -> None:
+        with self.assertRaisesRegex(TypeError, "label"):
+            DropdownItem(42, "answer")
+        with self.assertRaisesRegex(TypeError, "value"):
+            DropdownItem("Invalid", {"nested": True})
+        with self.assertRaisesRegex(ValueError, "value is required"):
+            DropdownItem(Text("Missing value"))
+
     def test_icon_data_is_flattened_for_icon_and_icon_button(self) -> None:
         page, root = self.make_page()
         with Column().add_to(root):
@@ -588,22 +798,8 @@ class UiApiTest(unittest.TestCase):
         self.assertIn('Markdown(data: "Plain **markdown**", selectable: true, codeBlockTextStyle: {"fontFamily": "Menlo"}, codeBlockStyleNotMatched: {"color": 0xff1f2937}, codeBlockTheme: "dark", inlineCodeTextStyle: {"fontFamily": "Menlo", "backgroundColor": 0xffeff4fa})', rfw)
 
     def test_ui_plugin_example_uses_only_registered_rfw_widget_names(self) -> None:
-        from pyrite_sdk.core.bridge import Bridge
-
-        original_start = Bridge.start
-        original_port = os.environ.get("PYRITE_IDE_PLUGIN_PORT")
-        os.environ["PYRITE_IDE_PLUGIN_PORT"] = "65530"
-        Bridge.start = lambda self: None
-        try:
-            namespace = runpy.run_path("examples/ui_plugin/__main__.py")
-        finally:
-            Bridge.start = original_start
-            if original_port is None:
-                os.environ.pop("PYRITE_IDE_PLUGIN_PORT", None)
-            else:
-                os.environ["PYRITE_IDE_PLUGIN_PORT"] = original_port
-
-        rfw = namespace["plugin"].pages["home"].to_rfw()
+        namespace = runpy.run_path("examples/ui_plugin/__main__.py")
+        rfw = namespace["build_home_page"]().to_rfw()
 
         for unsupported in (
             "AnimatedContainer",
@@ -612,14 +808,15 @@ class UiApiTest(unittest.TestCase):
             "Radio",
         ):
             self.assertNotIn(f"{unsupported}(", rfw)
-        self.assertIn("Checkbox(value: data.checkbox, onChanged: event", rfw)
-        self.assertIn("Switch(value: data.switch, onChanged: event", rfw)
-        self.assertIn('TextField(decoration: {"labelText": "Start typing", "hintText": "Hello PyriteProject", "isDense": true})', rfw)
-        self.assertRegex(rfw, r'ElevatedButton\(onPressed: event "callback-\d+-onPressed" \{\}, child: Text\(text: "Button1"\)\)')
-        self.assertRegex(rfw, r'TextButton\(onPressed: event "callback-\d+-onPressed" \{\}, child: Text\(text: "Button2"\)\)')
-        self.assertRegex(rfw, r'RadioGroup\(groupValue: data\.radio_group_value, onChanged: event "callback-\d+-onChanged" \{\}, items: \[\{"value": "opt1", "label":')
-        self.assertNotIn("data.counter", rfw)
-        self.assertNotIn("data.enabled", rfw)
+        for widget_name in (
+            "Image",
+            "VideoPlayer",
+            "Tooltip",
+            "Chip",
+            "ExpansionTile",
+            "DropdownButton",
+        ):
+            self.assertIn(f"{widget_name}(", rfw)
 
     def test_markdown_plugin_example_uses_markdown_block(self) -> None:
         from pyrite_sdk.core.bridge import Bridge

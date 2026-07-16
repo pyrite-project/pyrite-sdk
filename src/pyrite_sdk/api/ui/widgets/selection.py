@@ -1,4 +1,4 @@
-from .base import Widget
+from .base import Widget, Var
 from ....interfaces.ui import EventType
 from typing import Any, Optional
 
@@ -176,6 +176,95 @@ class Slider(Widget):
         )
         self.register_callback_binding(0)
 
+
+class DropdownButton(Widget):
+    def __init__(
+        self,
+        items: Optional[list[dict[str, Any]]] = None,
+        value: Optional[Any] = None,
+        on_changed: Optional[EventType | Any] = None,
+        on_tap: Optional[EventType] = None,
+        hint: Optional[Any] = None,
+        disabled_hint: Optional[Any] = None,
+        elevation: Optional[Any] = None,
+        style: Optional[Any] = None,
+        underline: Optional[Any] = None,
+        icon: Optional[Any] = None,
+        icon_size: Optional[Any] = None,
+        icon_enabled_color: Optional[Any] = None,
+        icon_disabled_color: Optional[Any] = None,
+        is_dense: Optional[bool] = None,
+        is_expanded: Optional[bool] = None,
+        item_height: Optional[Any] = None,
+        menu_width: Optional[Any] = None,
+        focus_color: Optional[Any] = None,
+        autofocus: Optional[bool] = None,
+        dropdown_color: Optional[Any] = None,
+        menu_max_height: Optional[Any] = None,
+        enable_feedback: Optional[bool] = None,
+        alignment: Optional[Any] = None,
+        border_radius: Optional[Any] = None,
+        padding: Optional[Any] = None,
+        barrier_dismissible: Optional[bool] = None,
+        **kwargs: Any
+    ) -> None:
+        super().__init__(
+            "DropdownButton",
+            items=items or [],
+            value=value,
+            onChanged=on_changed,
+            onTap=on_tap,
+            hint=hint,
+            disabledHint=disabled_hint,
+            elevation=elevation,
+            style=style,
+            underline=underline,
+            icon=icon,
+            iconSize=icon_size,
+            iconEnabledColor=icon_enabled_color,
+            iconDisabledColor=icon_disabled_color,
+            isDense=is_dense,
+            isExpanded=is_expanded,
+            itemHeight=item_height,
+            menuWidth=menu_width,
+            focusColor=focus_color,
+            autofocus=autofocus,
+            dropdownColor=dropdown_color,
+            menuMaxHeight=menu_max_height,
+            enableFeedback=enable_feedback,
+            alignment=alignment,
+            borderRadius=border_radius,
+            padding=padding,
+            barrierDismissible=barrier_dismissible,
+            **kwargs
+        )
+        default = items[0].get("value") if items else None
+        if value is not None and not isinstance(value, Var):
+            default = value
+        self.register_callback_binding(default)
+
 def RadioItem(label, value=None):
     value = value if value else label
     return {'value': value, 'label': label}
+
+
+def DropdownItem(
+    label: str | Widget,
+    value: str | int | float | bool | None = None,
+    enabled: bool = True,
+) -> dict[str, Any]:
+    if not isinstance(label, (str, Widget)):
+        raise TypeError("label must be a string or Widget")
+    if value is not None and not isinstance(value, (str, int, float, bool)):
+        raise TypeError("value must be a string, number, boolean, or None")
+    if isinstance(label, Widget) and value is None:
+        raise ValueError("value is required when label is a Widget")
+    item = {
+        "value": label if value is None else value,
+    }
+    if isinstance(label, Widget):
+        item["child"] = label
+    else:
+        item["label"] = label
+    item["enabled"] = enabled
+    return item

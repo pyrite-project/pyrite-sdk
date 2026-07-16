@@ -4,6 +4,9 @@ from pyrite_sdk.api.ui.sentence import *
 from pyrite_sdk.api.ui.widgets import *
 from pyrite_sdk.core.plugin import UiPlugin
 from pyrite_sdk.models.consts import Package, Ui
+from pathlib import Path
+
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 
 def build_home_page(plugin: UiPlugin):
     home_page = Page([Package.core.widgets, Package.core.material])
@@ -12,7 +15,7 @@ def build_home_page(plugin: UiPlugin):
     with Scaffold(
         app_bar=AppBar(title=Text("UI Example"))
         ).add_to(root_widget).add(Padding(EdgeInsets.all(10)))\
-        .add(Column(cross_axis_alignment=CrossAxisAlignment.start)):
+        .add(ListView()):
         with Card().add(Padding(EdgeInsets.all(20)))\
             .add(Column()):
             with Row(main_axis_alignment=MainAxisAlignment.space_between):
@@ -74,6 +77,44 @@ def build_home_page(plugin: UiPlugin):
             )
 
             Slider()
+        
+        with ExpansionTile(
+                    title=Text("图片与视频"),
+                    subtitle=Text("ExpansionTile 展开的内容"),
+                    initially_expanded=True,
+                ):
+            VideoPlayer(
+                str(ASSETS_DIR / "demo.mp4"),
+                source_type="file",
+                width=640,
+                height=360,
+                looping=True,
+                show_controls=True,
+                fit=BoxFit.contain,
+            )
+            Image(
+                str(ASSETS_DIR / "preview.png"),
+                source_type="file",
+                width=640,
+                height=360,
+                fit=BoxFit.cover,
+                semantic_label="RFW component preview",
+            )
+            Chip(
+                label=Text("Local media"),
+                background_color=Colors.blue,
+            )
+        
+        DropdownButton(
+            items=[
+                DropdownItem("Hello world"),
+                DropdownItem("Hello Pyrite"),
+            ],
+            value="Hello world",
+            hint=Text("DropdownButton"),
+            is_expanded=True,
+            alignment=Alignment.center_left,
+        )
 
     return home_page
 
