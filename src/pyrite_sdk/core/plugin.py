@@ -1,8 +1,5 @@
 from abc import ABC, abstractmethod
-from pathlib import Path as FilePath
-from typing import Optional
 from ..interfaces.ui import PageType
-from ..utils.cfg import Cfg
 from ..core.bridge import Bridge
 from ..api.file import *
 from ..api.editor import Editor
@@ -17,8 +14,6 @@ from ..api.dialog import Dialog
 
 class BasePlugin(ABC):
     def __init__(self, queue_size: int = 50) -> None:
-        self._assets: Optional[FilePath] = None
-        self.cfg: Optional[Cfg] = None
         self.bridge = Bridge(self, queue_size)
         self.start = self.bridge.start
         self.run = self.bridge.start
@@ -26,20 +21,6 @@ class BasePlugin(ABC):
         self.settings = Settings(self.bridge)
         self.message = Message(self.bridge)
         self.dialog = Dialog(self.bridge)
-
-    @property
-    def assets(self) -> Optional[FilePath]:
-        return self._assets
-
-    @assets.setter
-    def assets(self, value: FilePath) -> None:
-        self._assets = value
-        plugin_cfg_path = self._assets / "plugin.toml"
-        if plugin_cfg_path.exists():
-            self.cfg = Cfg(self._assets/"plugin.toml")
-        else:
-            self.cfg = None
-            print(f"Warning: cannot found plugin.toml in {self._assets}")
 
     def on_pause(self): ...
     def on_resume(self): ...

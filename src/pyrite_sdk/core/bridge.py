@@ -169,10 +169,6 @@ class Bridge:
             )
 
         self.connected_clients.add(websocket)
-        self.push(
-            request("sdk.path.request", PathRequestPayload(scope=PathScope.ASSETS)),
-            websocket,
-        )
 
         try:
             async for raw in websocket:
@@ -237,9 +233,6 @@ class Bridge:
                                 )
                                 continue
                             if payload.path:
-                                if payload.scope == PathScope.ASSETS:
-                                    self.plugin.assets = Path(payload.path)
-                                    self.refresh()
                                 waiter = self._path_responses.pop(payload.scope.value, None)
                                 if waiter is not None:
                                     waiter.put(Path(payload.path))
@@ -358,8 +351,6 @@ class Bridge:
             self.stop()
 
     def request_path(self, scope: PathScope, timeout: float = 5.0) -> Path:
-        if self.plugin.assets is not None and scope == PathScope.PLUGIN:
-            return self.plugin.assets
         waiter: queue.Queue[Path] = queue.Queue(maxsize=1)
         self._path_responses[scope.value] = waiter
         self.push(request("sdk.path.request", PathRequestPayload(scope=scope)))

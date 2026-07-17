@@ -118,11 +118,6 @@ class Widget(ContextNode):
         for alias_name, child in self.child_nodes.items():
             assert isinstance(child, list)
             self._setup_child(alias_name, child)
-        # for arg in self.args.values():
-        #     if isinstance(arg, Assets):
-        #         arg.parent = self
-        #         arg.page = self.page
-
     def alias(self, name: str) -> WidgetType:
         self.alias_name = name
         return self
