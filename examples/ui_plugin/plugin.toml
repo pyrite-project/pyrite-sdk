@@ -1,0 +1,15 @@
+[general]
+name = "UI Components Showcase"
+id = "ui-components-showcase"
+version = "1.0.0"
+author = "Pyrite Examples"
+type = "ui"
+
+[permissions]
+ui = true
+
+[platform]
+linux = true
+macos = true
+windows = true
+android = true

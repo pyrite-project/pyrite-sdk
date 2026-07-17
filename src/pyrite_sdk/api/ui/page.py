@@ -18,7 +18,6 @@ class Page(ContextNode):
             c = child.child
             if c is None:
                 continue
-            print(c)
             assert isinstance(c, WidgetType)
             c.page = c.parent = self
             c.setup()

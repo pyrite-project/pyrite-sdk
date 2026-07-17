@@ -93,5 +93,7 @@ sdk.tab.switch                    → tab:manage
 sdk.settings.get                  → settings:read
 sdk.settings.set                  → settings:write
 sdk.settings.list                 → settings:read
+# dialog
+sdk.dialog.open_folder            → dialog:show
 # 无需权限（基础设施）
 sdk.path.request                  → (无)

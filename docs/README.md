@@ -105,8 +105,17 @@ SDK 提供了一套声明式的 UI 构建 API，使用 Python 上下文管理器
 | `Center` | 居中布局 |
 | `Expanded` | 弹性填充 |
 | `FittedBox` | 自适应缩放 |
+| `Padding` / `SizedBox` / `Align` | 常用布局辅助 |
+| `Stack` / `Positioned` / `Wrap` | 多子组件布局 |
+| `SingleChildScrollView` / `ListView` | 滚动列表 |
+| `SafeArea` / `Divider` / `Card` | 常用 Material/布局组件 |
 | `Text` | 文本组件 |
-| `TextButton` | 文本按钮 |
+| `TextField` | 文本输入组件 |
+| `Checkbox` / `Switch` / `RadioGroup` / `Slider` / `DropdownButton` | 选择与滑动输入 |
+| `TextButton` / `ElevatedButton` / `OutlinedButton` / `FilledButton` / `IconButton` / `FloatingActionButton` | 按钮组件 |
+| `Icon` / `Image` / `VideoPlayer` | 图标、本地/网络/打包资源图片和视频播放 |
+| `ListTile` / `Tooltip` / `Chip` / `ExpansionTile` | 列表项、提示、标签和可展开内容 |
+| `CircularProgressIndicator` / `LinearProgressIndicator` | 进度指示器 |
 | `GestureDetector` | 手势检测器 |
 | `Scaffold` / `AppBar` | 页面脚手架 |
 | `NewWidget` | 自定义组件定义 |
@@ -118,9 +127,10 @@ SDK 提供了一套声明式的 UI 构建 API，使用 Python 上下文管理器
 | 语句 | 说明 |
 |------|------|
 | `Var` | 变量引用（`data.xxx`, `args.xxx`, `state.xxx`） |
+| `Expr` / `Ref` / `expr` / `ref` / `call` / `ternary` | RFW 表达式、命名空间引用、调用和三元条件 |
 | `let` | 变量赋值语句 |
-| `Match` / `Case` | 模式匹配（条件渲染） |
-| `ForLoop` | 循环语句 |
+| `Match` / `Case` / `DefaultCase` | 模式匹配（条件渲染） |
+| `ForLoop` | 循环语句，支持构造参数或 `with` 嵌套子组件 |
 
 #### 事件系统
 
@@ -154,6 +164,12 @@ button = TextButton(on_pressed=Event(on_button_click, args={"id": 0}))
 | `save_current_file()` | 保存当前文件 |
 | `save_current_file_as()` | 另存为 |
 | `upload_selected_local_file_item()` | 上传选中的本地文件 |
+
+#### Dialog（系统对话框）
+
+| 方法 | 说明 |
+|------|------|
+| `open_folder(title=None, initial_directory=None, callback=None)` | 打开系统文件夹选择器，回调的 `data` 为选中的目录路径，取消时为 `None` |
 
 ## 4. 快速开始
 
@@ -223,7 +239,7 @@ windows = true
 
 ## 5. 打包工具（Packager）
 
-SDK 包含一个 CLI 打包工具，用于将 Python 应用打包为 Flutter 资产（ZIP 格式），支持多平台交叉编译。
+SDK 包含一个 CLI 打包工具，用于为 serious_python 处理 Python 应用和依赖。
 
 ### 5.1 使用方式
 
@@ -232,15 +248,15 @@ SDK 包含一个 CLI 打包工具，用于将 Python 应用打包为 Flutter 资
 pyrsdk package -i
 
 # 命令行模式
-pyrsdk package . -p Android --arch arm64-v8a -r requests -a build/app.zip
+pyrsdk package . -p Android --python-version 3.14 \
+  --arch arm64-v8a -r requests -a build/app.zip
 ```
 
 ### 5.2 支持的平台
 
 | 平台 | 架构 |
 |------|------|
-| Android | arm64-v8a, armeabi-v7a, x86_64, x86 |
-| iOS | (无架构选项) |
+| Android | arm64-v8a, armeabi-v7a, x86_64 |
 | macOS (Darwin) | arm64, x86_64 |
 | Windows | (默认) |
 | Linux | (默认) |
@@ -251,8 +267,8 @@ pyrsdk package . -p Android --arch arm64-v8a -r requests -a build/app.zip
 2. （可选）编译 Python 源文件为 .pyc
 3. （可选）清理不必要的文件
 4. （可选）安装 Python 依赖包（支持 `uv` 或 `pip`）
-5. 创建 ZIP 存档
-6. 生成 SHA256 哈希文件
+5. 设置 `SERIOUS_PYTHON_APP` 时暂存原生应用目录；否则创建插件 ZIP
+6. ZIP 输出生成 SHA256 哈希文件
 
 ### 5.4 主要参数
 
@@ -260,12 +276,18 @@ pyrsdk package . -p Android --arch arm64-v8a -r requests -a build/app.zip
 |------|------|
 | `source_dir` | 源代码目录 |
 | `-p, --platform` | 目标平台 |
+| `--python-version` | 目标 Python 版本（3.12/3.13/3.14） |
 | `--arch` | 目标架构 |
 | `-r, --requirements` | 依赖包列表 |
 | `-a, --asset` | 输出路径（默认 `build/app.zip`） |
 | `--compile-app` | 编译 Python 源码 |
 | `--cleanup` | 清理冗余文件 |
 | `--pip-tool` | 依赖安装工具（uv/pip） |
+
+`SERIOUS_PYTHON_VERSION` 可设置默认目标版本；`--python-version` 优先。
+依赖目录可通过 `SERIOUS_PYTHON_SITE_PACKAGES` 指定。设置
+`SERIOUS_PYTHON_APP` 后，未显式传入 `--asset` 的原生打包会把处理后的
+应用暂存到该目录。显式传入 `--asset` 时仍生成 ZIP 和哈希文件。
 
 ## 6. 依赖项
 

@@ -13,9 +13,10 @@ from ..api.settings import Settings
 from ..api.serial import Serial
 from ..api.path import Path as SdkPath
 from ..api.message import Message
+from ..api.dialog import Dialog
 
 class BasePlugin(ABC):
-    def __init__(self, queue_size: int = 10) -> None:
+    def __init__(self, queue_size: int = 50) -> None:
         self._assets: Optional[FilePath] = None
         self.cfg: Optional[Cfg] = None
         self.bridge = Bridge(self, queue_size)
@@ -24,6 +25,7 @@ class BasePlugin(ABC):
         self.path = SdkPath(self.bridge)
         self.settings = Settings(self.bridge)
         self.message = Message(self.bridge)
+        self.dialog = Dialog(self.bridge)
 
     @property
     def assets(self) -> Optional[FilePath]:
@@ -46,7 +48,7 @@ class BasePlugin(ABC):
 
 
 class UiPlugin(BasePlugin):
-    def __init__(self, queue_size: int = 10) -> None:
+    def __init__(self, queue_size: int = 50) -> None:
         super().__init__(queue_size)
         self.pages: dict[str, PageType] = {}
         self.file = File(self.bridge)
@@ -64,7 +66,7 @@ class UiPlugin(BasePlugin):
 
 
 class ServicePlugin(BasePlugin):
-    def __init__(self, queue_size: int = 10) -> None:
+    def __init__(self, queue_size: int = 50) -> None:
         super().__init__(queue_size)
         self.file = File(self.bridge)
         self.board = Board(self.bridge)
@@ -79,7 +81,7 @@ class ServicePlugin(BasePlugin):
 
 
 class DataPlugin(BasePlugin):
-    def __init__(self, queue_size: int = 10) -> None:
+    def __init__(self, queue_size: int = 50) -> None:
         super().__init__(queue_size)
         self.theme = Theme(self.bridge)
         self.i18n = I18n(self.bridge)

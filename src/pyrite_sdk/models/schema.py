@@ -16,9 +16,18 @@ class PagePayload(BaseModel):
     pages: Dict[str, str]
 
 
+class CallbackPayload(BaseModel):
+    callbacks: List[str]
+
+
 class VarSetPayload(BaseModel):
     name: str
     value: Any
+
+
+class CallbackBindingPayload(BaseModel):
+    name: str
+    var: str
 
 
 class PathRequestPayload(BaseModel):
@@ -61,6 +70,11 @@ class FileRequestDownloadPayload(BaseModel):
 class FileRequestUniqueNamePayload(BaseModel):
     name: str
     is_folder: bool = False
+
+
+class DialogOpenFolderPayload(BaseModel):
+    title: Optional[str] = None
+    initial_directory: Optional[str] = None
 
 
 class EditorSetTextPayload(BaseModel):

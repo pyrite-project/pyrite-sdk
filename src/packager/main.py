@@ -1,4 +1,5 @@
-from typing import Annotated, Dict, List, Optional
+from pathlib import Path
+from typing import Annotated, Dict, List, Literal, Optional
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -14,14 +15,14 @@ app = typer.Typer(
 
 _console = Console()
 
-PLATFORMS = ["Android", "iOS", "Darwin", "Windows", "Linux"]
+PLATFORMS = ["Android", "Darwin", "Windows", "Linux"]
 ARCH_MAP = {
-    "Android": ["arm64-v8a", "armeabi-v7a", "x86_64", "x86"],
-    "iOS": [],
+    "Android": ["arm64-v8a", "armeabi-v7a", "x86_64"],
     "Darwin": ["arm64", "x86_64"],
     "Windows": [""],
     "Linux": [""],
 }
+PYTHON_VERSIONS = ["3.12", "3.13", "3.14"]
 
 
 def _interactive_mode() -> dict:
@@ -50,12 +51,17 @@ def _interactive_mode() -> dict:
     _console.print("\n[bold]Step 2:[/bold] 目标平台")
     params["platform"] = interactive_select(PLATFORMS, "请选择目标平台:")
 
-    # Step 3: architecture
+    # Step 3: Python version
+    params["python_version"] = interactive_select(
+        PYTHON_VERSIONS, "请选择 Python 版本:"
+    )
+
+    # Step 4: architecture
     available_archs = ARCH_MAP.get(params["platform"], [])
     params["arch"] = interactive_multiselect(available_archs, "请选择目标架构 (默认全选):", default_all=True)
 
-    # Step 4: requirements
-    _console.print(f"\n[bold]Step 4:[/bold] Python 依赖包")
+    # Step 5: requirements
+    _console.print(f"\n[bold]Step 5:[/bold] Python 依赖包")
 
     req_txt_input = Prompt.ask(
         "  requirements.txt 文件路径",
@@ -82,14 +88,11 @@ def _interactive_mode() -> dict:
         else []
     )
 
-    params["requirements"] = [
-        f"-r{req_txt_input}" if req_txt_input else "",
-        *requirements,
-        *pip_args,
-    ]
+    params["requirements_file"] = req_txt_input
+    params["requirements"] = [*requirements, *pip_args]
 
-    # Step 5: options
-    _console.print(f"\n[bold]Step 5:[/bold] 打包选项")
+    # Step 6: options
+    _console.print(f"\n[bold]Step 6:[/bold] 打包选项")
 
     params["compile_app"] = Confirm.ask("  编译应用代码", default=False)
     params["compile_packages"] = Confirm.ask("  编译依赖包", default=False)
@@ -100,8 +103,8 @@ def _interactive_mode() -> dict:
         default="uv",
     )
 
-    # Step 6: asset path
-    _console.print(f"\n[bold]Step 6:[/bold] 输出路径")
+    # Step 7: asset path
+    _console.print(f"\n[bold]Step 7:[/bold] 输出路径")
     params["asset"] = Prompt.ask(
         "  资产输出路径",
         default="build/app.zip",
@@ -123,8 +126,13 @@ def _interactive_mode() -> dict:
 
     summary.add_row("源目录", str(params["source_dir"]))
     summary.add_row("平台", str(params["platform"]))
+    summary.add_row("Python 版本", str(params["python_version"]))
     summary.add_row("架构", ", ".join(params["arch"]) if params["arch"] else "默认")
-    summary.add_row("依赖", ", ".join(params["requirements"]) if params["requirements"] else "无")
+    dependency_summary = [
+        *([f"-r {params['requirements_file']}"] if params["requirements_file"] else []),
+        *params["requirements"],
+    ]
+    summary.add_row("依赖", ", ".join(dependency_summary) if dependency_summary else "无")
     summary.add_row("编译应用", "是" if params["compile_app"] else "否")
     summary.add_row("编译包", "是" if params["compile_packages"] else "否")
     summary.add_row("清理", "是" if params["cleanup"] else "否")
@@ -149,8 +157,15 @@ def _interactive_mode() -> dict:
 
 @app.command()
 def package(
+    python_version: Annotated[
+        Optional[Literal["3.12", "3.13", "3.14"]],
+        typer.Option(
+            "--python-version",
+            help="目标 Python 版本，可选 3.12、3.13、3.14",
+        ),
+    ] = None,
     platform: Annotated[
-        Optional[str],
+        Optional[Literal["Android", "Darwin", "Windows", "Linux"]],
         typer.Option(
             "-p",
             "--platform",
@@ -174,6 +189,14 @@ def package(
             "-r",
             "--requirements",
             help="要安装的依赖列表，允许任何 pip 选项",
+        ),
+    ] = None,
+    requirements_file: Annotated[
+        Optional[str],
+        typer.Option(
+            "-rf",
+            "--requirements-file",
+            help='依赖文件路径，等同于 -r "-r" -r "requirements.txt"',
         ),
     ] = None,
     asset: Annotated[
@@ -255,7 +278,7 @@ def package(
         ),
     ] = False,
     pip_tool: Annotated[
-        str,
+        Literal["pip", "uv"],
         typer.Option(
             "--pip-tool",
             help="依赖安装工具，可选 uv 或 pip",
@@ -274,7 +297,7 @@ def package(
     use_interactive = interactive or (
         not platform
         and source_dir is None
-        and not any([arch, requirements])
+        and not any([arch, requirements, requirements_file])
     )
 
     if use_interactive:
@@ -282,9 +305,13 @@ def package(
         cmd = PackageCommand()
         cmd.run(
             source_dir=params.get("source_dir"),
+            python_version=params.get("python_version"),
             platform=params["platform"],
             arch=params.get("arch", []),
-            requirements=params.get("requirements", []),
+            requirements=_build_requirements(
+                params.get("requirements"),
+                params.get("requirements_file"),
+            ),
             asset=params.get("asset"),
             exclude=params.get("exclude", []),
             skip_site_packages=params.get("skip_site_packages", False),
@@ -300,12 +327,16 @@ def package(
         )
         return
 
+    requirements_file = requirements_file or str(Path(source_dir) / "requirements.txt")
+    print(f"使用依赖文件: {requirements_file}")
+
     cmd = PackageCommand()
     cmd.run(
         source_dir=source_dir,
+        python_version=python_version,
         platform=platform,
         arch=arch or [],
-        requirements=requirements or [],
+        requirements=_build_requirements(requirements, requirements_file),
         asset=asset,
         exclude=exclude or [],
         skip_site_packages=skip_site_packages,
@@ -319,6 +350,18 @@ def package(
         verbose=verbose,
         pip_tool=pip_tool,
     )
+
+
+def _build_requirements(
+    requirements: Optional[List[str] | object],
+    requirements_file: Optional[str | object],
+) -> list[str]:
+    result: list[str] = []
+    if isinstance(requirements_file, str) and requirements_file:
+        result.extend(["-r", requirements_file])
+    if isinstance(requirements, list):
+        result.extend(requirements)
+    return result
 
 
 def main() -> None:

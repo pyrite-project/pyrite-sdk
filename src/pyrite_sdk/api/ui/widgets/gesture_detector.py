@@ -15,18 +15,13 @@ class GestureDetector(Widget):
         on_tap_cancel: Optional[EventType | DataSerializer | Var] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("GestureDetector",
-                         onTap=on_tap,
-                         onDoubleTap=on_double_tap,
-                         onLongPress=on_long_press,
-                         onTapDown=on_tap_down,
-                         onTapUp=on_tap_up,
-                         onTapCancel=on_tap_cancel,
-                         **kwargs
-                         )
-
-    def setup(self) -> None:
-        super().setup()
-        for event in self.args.values():
-            if isinstance(event, EventType):
-                self.setup_event(event)
+        super().__init__(
+            "GestureDetector",
+            onTap=on_tap,
+            onDoubleTap=on_double_tap,
+            onLongPress=on_long_press,
+            onTapDown=on_tap_down,
+            onTapUp=on_tap_up,
+            onTapCancel=on_tap_cancel,
+            **kwargs
+        )

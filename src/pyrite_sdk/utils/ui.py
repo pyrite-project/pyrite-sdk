@@ -1,4 +1,6 @@
+import json
 import re
+from enum import Enum
 from typing import Any, List, Union
 from abc import ABC, abstractmethod
 
@@ -6,6 +8,9 @@ class RFWSerializable(ABC):
     @abstractmethod
     def to_rfw(self) -> str:
         raise NotImplementedError("to_rfw is empty")
+
+    def to_data(self) -> Any:
+        return self.to_rfw()
 
 class DataSerializer(RFWSerializable):
     def __init__(self, data: Any, serialize: bool = True) -> None:
@@ -15,26 +20,46 @@ class DataSerializer(RFWSerializable):
 
     def to_rfw(self) -> str:
         if isinstance(self.data, (list, tuple)):
-            return '[' + ', '.join(self.serializer(x) for x in self.data) + ']'
+            items = [self.serializer(x) for x in self.data]
+            if any("\n" in item for item in items):
+                rendered_items = ["  " + item.replace("\n", "\n  ") for item in items]
+                return '[\n' + ',\n'.join(rendered_items) + '\n]'
+            return '[' + ', '.join(items) + ']'
         if isinstance(self.data, dict):
             return '{' + ', '.join(f'{self.serializer(k)}: {self.serializer(v)}' for k, v in self.data.items()) + '}'
+        if self.data is None:
+            return 'null'
         if isinstance(self.data, bool):
             return 'true' if self.data else 'false'
         if isinstance(self.data, (int, float)):
             return str(self.data)
         if isinstance(self.data, RFWSerializable):
             return self.data.to_rfw()
+        if isinstance(self.data, Enum):
+            return _serialize_value(self.data.value, serialize=self.serialize)
         if not self.serialize:
             return str(self.data)
         if isinstance(self.data, str):
-            return f'"{self.data}"'
+            return _quote_string(self.data)
         raise ValueError(f'Unsupported value type: {type(self.data)}')
 
 def _serialize_value(v: Any, serialize: bool = True) -> str:
     return DataSerializer(v, serialize=serialize).to_rfw()
 
+def _quote_string(v: str) -> str:
+    return json.dumps(v, ensure_ascii=False)
+
 def raw(v: Any) -> DataSerializer:
     return DataSerializer(v, serialize=False)
+
+def to_data(value: Any) -> Any:
+    if isinstance(value, RFWSerializable):
+        return value.to_data()
+    if isinstance(value, dict):
+        return {key: to_data(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [to_data(item) for item in value]
+    return value
 
 class DataParser(RFWSerializable):
     def __init__(self, data: Union[str, dict, list]) -> None:
@@ -43,17 +68,26 @@ class DataParser(RFWSerializable):
 
     def parse_string(self, text: str) -> List[str]:
         tokens: List[str] = []
+        current_lit: List[str] = []
+
+        def flush_literal() -> None:
+            if current_lit:
+                tokens.append(_quote_string("".join(current_lit)))
+                current_lit.clear()
+
         for match in self._pattern.finditer(text):
             esc, var, lit = match.groups()
 
             if esc:
-                tokens.append(f'\"{esc}\"')
+                current_lit.append(esc)
             elif var:
+                flush_literal()
                 tokens.append(var)
             elif lit:
-                tokens.append(f'\"{lit}\"')
+                current_lit.append(lit)
 
-        return self.merge_literals(tokens)
+        flush_literal()
+        return tokens
 
     def merge_literals(self, tokens: List[str]) -> List[str]:
         if not tokens: return []
@@ -75,19 +109,21 @@ class DataParser(RFWSerializable):
     def parse_map(self, map: dict) -> dict:
         data: dict = {}
         for key, value in map.items():
-            if not isinstance(value, str): continue
-            data[f'"{key}"'] = self.parse_string(value)
+            parsed_value = self._parse_value(value)
+            data[_quote_string(str(key))] = parsed_value
         return data
 
+    def _parse_value(self, data: Any) -> DataSerializer:
+        if isinstance(data, str):
+            return raw(self.parse_string(data))
+        if isinstance(data, dict):
+            return raw(self.parse_map(data))
+        if isinstance(data, list):
+            return raw([self._parse_value(x) for x in data])
+        return DataSerializer(data)
+
     def parse(self) -> DataSerializer:
-        if isinstance(self.data, str):
-            return raw(self.parse_string(self.data))
-        elif isinstance(self.data, dict):
-            return raw(self.parse_map(self.data))
-        elif isinstance(self.data, list):
-            return raw([self.parse(x) for x in self.data])
-        else:
-            return raw(self.data)
+        return self._parse_value(self.data)
 
     def to_rfw(self) -> str:
         return self.parse().to_rfw()

@@ -75,6 +75,7 @@ class Envelope(BaseModel):
 |`sdk.file.save_current_file`|保存当前文件|
 |`sdk.file.save_current_file_as`|另存为|
 |`sdk.file.upload_selected_local_file_item`|上传选中的本地文件|
+|`sdk.dialog.open_folder`|打开系统文件夹选择器|
 
 ### 4.2 `IDE -> SDK`
 

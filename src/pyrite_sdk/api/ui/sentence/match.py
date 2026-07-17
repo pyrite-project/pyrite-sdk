@@ -16,4 +16,8 @@ class Case(RFWSerializable):
         self.value: Any = value
 
     def to_rfw(self) -> str:
-        return f"{_serialize_value(self.cond)}: {_serialize_value(self.value)}"
+        cond = "default" if self.cond == "default" else _serialize_value(self.cond)
+        return f"{cond}: {_serialize_value(self.value)}"
+
+def DefaultCase(value: Any) -> Case:
+    return Case("default", value)
