@@ -16,18 +16,20 @@ class Container(Widget):
         transform: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Container",
-                        color = color,
-                        padding = padding,
-                        margin = margin,
-                        alignment = alignment,
-                        width = width,
-                        height = height,
-                        constraints = constraints,
-                        decoration = decoration,
-                        foregroundDecoration = foreground_decoration,
-                        transform = transform,
-                        **kwargs)
+        super().__init__(
+            "Container",
+            color = color,
+            padding = padding,
+            margin = margin,
+            alignment = alignment,
+            width = width,
+            height = height,
+            constraints = constraints,
+            decoration = decoration,
+            foregroundDecoration = foreground_decoration,
+            transform = transform,
+            **kwargs
+        )
 
 class Center(Widget):
     def __init__(
@@ -38,12 +40,14 @@ class Center(Widget):
         height_factor: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Center",
-                        padding=padding,
-                        margin=margin,
-                        widthFactor=width_factor,
-                        heightFactor=height_factor,
-                        **kwargs)
+        super().__init__(
+            "Center",
+            padding=padding,
+            margin=margin,
+            widthFactor=width_factor,
+            heightFactor=height_factor,
+            **kwargs
+        )
 
 class Column(Widget):
     def __init__(
@@ -58,17 +62,19 @@ class Column(Widget):
         text_baseline: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Column",
-                        padding=padding,
-                        margin=margin,
-                        mainAxisAlignment=main_axis_alignment,
-                        crossAxisAlignment=cross_axis_alignment,
-                        mainAxisSize=main_axis_size,
-                        textDirection=text_direction,
-                        verticalDirection=vertical_direction,
-                        textBaseline=text_baseline,
-                        multi_child=True,
-                        **kwargs)
+        super().__init__(
+            "Column",
+            padding=padding,
+            margin=margin,
+            mainAxisAlignment=main_axis_alignment,
+            crossAxisAlignment=cross_axis_alignment,
+            mainAxisSize=main_axis_size,
+            textDirection=text_direction,
+            verticalDirection=vertical_direction,
+            textBaseline=text_baseline,
+            multi_child=True,
+            **kwargs
+        )
 
 class Row(Widget):
     def __init__(
@@ -83,23 +89,27 @@ class Row(Widget):
         text_baseline: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Row",
-                        padding=padding,
-                        margin=margin,
-                        mainAxisAlignment=main_axis_alignment,
-                        crossAxisAlignment=cross_axis_alignment,
-                        mainAxisSize=main_axis_size,
-                        textDirection=text_direction,
-                        verticalDirection=vertical_direction,
-                        textBaseline=text_baseline,
-                        multi_child=True,
-                        **kwargs)
+        super().__init__(
+            "Row",
+            padding=padding,
+            margin=margin,
+            mainAxisAlignment=main_axis_alignment,
+            crossAxisAlignment=cross_axis_alignment,
+            mainAxisSize=main_axis_size,
+            textDirection=text_direction,
+            verticalDirection=vertical_direction,
+            textBaseline=text_baseline,
+            multi_child=True,
+            **kwargs
+        )
 
 class Expanded(Widget):
     def __init__(self, flex: Optional[int] = None, **kwargs: Any) -> None:
-        super().__init__("Expanded",
-                        flex=flex,
-                        **kwargs)
+        super().__init__(
+            "Expanded",
+            flex=flex,
+            **kwargs
+        )
 
 class Flexible(Widget):
     def __init__(
@@ -108,16 +118,20 @@ class Flexible(Widget):
         fit: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Flexible",
-                        flex=flex,
-                        fit=fit,
-                        **kwargs)
+        super().__init__(
+            "Flexible",
+            flex=flex,
+            fit=fit,
+            **kwargs
+        )
 
 class Spacer(Widget):
     def __init__(self, flex: Optional[int] = None, **kwargs: Any) -> None:
-        super().__init__("Spacer",
-                        flex=flex,
-                        **kwargs)
+        super().__init__(
+            "Spacer",
+            flex=flex,
+            **kwargs
+        )
 
 class FittedBox(Widget):
     def __init__(
@@ -127,17 +141,21 @@ class FittedBox(Widget):
         clip_behavior: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("FittedBox",
-                        fit=fit,
-                        alignment=alignment,
-                        clipBehavior=clip_behavior,
-                        **kwargs)
+        super().__init__(
+            "FittedBox",
+            fit=fit,
+            alignment=alignment,
+            clipBehavior=clip_behavior,
+            **kwargs
+        )
 
 class Padding(Widget):
     def __init__(self, padding: Any, **kwargs: Any) -> None:
-        super().__init__("Padding",
-                        padding=padding,
-                        **kwargs)
+        super().__init__(
+            "Padding",
+            padding=padding,
+            **kwargs
+        )
 
 class SizedBox(Widget):
     def __init__(
@@ -146,10 +164,12 @@ class SizedBox(Widget):
         height: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("SizedBox",
-                        width=width,
-                        height=height,
-                        **kwargs)
+        super().__init__(
+            "SizedBox",
+            width=float(width),
+            height=float(height),
+            **kwargs
+        )
 
 class Align(Widget):
     def __init__(
@@ -159,11 +179,13 @@ class Align(Widget):
         height_factor: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Align",
-                        alignment=alignment,
-                        widthFactor=width_factor,
-                        heightFactor=height_factor,
-                        **kwargs)
+        super().__init__(
+            "Align",
+            alignment=alignment,
+            widthFactor=width_factor,
+            heightFactor=height_factor,
+            **kwargs
+        )
 
 class Stack(Widget):
     def __init__(
@@ -174,13 +196,15 @@ class Stack(Widget):
         clip_behavior: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Stack",
-                        alignment=alignment,
-                        textDirection=text_direction,
-                        fit=fit,
-                        clipBehavior=clip_behavior,
-                        multi_child=True,
-                        **kwargs)
+        super().__init__(
+            "Stack",
+            alignment=alignment,
+            textDirection=text_direction,
+            fit=fit,
+            clipBehavior=clip_behavior,
+            multi_child=True,
+            **kwargs
+        )
 
 class Positioned(Widget):
     def __init__(
@@ -193,14 +217,16 @@ class Positioned(Widget):
         height: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Positioned",
-                        left=left,
-                        top=top,
-                        right=right,
-                        bottom=bottom,
-                        width=width,
-                        height=height,
-                        **kwargs)
+        super().__init__(
+            "Positioned",
+            left=left,
+            top=top,
+            right=right,
+            bottom=bottom,
+            width=width,
+            height=height,
+            **kwargs
+        )
 
 class SafeArea(Widget):
     def __init__(
@@ -213,14 +239,16 @@ class SafeArea(Widget):
         maintain_bottom_view_padding: Optional[bool] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("SafeArea",
-                        left=left,
-                        top=top,
-                        right=right,
-                        bottom=bottom,
-                        minimum=minimum,
-                        maintainBottomViewPadding=maintain_bottom_view_padding,
-                        **kwargs)
+        super().__init__(
+            "SafeArea",
+            left=left,
+            top=top,
+            right=right,
+            bottom=bottom,
+            minimum=minimum,
+            maintainBottomViewPadding=maintain_bottom_view_padding,
+            **kwargs
+        )
 
 class SingleChildScrollView(Widget):
     def __init__(
@@ -231,12 +259,14 @@ class SingleChildScrollView(Widget):
         primary: Optional[bool] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("SingleChildScrollView",
-                        scrollDirection=scroll_direction,
-                        reverse=reverse,
-                        padding=padding,
-                        primary=primary,
-                        **kwargs)
+        super().__init__(
+            "SingleChildScrollView",
+            scrollDirection=scroll_direction,
+            reverse=reverse,
+            padding=padding,
+            primary=primary,
+            **kwargs
+        )
 
 class ListView(Widget):
     def __init__(
@@ -248,14 +278,16 @@ class ListView(Widget):
         shrink_wrap: Optional[bool] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("ListView",
-                        scrollDirection=scroll_direction,
-                        reverse=reverse,
-                        padding=padding,
-                        primary=primary,
-                        shrinkWrap=shrink_wrap,
-                        multi_child=True,
-                        **kwargs)
+        super().__init__(
+            "ListView",
+            scrollDirection=scroll_direction,
+            reverse=reverse,
+            padding=padding,
+            primary=primary,
+            shrinkWrap=shrink_wrap,
+            multi_child=True,
+            **kwargs
+        )
 
 class Wrap(Widget):
     def __init__(
@@ -270,17 +302,19 @@ class Wrap(Widget):
         vertical_direction: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Wrap",
-                        direction=direction,
-                        alignment=alignment,
-                        spacing=spacing,
-                        runAlignment=run_alignment,
-                        runSpacing=run_spacing,
-                        crossAxisAlignment=cross_axis_alignment,
-                        textDirection=text_direction,
-                        verticalDirection=vertical_direction,
-                        multi_child=True,
-                        **kwargs)
+        super().__init__(
+            "Wrap",
+            direction=direction,
+            alignment=alignment,
+            spacing=float(spacing),
+            runAlignment=run_alignment,
+            runSpacing=float(run_spacing),
+            crossAxisAlignment=cross_axis_alignment,
+            textDirection=text_direction,
+            verticalDirection=vertical_direction,
+            multi_child=True,
+            **kwargs
+        )
 
 class Divider(Widget):
     def __init__(
@@ -292,13 +326,15 @@ class Divider(Widget):
         color: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Divider",
-                        height=height,
-                        thickness=thickness,
-                        indent=indent,
-                        endIndent=end_indent,
-                        color=color,
-                        **kwargs)
+        super().__init__(
+            "Divider",
+            height=height,
+            thickness=thickness,
+            indent=indent,
+            endIndent=end_indent,
+            color=color,
+            **kwargs
+        )
 
 class Card(Widget):
     def __init__(
@@ -310,10 +346,12 @@ class Card(Widget):
         clip_behavior: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Card",
-                        color=color,
-                        elevation=elevation,
-                        margin=margin,
-                        shape=shape,
-                        clipBehavior=clip_behavior,
-                        **kwargs)
+        super().__init__(
+            "Card",
+            color=color,
+            elevation=elevation,
+            margin=margin,
+            shape=shape,
+            clipBehavior=clip_behavior,
+            **kwargs
+        )

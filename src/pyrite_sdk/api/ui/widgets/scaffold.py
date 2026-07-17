@@ -21,11 +21,13 @@ class Scaffold(Widget):
             kwargs["endDrawer"] = end_drawer
         if bottom_navigation_bar is not None:
             kwargs["bottomNavigationBar"] = bottom_navigation_bar
-        super().__init__("Scaffold",
-                        drawer=drawer,
-                        backgroundColor=background_color,
-                        resizeToAvoidBottomInset=resize_to_avoid_bottom_inset,
-                        **kwargs)
+        super().__init__(
+            "Scaffold",
+            drawer=drawer,
+            backgroundColor=background_color,
+            resizeToAvoidBottomInset=resize_to_avoid_bottom_inset,
+            **kwargs
+        )
         self._child_keyname = "body"
 
 class AppBar(Widget):
@@ -40,12 +42,14 @@ class AppBar(Widget):
         center_title: Optional[bool] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("AppBar",
-                        title=title,
-                        leading=leading,
-                        actions=actions,
-                        backgroundColor=background_color,
-                        foregroundColor=foreground_color,
-                        elevation=elevation,
-                        centerTitle=center_title,
-                        **kwargs)
+        super().__init__(
+            "AppBar",
+            title=title,
+            leading=leading,
+            actions=actions,
+            backgroundColor=background_color,
+            foregroundColor=foreground_color,
+            elevation=elevation,
+            centerTitle=center_title,
+            **kwargs
+        )

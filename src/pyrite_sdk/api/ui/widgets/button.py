@@ -21,12 +21,14 @@ class TextButton(Widget):
         autofocus: Optional[bool] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("TextButton",
-                        onPressed = on_pressed,
-                        onLongPress = on_long_press,
-                        style = style,
-                        autofocus = autofocus,
-                        **kwargs)
+        super().__init__(
+            "TextButton",
+            onPressed = on_pressed,
+            onLongPress = on_long_press,
+            style = style,
+            autofocus = autofocus,
+            **kwargs
+        )
 
 class ElevatedButton(Widget):
     def __init__(
@@ -37,12 +39,14 @@ class ElevatedButton(Widget):
         autofocus: Optional[bool] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("ElevatedButton",
-                        onPressed = on_pressed,
-                        onLongPress = on_long_press,
-                        style = style,
-                        autofocus = autofocus,
-                        **kwargs)
+        super().__init__(
+            "ElevatedButton",
+            onPressed = on_pressed,
+            onLongPress = on_long_press,
+            style = style,
+            autofocus = autofocus,
+            **kwargs
+        )
 
 class OutlinedButton(Widget):
     def __init__(
@@ -53,12 +57,14 @@ class OutlinedButton(Widget):
         autofocus: Optional[bool] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("OutlinedButton",
-                        onPressed = on_pressed,
-                        onLongPress = on_long_press,
-                        style = style,
-                        autofocus = autofocus,
-                        **kwargs)
+        super().__init__(
+            "OutlinedButton",
+            onPressed = on_pressed,
+            onLongPress = on_long_press,
+            style = style,
+            autofocus = autofocus,
+            **kwargs
+        )
 
 class FilledButton(Widget):
     def __init__(
@@ -72,15 +78,17 @@ class FilledButton(Widget):
         clip_behavior: Optional[Any] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("FilledButton",
-                        onPressed = on_pressed,
-                        onLongPress = on_long_press,
-                        onHover = on_hover,
-                        onFocusChange = on_focus_change,
-                        style = style,
-                        autofocus = autofocus,
-                        clipBehavior = clip_behavior,
-                        **kwargs)
+        super().__init__(
+            "FilledButton",
+            onPressed = on_pressed,
+            onLongPress = on_long_press,
+            onHover = on_hover,
+            onFocusChange = on_focus_change,
+            style = style,
+            autofocus = autofocus,
+            clipBehavior = clip_behavior,
+            **kwargs
+        )
 
 class IconButton(Widget):
     def __init__(

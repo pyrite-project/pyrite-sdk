@@ -15,13 +15,15 @@ class Text(Widget):
         semantics_label: Optional[str] = None,
         **kwargs: Any
     ) -> None:
-        super().__init__("Text",
-                        text = text,
-                        style = style,
-                        textDirection = text_direction,
-                        textAlign = text_align,
-                        softWrap = soft_wrap,
-                        overflow = overflow,
-                        maxLines = max_lines,
-                        semanticsLabel = semantics_label,
-                        **kwargs)
+        super().__init__(
+            "Text",
+            text = text,
+            style = style,
+            textDirection = text_direction,
+            textAlign = text_align,
+            softWrap = soft_wrap,
+            overflow = overflow,
+            maxLines = max_lines,
+            semanticsLabel = semantics_label,
+            **kwargs
+        )
