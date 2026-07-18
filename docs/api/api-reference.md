@@ -10,7 +10,7 @@
 6. [变量系统](#6-变量系统)
 7. [组件树构建语法](#7-组件树构建语法)
 8. [RFW 序列化](#8-rfw-序列化)
-9. [工作区 API](#9-工作区-api)
+9. [IDE API](#9-ide-api)
 10. [完整示例](#10-完整示例)
 
 ---
@@ -58,8 +58,18 @@ from pyrite_sdk.models.schema import request, OkResponsePayload
 from pyrite_sdk.models.consts import Package, Ui
 
 # 插件基类
-from pyrite_sdk.core.plugin import Plugin
+from pyrite_sdk.core.plugin import UiPlugin, ServicePlugin, DataPlugin
 ```
+
+### 1.4 插件基类
+
+| 类型 | 必须实现 | 说明 |
+| --- | --- | --- |
+| `UiPlugin` | `on_start()` | 提供 `pages`，并暴露 File、Board、Editor、Router、Persistence 和 Serial 等接口 |
+| `ServicePlugin` | `on_start()` | 后台服务，不包含 `pages`、Editor 和 Router |
+| `DataPlugin` | `on_contribute()` | 一次性贡献 Theme、I18n 或 Stubs；响应完成后自动停止 |
+
+所有插件都提供 `bridge`、`path`、`settings`、`message`、`dialog`、`theme`、`i18n` 和 `stubs`。生命周期钩子 `on_pause()`、`on_resume()`、`on_refresh()`、`on_dispose()` 均有默认空实现。
 
 ---
 
@@ -402,7 +412,7 @@ CircularProgressIndicator(value=None, background_color=None, color=None, stroke_
 LinearProgressIndicator(value=None, background_color=None, color=None, min_height=None)
 ```
 
-`Image` 和 `VideoPlayer` 的 `source_type` 支持 `"file"`、`"network"` 和 `"asset"`。本地路径使用 `"file"`；网络 URL 使用 `"network"`；Flutter 打包资源使用 `"asset"`。插件 `assets_path` 下的绝对路径仍使用 `"file"`。
+`Image` 和 `VideoPlayer` 的 `source_type` 支持 `"file"`、`"network"`。本地路径使用 `"file"`；网络 URL 使用 `"network"`。
 
 ```python
 Image(
@@ -629,18 +639,17 @@ let(var: Var, value: Any) -> DataSerializer
 let(state.down, True)          # "set state.down = true"
 let(data.counter, 42)          # "set data.counter = 42"
 let(data.name, "Pyrite")       # "set data.name = \"Pyrite\""
-let(state.next_count, data.counter + 1)
+let(state.enabled, data.enabled == False)
 ```
 
 ### 4.3 Expr 表达式
 
-`Var` 继承自 `Expr`，可直接组合 RFW 表达式，避免手写 `raw()` 字符串。
+`Var` 继承自 `Expr`。当前文本 RFW 库支持相等和比较条件，并将它们降低为 `switch`；不支持算术表达式或 `&&` / `||` 组合。
 
 ```python
-data.counter + 1              # "(data.counter + 1)"
-data.count > 0                # "(data.count > 0)"
-(data.count > 0) & state.enabled
-(data.kind == "fallback") | ~state.enabled
+data.kind == "fallback"
+data.count > 0
+~state.enabled
 ternary(state.enabled, "on", "off")
 Icons.person
 EdgeInsets.all(8)
@@ -659,7 +668,7 @@ TextStyle(font_size=16, font_weight=FontWeight.bold)
 
 常用命名空间已预置：`Icons`、`Colors`、`EdgeInsets`、`Alignment`、`Border`、`BorderRadius`、`BoxDecoration`、`Radius`、`TextStyle`、`FontWeight`、`FontStyle`、`MainAxisAlignment`、`CrossAxisAlignment`、`MainAxisSize`、`TextAlign`、`TextDirection`、`Axis`、`BoxFit`、`Clip`。
 
-比较可用 Python 操作符：`==`、`!=`、`<`、`<=`、`>`、`>=`。布尔组合使用 `&`、`|`、`~`，也保留方法形式：`eq()`、`ne()`、`lt()`、`le()`、`gt()`、`ge()`、`and_()`、`or_()`、`not_()`。不要用 Python 的 `and` / `or`，因为它们会在 Python 运行期求值。
+比较可用 Python 操作符 `==`、`!=`、`<`、`<=`、`>`、`>=`，也可使用 `eq()`、`ne()`、`lt()`、`le()`、`gt()`、`ge()`。数值范围比较只接受 0 到 100 的非负整数阈值，因为序列化器会展开 `switch` case。`~expr` / `not_()` 可反转布尔条件。`+`、`-`、`*`、`/`、`%`、`&`、`|` 以及 `and_()` / `or_()` 当前会抛出 `TypeError`。
 
 ### 4.4 Match / Case 条件匹配
 
@@ -858,7 +867,7 @@ def on_submit(**kwargs):
 | `list` | `[1, 2, 3]` |
 | `dict` | `{"key": "value"}` |
 | `Enum` | 序列化其 `.value` |
-| `Var` / `Expr` | `data.x` / `(data.count + 1)` |
+| `Var` / `Expr` | `data.x` / `switch data.kind { "ok": true, default: false }` |
 | `RFWSerializable` | 调用 `to_rfw()` |
 
 ---
@@ -1027,85 +1036,163 @@ page.to_rfw()
 
 ---
 
-## 9. 工作区 API
+## 9. IDE API
+
+IDE API 方法分为两类：调用 `push_wait_response()` 的方法接受可选 `callback`，响应以关键字参数传入；调用 `push()` 的方法只负责发送。所需权限见 [IDE 命令与权限](ide_api.md)。
 
 ### 9.1 File
 
-通过 `plugin.file` 访问。
+`UiPlugin.file` 和 `ServicePlugin.file` 操作本地工作区。
 
-| 方法 | 参数 | 说明 |
-|------|------|------|
-| `get_root_dir(callback)` | `callback(**kwargs)` | 获取根目录路径 |
-| `get_file_list(path, callback)` | `path: str, callback(**kwargs)` | 获取目录下文件列表（path 通过 `data` 字段传递） |
-| `get_focus_file_node(callback)` | `callback(**kwargs)` | 获取当前聚焦的文件节点 |
-| `get_focus_folder_node(callback)` | `callback(**kwargs)` | 获取当前聚焦的文件夹节点 |
-| `create_file(name, parent_path, callback)` | `name?: str, parent_path?: str, callback?` | 创建文件 |
-| `create_folder(name, parent_path, callback)` | `name?: str, parent_path?: str, callback?` | 创建文件夹 |
-| `open_file(path)` | `path: str` | 打开文件 |
-| `open_folder(path)` | `path: str` | 打开文件夹 |
-| `rename_file(path, new_name)` | `path: str, new_name: str` | 重命名文件 |
-| `delete_file(path)` | `path: str` | 删除文件 |
-| `save_current_file()` | 无 | 保存当前文件 |
-| `save_current_file_as()` | 无 | 另存为 |
-| `upload_selected_local_file_item()` | 无 | 上传选中的文件 |
-
-> **注意**: `get_file_list` 的 `path` 参数通过 Envelope 的 `data` 字段传递，而非 `payload`。其他带 `payload` 的方法使用对应的 Pydantic 模型序列化。
-
-### 9.2 Board
-
-通过 `plugin.board` 访问。当前为占位实现，暂无可用方法。
-
-### 9.3 Dialog
-
-通过 `plugin.dialog` 访问。
-
-| 方法 | 参数 | 说明 |
-|------|------|------|
-| `open_folder(title=None, initial_directory=None, callback=None)` | `title?: str, initial_directory?: str, callback(**kwargs)` | 打开系统文件夹选择器，回调的 `data` 为选中的目录路径，取消时为 `None` |
-
-**回调格式**: `callback(**kwargs)` — kwargs 包含 IDE 返回的数据。
+| 方法 | 说明 |
+| --- | --- |
+| `get_root_dir(callback=None)` | 获取工作区根目录 |
+| `get_file_list(path, callback=None)` | 获取目录列表；`path` 使用 Envelope 的 `data` 字段 |
+| `read_file(path, callback=None)` / `write_file(path, content, callback=None)` | 读写文件 |
+| `exists(path, callback=None)` / `is_file(...)` / `is_directory(...)` | 查询路径 |
+| `get_focus_file_node(callback=None)` / `get_focus_folder_node(...)` | 获取当前聚焦节点 |
+| `get_unique_name(name, is_folder=False, callback=None)` | 请求不冲突的名称 |
+| `create_file(path, callback=None)` / `create_folder(path, callback=None)` | 使用完整路径创建项目 |
+| `copy_file(src, dst, callback=None)` / `move_file(...)` | 复制或移动文件 |
+| `upload_file(local_path, board_path, callback=None)` | 上传本地文件到 Board |
+| `rename(path, new_name)` / `delete(path)` | 重命名或删除，不等待响应 |
+| `open_file(path)` / `open_folder(path)` | 在 IDE 中打开路径，不等待响应 |
+| `save_current_file()` / `save_current_file_as()` | 保存或另存当前文件 |
+| `upload_selected_local_file_item()` | 上传当前选择项 |
 
 ```python
-# 获取根目录
-plugin.file.get_root_dir(
-    callback=lambda **kw: print("Root:", kw)
-)
-
-# 获取文件列表
-plugin.file.get_file_list(
-    "/src",
-    callback=lambda **kw: print("Files:", kw)
-)
-
-# 创建文件
 plugin.file.create_file(
-    name="test.txt",
-    callback=lambda **kw: print("Created:", kw)
+    "/workspace/test.txt",
+    callback=lambda **response: print(response),
 )
 ```
 
----
+### 9.2 Board
 
-### 9.4 ThemeSettings
+`UiPlugin.board` 和 `ServicePlugin.board` 操作 Board 工作区。
 
-通过 `plugin.settings.theme` 读取或修改 IDE 的“外观与风格”设置。每个方法都接受
-可选的 `callback`；读取需要 `settings:read` 权限，修改需要 `settings:write` 权限。
+| 方法 | 说明 |
+| --- | --- |
+| `get_root_dir(callback=None)` / `get_dir_list(path, callback=None)` | 获取根目录或目录列表 |
+| `read_file(path, callback=None)` / `write_file(path, content, callback=None)` | 读写 Board 文件 |
+| `exists(path, callback=None)` / `is_file(...)` / `is_directory(...)` | 查询路径 |
+| `get_focus_file_node(callback=None)` / `get_focus_folder_node(...)` | 获取当前聚焦节点 |
+| `get_corresponding_file_path(path, callback=None)` | 获取 Board 路径对应的本地路径 |
+| `download_file(board_path, local_path, callback=None)` | 下载到本地路径 |
+| `open_file(path)` / `download_selected_board_item()` | 打开或下载当前选择项 |
+| `rename(path, new_name)` / `delete_file(path)` / `delete_folder(path)` | 修改 Board 项目 |
+
+### 9.3 Editor 与 Router
+
+`UiPlugin.editor` 提供以下方法族：
+
+| 分类 | 方法 |
+| --- | --- |
+| 文本 | `get_text`, `set_text`, `get_line_count`, `get_line_text`, `get_selected_text`, `insert_text`, `replace_range`, `clear` |
+| 光标与选择 | `get_cursor_position`, `set_cursor_position`, `get_selection`, `set_selection`, `select_all`, `go_to_line` |
+| 剪贴板与历史 | `copy`, `cut`, `paste`, `undo`, `redo`, `can_undo`, `can_redo` |
+| 搜索 | `find`, `find_regex`, `clear_search` |
+| 标签页 | `open_file`, `close_tab`, `get_current_tab`, `list_tabs` |
+| 装饰 | `set_ghost_text`, `clear_ghost_text`, `scroll_to_line` |
+
+这些方法均接受可选 `callback`。`find(word, match_case=False, whole_word=False, callback=None)` 和 `find_regex(pattern, callback=None)` 的参数不可互换。
+
+`UiPlugin.router` 在插件内部页面间导航：
+
+```python
+plugin.router.push("settings")
+plugin.router.pop()
+plugin.router.replace("details")
+plugin.router.goto("home")
+```
+
+`current` 返回当前页，`stack` 返回历史栈副本。IDE 可通过 `ide.router.sync` 同步这两个值。
+
+### 9.4 Persistence
+
+`UiPlugin.persistence` 和 `ServicePlugin.persistence` 按 `group` / `key` 保存 JSON 可序列化值。
+
+```python
+plugin.persistence.get(group, key, callback=None)
+plugin.persistence.set(group, key, value, callback=None)
+plugin.persistence.delete(group, key, callback=None)
+plugin.persistence.list_groups(callback=None)
+plugin.persistence.list_keys(group, callback=None)
+plugin.persistence.clear(group, callback=None)
+```
+
+### 9.5 Path、Dialog 与 Message
+
+所有插件都有这些通用接口：
+
+| 接口 | 方法 |
+| --- | --- |
+| `plugin.path` | `get(scope, callback=None)`；同步快捷方法 `plugin()`、`data()`、`cache()`、`temp()` 返回 `pathlib.Path` |
+| `plugin.dialog` | `open_folder(title=None, initial_directory=None, callback=None)` |
+| `plugin.message` | `show(message, type="info", callback=None)`；快捷方法 `info`、`success`、`warning`、`error` |
+
+路径快捷方法会优先读取 IDE 注入的环境变量，否则等待 `ide.response.path`，默认超时 5 秒。
+
+### 9.6 Serial
+
+`UiPlugin.serial` 和 `ServicePlugin.serial` 提供：
+
+```python
+plugin.serial.list_ports(callback=None)
+plugin.serial.get_status(callback=None)
+plugin.serial.connect(port, callback=None)
+plugin.serial.disconnect(callback=None)
+plugin.serial.send(data, callback=None)
+plugin.serial.send_command(command, chunked=True, callback=None)
+plugin.serial.read(timeout_ms=1000, max_bytes=None, callback=None)
+plugin.serial.run_python(code, timeout_ms=20000, callback=None)
+plugin.serial.set_baud_rate(value, callback=None)
+plugin.serial.set_auto_reconnect(value, callback=None)
+```
+
+`send()` 接受字符串、`bytes` 或整数序列；`bytes` 会序列化为整数列表。
+
+### 9.7 Settings
+
+`plugin.settings.get(name, callback=None)`、`set(name, value, callback=None)` 和 `list(callback=None)` 是底层通用接口。还提供以下分组封装：
+
+| 属性 | 类 | 范围 |
+| --- | --- | --- |
+| `settings.theme` | `ThemeSettings` | 主题模式、风格、颜色、插件主题和 Material 右键菜单 |
+| `settings.editor` | `EditorSettings` | 字体、换行、缩进、建议、缩略图等编辑器配置 |
+| `settings.lsp` | `LspSettings` | LSP 传输、诊断和语言能力开关 |
+| `settings.serial` | `SerialSettings` | 默认波特率和自动重连 |
+| `settings.terminal` | `TerminalSettings` | 字体、字号和行高 |
+| `settings.micropython` | `MicroPythonStubsSettings` | 存根开关、层和额外路径 |
+
+ThemeSettings 的值约定：
 
 | 方法 | 值 |
 | --- | --- |
 | `get_mode` / `set_mode` | `"system"`、`"light"` 或 `"dark"` |
 | `get_style` / `set_style` | `"standard"`、`"compact"` 或 `"comfortable"` |
 | `get_color` / `set_color` | ARGB32 `int`；`None` 表示使用系统动态颜色 |
-| `get_active_plugin_theme_id` / `set_active_plugin_theme_id` | 已注册的 `"plugin_id::theme_name"`；`None` 表示内置主题 |
+| `get_active_plugin_theme_id` / `set_active_plugin_theme_id` | `"plugin_id::theme_name"`；`None` 表示内置主题 |
 | `get_use_material_context_menu` / `set_use_material_context_menu` | `bool` |
 
 ```python
 plugin.settings.theme.get_mode(callback=lambda **response: print(response))
 plugin.settings.theme.set_color(0xFF008080)
-plugin.settings.theme.set_active_plugin_theme_id(None)
 ```
 
-GET 回调收到 `data={"name": ..., "value": ...}`，SET 成功时收到 `data=True`。
+设置读取回调收到 `data={"name": ..., "value": ...}`；设置成功时收到 `data=True`。
+
+### 9.8 Theme、I18n 与 Stubs
+
+所有插件均可访问数据接口，`DataPlugin` 主要使用这些接口实现 `on_contribute()`。
+
+| 接口 | 方法 |
+| --- | --- |
+| `plugin.theme` | `contribute(name, data)`, `register_runtime(name, data)`, `revoke(name)`, `get(name)`, `list()` |
+| `plugin.i18n` | `contribute(locale, messages)`, `register_runtime(locale, messages)`, `revoke(locale)`, `get(locale)`, `list()` |
+| `plugin.stubs` | `contribute(provider_id, profiles, ...)`, `register_runtime(...)`, `revoke(provider_id)`, `get(provider_id)`, `list()`, `resolve_layers(layers)` |
+
+每个方法最后都接受可选 `callback`。`contribute` 用于插件声明式贡献；`register_runtime` 用于运行期注册。
 
 ---
 
@@ -1119,7 +1206,7 @@ from pyrite_sdk.api.ui.page import Page
 from pyrite_sdk.api.ui.event import Event
 from pyrite_sdk.api.ui.sentence import *
 from pyrite_sdk.models.consts import Package
-from pyrite_sdk.core.plugin import Plugin
+from pyrite_sdk.core.plugin import UiPlugin
 
 page = Page(packages=[Package.core.widgets, Package.core.material])
 
@@ -1130,7 +1217,7 @@ with Container().add_to(root):
         with TextButton(on_pressed=Event(lambda **kw: print("clicked"))):
             Text("Click Me")
 
-class MyPlugin(Plugin):
+class MyPlugin(UiPlugin):
     def __init__(self):
         super().__init__()
         self.pages = {"home": page}
