@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from typer.testing import CliRunner
 
-from packager.main import app, _build_requirements
+from tools.main import app, _build_requirements
 
 
 class PackagerCliTest(unittest.TestCase):
@@ -19,7 +19,7 @@ class PackagerCliTest(unittest.TestCase):
     def test_cli_accepts_requirements_file_short_option(self) -> None:
         runner = CliRunner()
 
-        with patch("packager.main.PackageCommand") as package_command:
+        with patch("tools.main.PackageCommand") as package_command:
             result = runner.invoke(
                 app,
                 [

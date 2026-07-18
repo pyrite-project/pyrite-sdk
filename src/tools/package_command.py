@@ -11,6 +11,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 from typing import Optional
+import tomllib
 
 from rich.console import Console
 from rich.progress import (
@@ -103,6 +104,12 @@ class PackageCommand:
         self._console.print(Rule(style="dim"))
         self._console.print(f"  [bold]{title}[/bold]")
         self._console.print(Rule(style="dim"))
+    
+    def _plugin_id(config_path: Path):
+        with open(config_path, "r") as file:
+            config = tomllib.load(file)
+            plugin_id = config["general"]["id"]
+        return plugin_id
 
     def run(
         self,
@@ -189,7 +196,7 @@ class PackageCommand:
             app_staging_root = os.environ.get(app_environment_var)
             legacy_asset_requested = asset_path is not None and bool(asset_path.strip())
             if asset_path is None:
-                asset_path = f"build/{Path(source_dir).name}.zip"
+                asset_path = f"build/{self._plugin_id(source_path/"plugin.toml")}.zip"
             elif asset_path.startswith("/") or asset_path.startswith("\\"):
                 asset_path = asset_path[1:]
 

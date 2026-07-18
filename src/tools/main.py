@@ -7,10 +7,11 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from .package_command import PackageCommand
 from .utils.selector import interactive_select, interactive_multiselect
+from .test_command import TestCommand
 
 app = typer.Typer(
     name="pyrite-sdk",
-    help="用于将 Python 应用打包以配合 serious_python 包的工具",
+    help="PyriteSDK 开发调试工具",
 )
 
 _console = Console()
@@ -154,8 +155,18 @@ def _interactive_mode() -> dict:
 
     return params
 
+def _build_requirements(
+    requirements: Optional[List[str] | object],
+    requirements_file: Optional[str | object],
+) -> list[str]:
+    result: list[str] = []
+    if isinstance(requirements_file, str) and requirements_file:
+        result.extend(["-r", requirements_file])
+    if isinstance(requirements, list):
+        result.extend(requirements)
+    return result
 
-@app.command()
+@app.command("package")
 def package(
     python_version: Annotated[
         Optional[Literal["3.12", "3.13", "3.14"]],
@@ -351,18 +362,59 @@ def package(
         pip_tool=pip_tool,
     )
 
+@app.command("create")
+def create(
+    dir: Annotated[
+        Optional[str],
+        typer.Argument(help="源目录"),
+    ] = ".",
+):
+    src_path = Path(__file__).parent/"template"
+    dst_path = Path(dir).resolve()/"src"
+    if not dst_path.exists():
+        dst_path.mkdir()
+    print("Source path:", src_path)
+    print("Creating template plugin to", dst_path)
+    for f in src_path.iterdir():
+        f.copy(dst_path/f.name)
+    print("Completed.")
 
-def _build_requirements(
-    requirements: Optional[List[str] | object],
-    requirements_file: Optional[str | object],
-) -> list[str]:
-    result: list[str] = []
-    if isinstance(requirements_file, str) and requirements_file:
-        result.extend(["-r", requirements_file])
-    if isinstance(requirements, list):
-        result.extend(requirements)
-    return result
-
+@app.command("test")
+def test_plugin(
+    dir: Annotated[
+        Optional[str],
+        typer.Argument(help="源目录"),
+    ] = ".",
+    rfw: Annotated[
+        bool,
+        typer.Option(
+            "--rfw",
+            help="输出序列化后的RFW文本",
+        ),
+    ] = False,
+    raw_output: Annotated[
+        bool,
+        typer.Option(
+            "--raw-output",
+            help="输出纯文本",
+        )
+    ] = False,
+    no_format_rfw: Annotated[
+        bool,
+        typer.Option(
+            "--no-format-rfw",
+            help="不格式化RFW文本"
+        )
+    ] = False
+):
+    dst_path = Path(dir).resolve()
+    TestCommand().run(
+        dst_path,
+        rfw,
+        raw_output,
+        no_format_rfw,
+        _console
+    )
 
 def main() -> None:
     app()

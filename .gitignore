@@ -14,3 +14,7 @@ wheels/
 .DS_Store
 
 .vscode/
+
+# cache
+
+.*_cache/

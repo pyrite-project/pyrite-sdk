@@ -19,7 +19,7 @@ authors = [
 keywords = ["pyrite", "PyriteIDE", "PyriteSDK", "MicroPython"]
 
 [project.scripts]
-pyrsdk = "packager.main:app"
+pyrsdk = "tools.main:app"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
@@ -27,7 +27,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["pyrite_sdk*", "packager*"]
+include = ["pyrite_sdk*", "tools*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.py", "*.toml", "*.md", "*.pyi", "py.typed"]

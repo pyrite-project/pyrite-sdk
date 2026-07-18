@@ -606,9 +606,6 @@ with Scaffold(
 
                 Text(data.r51)
 
-page.print_tree(print_args=False)
-print(page.to_rfw())
-
 # ── Settings Page ──
 
 settings_page = Page(packages=[Package.core.widgets, Package.core.material])
@@ -684,4 +681,6 @@ class MyPlugin(UiPlugin):
 
 
 plugin = MyPlugin()
-plugin.start()
+
+if __name__ == "__main__":
+    plugin.start()

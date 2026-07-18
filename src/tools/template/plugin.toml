@@ -1,0 +1,15 @@
+[general]
+name = "Template Plugin"
+id = "template-plugin"
+version = "1.0.0"
+author = "Pyrite Examples"
+type = "ui"
+
+[permissions]
+ui = true
+
+[platform]
+linux = true
+macos = true
+windows = true
+android = true

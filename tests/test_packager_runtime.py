@@ -7,16 +7,16 @@ from unittest.mock import patch
 
 from rich.console import Console
 
-from packager.main import ARCH_MAP, PLATFORMS
-from packager.package_command import (
+from tools.main import ARCH_MAP, PLATFORMS
+from tools.package_command import (
     PackageCommand,
     app_environment_var,
     legacy_site_packages_env_var,
     platforms,
     site_packages_env_var,
 )
-from packager.python_versions import PYTHON_RELEASES, resolve_python_release
-from packager.sitecustomize import sitecustomize_py
+from tools.python_versions import PYTHON_RELEASES, resolve_python_release
+from tools.sitecustomize import sitecustomize_py
 
 
 class PackagerRuntimeTest(unittest.TestCase):
@@ -104,7 +104,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                             "_build_install_command",
                             return_value=["mock-install"],
                         ) as build_install_command,
-                        patch("packager.package_command.subprocess.run") as run,
+                        patch("tools.package_command.subprocess.run") as run,
                     ):
                         run.return_value.returncode = 0
                         run.return_value.stdout = b""
