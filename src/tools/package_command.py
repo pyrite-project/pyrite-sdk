@@ -105,7 +105,7 @@ class PackageCommand:
         self._console.print(f"  [bold]{title}[/bold]")
         self._console.print(Rule(style="dim"))
     
-    def _plugin_id(config_path: Path):
+    def _plugin_id(self, config_path: Path):
         with open(config_path, "r") as file:
             config = tomllib.load(file)
             plugin_id = config["general"]["id"]
