@@ -1,6 +1,6 @@
 [general]
-name = "Chinese Language Pack"
-id = "zh-lang-pack"
+name = "English Language Pack"
+id = "en-lang-pack"
 version = "1.0.0"
 author = "Pyrite Examples"
 type = "data"
