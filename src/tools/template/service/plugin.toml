@@ -1,0 +1,15 @@
+[general]
+name = "Template Service Plugin"
+id = "template-service-plugin"
+version = "1.0.0"
+author = "Your name"
+type = "service"
+
+[permissions]
+file = true
+
+[platform]
+linux = true
+macos = true
+windows = true
+android = true

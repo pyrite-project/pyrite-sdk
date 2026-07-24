@@ -1,12 +1,12 @@
 [general]
-name = "Template Plugin"
-id = "template-plugin"
+name = "Template Data Plugin"
+id = "template-data-plugin"
 version = "1.0.0"
-author = "Pyrite Examples"
-type = "ui"
+author = "Your name"
+type = "data"
 
 [permissions]
-ui = true
+data = true
 
 [platform]
 linux = true

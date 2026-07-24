@@ -2,7 +2,7 @@
 name = "Test Plugin"
 id = "test-plugin"
 version = "1.0.0"
-author = "Pyrite Project"
+author = "Pyrite Examples"
 type = "ui"
 
 [permissions]

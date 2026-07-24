@@ -364,17 +364,21 @@ def package(
 
 @app.command("create")
 def create(
+    plugin_type: Annotated[
+        Literal["ui", "service", "data"],
+        typer.Argument(help="插件类型"),
+    ] = "ui",
     dir: Annotated[
         Optional[str],
         typer.Argument(help="源目录"),
     ] = ".",
 ):
-    src_path = Path(__file__).parent/"template"
+    src_path = Path(__file__).parent/"template"/plugin_type
     dst_path = Path(dir).resolve()/"src"
     if not dst_path.exists():
         dst_path.mkdir()
     print("Source path:", src_path)
-    print("Creating template plugin to", dst_path)
+    print(f"Creating template {plugin_type} plugin to", dst_path)
     for f in src_path.iterdir():
         f.copy(dst_path/f.name)
     print("Completed.")
