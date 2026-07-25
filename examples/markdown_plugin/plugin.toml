@@ -2,6 +2,7 @@
 name = "Markdown Plugin"
 id = "markdown-plugin"
 version = "1.0.0"
+python_version = "3.14"
 author = "Pyrite Examples"
 type = "ui"
 

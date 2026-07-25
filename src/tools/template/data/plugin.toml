@@ -2,6 +2,7 @@
 name = "Template Data Plugin"
 id = "template-data-plugin"
 version = "1.0.0"
+python_version = "3.14"
 author = "Your name"
 type = "data"
 

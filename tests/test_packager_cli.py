@@ -23,6 +23,7 @@ class PackagerCliTest(unittest.TestCase):
             result = runner.invoke(
                 app,
                 [
+                    "package",
                     "examples/ui_plugin",
                     "-p",
                     "Darwin",
@@ -41,6 +42,23 @@ class PackagerCliTest(unittest.TestCase):
             kwargs["requirements"],
             ["-r", "examples/ui_plugin/requirements.txt", "--find-links=dist"],
         )
+
+    def test_cli_rejects_removed_python_version_option(self) -> None:
+        result = CliRunner().invoke(
+            app,
+            [
+                "package",
+                "examples/ui_plugin",
+                "-p",
+                "Windows",
+                "--python-version",
+                "3.12",
+                "--skip-site-packages",
+            ],
+        )
+
+        self.assertEqual(result.exit_code, 2, result.output)
+        self.assertIn("No such option", result.output)
 
 
 if __name__ == "__main__":

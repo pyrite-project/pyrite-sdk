@@ -2,6 +2,7 @@
 name = "Template Service Plugin"
 id = "template-service-plugin"
 version = "1.0.0"
+python_version = "3.14"
 author = "Your name"
 type = "service"
 

@@ -3,6 +3,8 @@ import contextlib
 import io
 import os
 import runpy
+import socket
+import threading
 import unittest
 from types import SimpleNamespace
 
@@ -65,10 +67,13 @@ from pyrite_sdk.api.ui.widgets import (
     VideoPlayer,
 )
 from pyrite_sdk.models.consts import Package
+from pyrite_sdk.models.consts import LifecycleHook
 from pyrite_sdk.models.schema import (
     CallbackBindingPayload,
     CallbackPayload,
+    Envelope,
     EventCallbackPayload,
+    LifecyclePayload,
     request,
 )
 from pyrite_sdk.utils.ui import DataParser
@@ -81,6 +86,7 @@ def noop(**kwargs):
 class FakeWebSocket:
     def __init__(self, messages):
         self.messages = list(messages)
+        self.sent = []
 
     def __aiter__(self):
         return self
@@ -89,6 +95,9 @@ class FakeWebSocket:
         if not self.messages:
             raise StopAsyncIteration
         return self.messages.pop(0)
+
+    async def send(self, message):
+        self.sent.append(message)
 
 
 class UiApiTest(unittest.TestCase):
@@ -286,6 +295,111 @@ class UiApiTest(unittest.TestCase):
         asyncio.run(bridge.handler(FakeWebSocket([raw])))
 
         self.assertEqual(pushed[-1].type, "ide.response.ok")
+
+    def test_dispose_replies_before_stopping_bridge(self) -> None:
+        events = []
+        plugin = SimpleNamespace(
+            pages={},
+            on_dispose=lambda: events.append("disposed"),
+        )
+        bridge = self.make_bridge()
+        bridge.plugin = plugin
+        bridge.stop = lambda: events.append("stopped")
+        raw = request(
+            "ide.lifecycle.hook",
+            LifecyclePayload(hook=LifecycleHook.DISPOSE),
+        ).json()
+        websocket = FakeWebSocket([raw])
+
+        asyncio.run(bridge.handler(websocket))
+
+        self.assertEqual(events, ["disposed", "stopped"])
+        self.assertEqual(len(websocket.sent), 1)
+        self.assertEqual(
+            Envelope.parse_raw(websocket.sent[0]).type,
+            "ide.response.ok",
+        )
+
+    def test_dispose_stops_bridge_when_callback_fails(self) -> None:
+        def fail():
+            raise RuntimeError("dispose failed")
+
+        bridge = self.make_bridge()
+        bridge.plugin = SimpleNamespace(pages={}, on_dispose=fail)
+        stopped = []
+        bridge.stop = lambda: stopped.append(True)
+        raw = request(
+            "ide.lifecycle.hook",
+            LifecyclePayload(hook=LifecycleHook.DISPOSE),
+        ).json()
+        websocket = FakeWebSocket([raw])
+
+        asyncio.run(bridge.handler(websocket))
+
+        self.assertEqual(stopped, [True])
+        self.assertEqual(
+            Envelope.parse_raw(websocket.sent[0]).type,
+            "ide.response.error",
+        )
+
+    def test_stop_wakes_message_loop_from_another_thread(self) -> None:
+        bridge = self.make_bridge()
+
+        async def run_loop():
+            bridge.message_queue = asyncio.Queue()
+            bridge.asyncio_loop = asyncio.get_running_loop()
+            task = asyncio.create_task(bridge.loop())
+            await asyncio.to_thread(bridge.stop)
+            await asyncio.wait_for(task, timeout=1)
+
+        asyncio.run(run_loop())
+        self.assertFalse(bridge.running)
+
+    def test_dispose_terminates_bridge_worker(self) -> None:
+        from pyrite_sdk.core.bridge import Bridge
+
+        with socket.socket() as port_socket:
+            port_socket.bind(("127.0.0.1", 0))
+            port = port_socket.getsockname()[1]
+        original_port = os.environ.get("PYRITE_IDE_PLUGIN_PORT")
+        os.environ["PYRITE_IDE_PLUGIN_PORT"] = str(port)
+        try:
+            plugin = SimpleNamespace(pages={}, on_dispose=lambda: None)
+            bridge = Bridge(plugin)
+        finally:
+            if original_port is None:
+                os.environ.pop("PYRITE_IDE_PLUGIN_PORT", None)
+            else:
+                os.environ["PYRITE_IDE_PLUGIN_PORT"] = original_port
+
+        bridge.redirect_output = lambda: None
+        worker = threading.Thread(target=bridge.start)
+        worker.start()
+
+        async def dispose():
+            import websockets
+
+            for _ in range(100):
+                try:
+                    async with websockets.connect(
+                        f"ws://localhost:{port}"
+                    ) as websocket:
+                        command = request(
+                            "ide.lifecycle.hook",
+                            LifecyclePayload(hook=LifecycleHook.DISPOSE),
+                        )
+                        await websocket.send(command.json())
+                        response = Envelope.parse_raw(await websocket.recv())
+                        self.assertEqual(response.type, "ide.response.ok")
+                        self.assertEqual(response.reply_to, command.id)
+                        return
+                except OSError:
+                    await asyncio.sleep(0.01)
+            self.fail("Bridge server did not start")
+
+        asyncio.run(dispose())
+        worker.join(timeout=2)
+        self.assertFalse(worker.is_alive())
 
     def test_for_loop_can_be_used_as_context_child(self) -> None:
         page, root = self.make_page()

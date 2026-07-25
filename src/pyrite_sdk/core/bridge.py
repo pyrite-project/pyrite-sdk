@@ -25,6 +25,7 @@ LIFECYCLE_MAP: dict[LifecycleHook, Callable] = {
     LifecycleHook.RESUME: lambda self: self.plugin.on_resume(),
     LifecycleHook.DISPOSE: lambda self: self.plugin.on_dispose(),
 }
+_STOP_MESSAGE = object()
 
 
 class BridgeOutputRouter:
@@ -116,10 +117,13 @@ class Bridge:
         self.running = True
         self.connected_clients = set()
         self.message_queue: Optional[asyncio.Queue] = None
+        self.server = None
         # self.response_queue: Optional[asyncio.Queue] = None
         self.callbacks: dict[str, Callable[[dict], Any]] = {}
         self._pending_responses = 0
         self._stop_when_idle = False
+        self._stop_requested = False
+        self._defer_stop = False
         self._path_responses: dict[str, queue.Queue[Path]] = {}
         self.asyncio_loop: Optional[asyncio.AbstractEventLoop] = None
         self.queue_size = queue_size
@@ -207,19 +211,26 @@ class Bridge:
                             payload = LifecyclePayload(**env.payload)
                             handler = LIFECYCLE_MAP.get(payload.hook)
                             if handler:
+                                self._defer_stop = True
                                 try:
                                     handler(self)
-                                    self.push(ok(env), websocket)
+                                    response = ok(env)
                                 except Exception as e:
-                                    self.push(
-                                        err(
-                                            env,
-                                            ErrorCode.INTERNAL_ERROR,
-                                            str(e),
-                                            traceback.format_exc(),
-                                        ),
-                                        websocket,
+                                    response = err(
+                                        env,
+                                        ErrorCode.INTERNAL_ERROR,
+                                        str(e),
+                                        traceback.format_exc(),
                                     )
+                                try:
+                                    await self.send(websocket, response)
+                                finally:
+                                    self._defer_stop = False
+                                    if (
+                                        payload.hook == LifecycleHook.DISPOSE
+                                        or self._stop_requested
+                                    ):
+                                        self.stop()
                             else:
                                 self.push(err(env, ErrorCode.API_NOT_FOUND,
                                             f"Unknown lifecycle hook: {payload.hook}"), websocket)
@@ -415,10 +426,12 @@ class Bridge:
         return Var(*paths).to_rfw()
 
     async def loop(self):
-        while self.running:
+        while True:
             assert self.message_queue is not None
             client, envelope = await self.message_queue.get()
             try:
+                if envelope is _STOP_MESSAGE:
+                    break
                 if client:
                     await self.send(client, envelope)
                 else:
@@ -427,7 +440,6 @@ class Bridge:
                 self._log_internal(f"Error in loop: {e}")
             finally:
                 self.message_queue.task_done()
-        self.server.close()
         self._log_internal("Server closed")
 
     async def main(self):
@@ -435,9 +447,13 @@ class Bridge:
         # self.response_queue = asyncio.Queue(maxsize=self.queue_size)
         self.asyncio_loop = asyncio.get_running_loop()
         self.flush_pending_output()
-        async with websockets.serve(self.handler, "localhost", self.port) as self.server:
-            self._log_internal(f"Server started on ws://localhost:{self.port}")
-            await asyncio.gather(self.server.wait_closed(), self.loop())
+        async with websockets.serve(self.handler, "localhost", self.port) as server:
+            self.server = server
+            try:
+                self._log_internal(f"Server started on ws://localhost:{self.port}")
+                await asyncio.gather(server.wait_closed(), self.loop())
+            finally:
+                self.server = None
 
     def start(self):
         try:
@@ -451,9 +467,26 @@ class Bridge:
             self.running = False
 
     def stop(self):
+        self._stop_requested = True
         self.running = False
-        if self.server is not None:
-            self.server.close()
+        if self._defer_stop:
+            return
+        loop = self.asyncio_loop
+        if loop is None or loop.is_closed():
+            return
+
+        def _stop_on_loop():
+            if self.server is not None:
+                self.server.close()
+            if self.message_queue is not None:
+                try:
+                    self.message_queue.put_nowait([None, _STOP_MESSAGE])
+                except asyncio.QueueFull:
+                    asyncio.create_task(
+                        self.message_queue.put([None, _STOP_MESSAGE])
+                    )
+
+        loop.call_soon_threadsafe(_stop_on_loop)
 
 
 class _CallbackEvent(RFWSerializable):

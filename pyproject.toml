@@ -3,7 +3,7 @@ name = "pyrite-sdk"
 version = "0.0.0"
 description = "Expand your PyriteIDE"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "websockets>=16.0",
     "build>=1.4.3",

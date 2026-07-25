@@ -2,6 +2,7 @@
 name = "File Watcher"
 id = "file-watcher"
 version = "1.0.0"
+python_version = "3.14"
 author = "Pyrite Examples"
 type = "service"
 auto_start = true
