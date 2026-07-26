@@ -9,13 +9,14 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import tomllib
 import urllib.request
 import zipfile
 from pathlib import Path
 from typing import Optional
-import tomllib
 
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import (
     BarColumn,
     Progress,
@@ -26,12 +27,11 @@ from rich.progress import (
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
-from rich.panel import Panel
 from rich.rule import Rule
 
-from .utils import macos_utils
 from .python_versions import PythonRelease, resolve_python_release
 from .sitecustomize import sitecustomize_py
+from .utils import macos_utils
 
 mobile_pypi_url = "https://pypi.flet.dev"
 
@@ -116,23 +116,12 @@ class PackageCommand:
         self._console.print(Rule(style="dim"))
         self._console.print(f"  [bold]{title}[/bold]")
         self._console.print(Rule(style="dim"))
-    
-    @staticmethod
-    def _plugin_general(config_path: Path) -> dict[str, object]:
-        if not config_path.is_file():
-            raise ValueError(f"plugin.toml 不存在: {config_path}")
-        try:
-            with config_path.open("rb") as file:
-                config = tomllib.load(file)
-        except (OSError, tomllib.TOMLDecodeError) as exc:
-            raise ValueError(f"无法读取 plugin.toml: {exc}") from exc
-        general = config.get("general")
-        if not isinstance(general, dict):
-            raise ValueError("plugin.toml 缺少 [general]")
-        return general
 
     @staticmethod
-    def _archive_destination(destination: Path, architecture: str) -> Path:
+    def _archive_destination(
+        destination: Path,
+        architecture: str,
+    ) -> Path:
         if not architecture:
             return destination
         return destination.with_name(
@@ -169,44 +158,17 @@ class PackageCommand:
                 dirs_exist_ok=True,
             )
         architectures = {
-            architecture
+            known_architecture
             for platform_architectures in platforms.values()
-            for architecture in platform_architectures
-            if architecture
+            for known_architecture in platform_architectures
+            if known_architecture
         }
-        for architecture in architectures:
-            architecture_dir = site_packages_dir / architecture
+        for known_architecture in architectures:
+            architecture_dir = site_packages_dir / known_architecture
             if architecture_dir.is_dir():
                 shutil.rmtree(architecture_dir)
             elif architecture_dir.exists():
                 architecture_dir.unlink()
-
-    @classmethod
-    def _archive_copy_excludes(
-        cls,
-        source_dir: Path,
-        destination: Path,
-    ) -> list[str]:
-        source_dir = source_dir.resolve()
-        excludes: list[str] = []
-        for archive in cls._archive_family(destination):
-            for candidate in (archive, Path(f"{archive}.hash")):
-                try:
-                    relative_path = candidate.resolve().relative_to(source_dir)
-                except ValueError:
-                    continue
-                excludes.append(str(relative_path))
-        return excludes
-
-    @classmethod
-    def _remove_stale_archives(
-        cls,
-        destination: Path,
-        produced_archives: set[Path],
-    ) -> None:
-        for archive in cls._archive_family(destination) - produced_archives:
-            archive.unlink(missing_ok=True)
-            Path(f"{archive}.hash").unlink(missing_ok=True)
 
     @classmethod
     def _publish_archive_family(
@@ -250,10 +212,14 @@ class PackageCommand:
                         Path(f"{staged_archive}.hash"),
                         Path(f"{archive_dest}.hash"),
                     )
-                cls._remove_stale_archives(
-                    destination,
-                    {archive_dest for _, archive_dest in staged_archives},
-                )
+                produced_archives = {
+                    archive_dest for _, archive_dest in staged_archives
+                }
+                for archive in (
+                    cls._archive_family(destination) - produced_archives
+                ):
+                    archive.unlink(missing_ok=True)
+                    Path(f"{archive}.hash").unlink(missing_ok=True)
             except Exception as publish_error:
                 rollback_errors: list[Exception] = []
                 for candidate in family_files:
@@ -337,7 +303,7 @@ class PackageCommand:
         extra_pypi_indexes: list[str],
         flutter_packages_copied: bool,
     ) -> bool:
-        arch_value = platforms[platform][architecture]
+        target_config = platforms[platform][architecture]
         sitecustomize_dir: Optional[Path] = None
         try:
             sitecustomize_dir = Path(
@@ -351,10 +317,10 @@ class PackageCommand:
             sitecustomize_path.write_text(
                 sitecustomize_py.replace(
                     "{platform}",
-                    platform if arch_value["tag"] else "",
+                    platform if target_config["tag"] else "",
                 )
-                .replace("{tag}", arch_value["tag"])
-                .replace("{mac_ver}", arch_value["mac_ver"]),
+                .replace("{tag}", target_config["tag"])
+                .replace("{mac_ver}", target_config["mac_ver"]),
                 encoding="utf-8",
             )
             pip_env = {
@@ -453,8 +419,7 @@ class PackageCommand:
                 all_junk_files = [*junk_files, *cleanup_package_files]
                 if self._verbose:
                     self._verbose_log(
-                        "删除不必要的包文件和目录: "
-                        f"{all_junk_files}"
+                        f"删除不必要的包文件和目录: {all_junk_files}"
                     )
                 with self._console.status(
                     "[bold green]清理已安装的包..."
@@ -533,24 +498,12 @@ class PackageCommand:
 
         try:
             current_path = Path.cwd()
-
-            # args
-            source_dir_path: Optional[str] = source_dir
-            arch_arg: list = arch
-            asset_path: Optional[str] = asset
-            skip_site_packages: bool = skip_site_packages
-            compile_app: bool = compile_app
-            compile_packages: bool = compile_packages
-            cleanup_app: bool = cleanup_app
-            cleanup_app_files: list = cleanup_app_files
-            cleanup_packages: bool = cleanup_packages
-            cleanup_package_files: list = cleanup_package_files
+            asset_path = asset
             self._verbose = verbose
 
-            if not Path(source_dir_path).is_absolute():
-                source_dir_path = str(current_path / source_dir_path)
-
-            source_path = Path(source_dir_path)
+            source_path = Path(source_dir)
+            if not source_path.is_absolute():
+                source_path = current_path / source_path
 
             if platform not in platforms:
                 self._console.print(f"[red]未知平台: {platform}[/red]")
@@ -560,7 +513,17 @@ class PackageCommand:
                 self._console.print("[red]源目录不存在.[/red]")
                 sys.exit(2)
 
-            plugin_general = self._plugin_general(source_path / "plugin.toml")
+            manifest_path = source_path / "plugin.toml"
+            if not manifest_path.is_file():
+                raise ValueError(f"plugin.toml 不存在: {manifest_path}")
+            try:
+                with manifest_path.open("rb") as file:
+                    plugin_config = tomllib.load(file)
+            except (OSError, tomllib.TOMLDecodeError) as exc:
+                raise ValueError(f"无法读取 plugin.toml: {exc}") from exc
+            plugin_general = plugin_config.get("general")
+            if not isinstance(plugin_general, dict):
+                raise ValueError("plugin.toml 缺少 [general]")
             manifest_python_version = plugin_general.get("python_version")
             if manifest_python_version is not None and (
                 not isinstance(manifest_python_version, str)
@@ -578,21 +541,20 @@ class PackageCommand:
             selected_archs = [
                 architecture
                 for architecture in platforms[platform]
-                if (not arch_arg or architecture in arch_arg)
+                if (not arch or architecture in arch)
                 and (
                     platform != "Android"
                     or architecture in self._release.android_abis
                 )
             ]
-            if arch_arg:
-                unsupported = sorted(set(arch_arg) - set(selected_archs))
+            if arch:
+                unsupported = sorted(set(arch) - set(selected_archs))
                 if unsupported:
                     raise ValueError(
                         "目标 Python 不发布这些架构: " + ", ".join(unsupported)
                     )
 
             is_mobile = platform == "Android"
-
             junk_files = junk_files_mobile if is_mobile else junk_files_desktop
 
             # Extra indexes
@@ -617,7 +579,7 @@ class PackageCommand:
                 if not isinstance(plugin_id, str) or not plugin_id:
                     raise ValueError("plugin.toml [general].id 必须是字符串")
                 asset_path = f"build/{plugin_id}.zip"
-            elif asset_path.startswith("/") or asset_path.startswith("\\"):
+            elif asset_path.startswith(("/", "\\")):
                 asset_path = asset_path[1:]
 
             # create dest dir
@@ -639,11 +601,18 @@ class PackageCommand:
             copy_excludes = [s.strip() for s in exclude]
             excluded_roots: list[Path] = []
             if not native_staging_mode:
-                copy_excludes.extend(
-                    self._archive_copy_excludes(source_path, dest)
-                )
+                resolved_source = source_path.resolve()
+                for archive in self._archive_family(dest):
+                    for candidate in (archive, Path(f"{archive}.hash")):
+                        try:
+                            relative_path = candidate.resolve().relative_to(
+                                resolved_source
+                            )
+                        except ValueError:
+                            continue
+                        copy_excludes.append(str(relative_path))
                 try:
-                    self._build_dir.resolve().relative_to(source_path.resolve())
+                    self._build_dir.resolve().relative_to(resolved_source)
                 except ValueError:
                     pass
                 else:
@@ -679,15 +648,15 @@ class PackageCommand:
 
             # ── Step: cleanup app ──
             if cleanup_app or cleanup:
-                al_junk_files = [*junk_files, *cleanup_app_files]
+                app_junk_files = [*junk_files, *cleanup_app_files]
                 if self._verbose:
                     self._verbose_log(
-                        f"删除不必要的 app 文件和目录: {al_junk_files}"
+                        f"删除不必要的 app 文件和目录: {app_junk_files}"
                     )
                 with self._console.status(
                     "[bold green]正在清理 app..."
                 ) as _status:
-                    self.cleanup_dir(temp_dir, al_junk_files)
+                    self.cleanup_dir(temp_dir, app_junk_files)
                 self._log("  [green]OK: 清理完成[/green]")
 
             # ── Step: install requirements ──
@@ -696,22 +665,16 @@ class PackageCommand:
                 site_packages_root = os.environ.get(
                     site_packages_env_var
                 ) or os.environ.get(legacy_site_packages_env_var)
-                if not site_packages_root and app_staging_root:
-                    site_packages_root = str(
-                        self._build_dir / default_site_packages_dir
-                    )
                 if not site_packages_root:
-                    site_packages_root = str(temp_dir / "site-packages")
+                    site_packages_root = self._build_dir / default_site_packages_dir
+                site_packages_root = Path(site_packages_root)
 
-                self._clear_package_directory(Path(site_packages_root))
+                self._clear_package_directory(site_packages_root)
 
                 flutter_packages_copied = False
-                if not requirements:
-                    selected_archs_for_install: list[str] = []
-                else:
-                    selected_archs_for_install = selected_archs
+                selected_archs_for_install = selected_archs if requirements else []
                 # Progress bar for multi-arch install
-                progress = Progress(
+                with Progress(
                     SpinnerColumn(),
                     TextColumn("[progress.description]{task.description}"),
                     BarColumn(),
@@ -719,9 +682,7 @@ class PackageCommand:
                     TimeElapsedColumn(),
                     TimeRemainingColumn(),
                     console=self._console,
-                )
-
-                with progress:
+                ) as progress:
                     task = progress.add_task(
                         "安装依赖...", total=len(selected_archs_for_install)
                     )
@@ -731,9 +692,9 @@ class PackageCommand:
                             task,
                             description=f"处理架构 [cyan]{arch_key}[/cyan]...",
                         )
-                        site_packages_dir = Path(site_packages_root)
+                        site_packages_dir = site_packages_root
                         if arch_key:
-                            site_packages_dir /= arch_key
+                            site_packages_dir = site_packages_root / arch_key
                         flutter_packages_copied = self._install_arch_dependencies(
                             platform=platform,
                             architecture=arch_key,
@@ -752,19 +713,16 @@ class PackageCommand:
 
                         progress.update(task, advance=1)
 
-                if platform == "Darwin":
-                    if selected_archs_for_install:
-                        macos_utils.merge_macos_site_packages(
-                            str(Path(site_packages_root) / "arm64"),
-                            str(Path(site_packages_root) / "x86_64"),
-                            str(Path(site_packages_root)),
-                            self._verbose,
-                        )
+                if platform == "Darwin" and selected_archs_for_install:
+                    macos_utils.merge_macos_site_packages(
+                        str(site_packages_root / "arm64"),
+                        str(site_packages_root / "x86_64"),
+                        str(site_packages_root),
+                        self._verbose,
+                    )
 
                 # synchronize pod
-                sync_sh = (
-                    Path(site_packages_root) / ".pod" / "sync_site_packages.sh"
-                )
+                sync_sh = site_packages_root / ".pod" / "sync_site_packages.sh"
                 if sync_sh.exists():
                     self.run_exec("/bin/sh", [str(sync_sh)])
 
@@ -912,7 +870,9 @@ class PackageCommand:
     def _target_python(self) -> Path:
         """Return the cached standalone interpreter for the selected version."""
         if self._python_dir is not None:
-            return self._python_executable(self._python_dir)
+            if host_platform.system() == "Windows":
+                return self._python_dir / "python" / "python.exe"
+            return self._python_dir / "python" / "bin" / "python3"
         if self._build_dir is None or self._release is None:
             raise RuntimeError("Python runtime has not been selected")
 
@@ -1000,16 +960,13 @@ class PackageCommand:
                     shutil.rmtree(staging_dir)
 
         self._python_dir = python_dir
-        python_executable = self._python_executable(python_dir)
+        if host_platform.system() == "Windows":
+            python_executable = python_dir / "python" / "python.exe"
+        else:
+            python_executable = python_dir / "python" / "bin" / "python3"
         if not python_executable.exists():
             raise RuntimeError(f"Python runtime 缺少解释器: {python_executable}")
         return python_executable
-
-    @staticmethod
-    def _python_executable(python_dir: Path) -> Path:
-        if host_platform.system() == "Windows":
-            return python_dir / "python" / "python.exe"
-        return python_dir / "python" / "bin" / "python3"
 
     def _build_install_command(
         self,
@@ -1129,7 +1086,7 @@ class PackageCommand:
         self.cleanup_dir_recursive(directory, filesGlobs)
 
     def cleanup_dir_recursive(self, directory: Path, globs: list) -> bool:
-        emptyDir = True
+        empty_dir = True
         for entity in list(directory.iterdir()):
             if any(
                 fnmatch.fnmatch(
@@ -1147,10 +1104,10 @@ class PackageCommand:
                     self._verbose_log(f"删除空目录 {entity}")
                     entity.rmdir()
                 else:
-                    emptyDir = False
+                    empty_dir = False
             else:
-                emptyDir = False
-        return emptyDir
+                empty_dir = False
+        return empty_dir
 
     def run_exec(
         self,
@@ -1160,13 +1117,7 @@ class PackageCommand:
     ) -> int:
         env = os.environ.copy()
         if environment:
-            for k, v in environment.items():
-                if isinstance(v, Path):
-                    env[k] = str(v)
-                else:
-                    env[k] = str(v)
-            if "PYTHONPATH" in environment:
-                env["PYTHONPATH"] = str(environment["PYTHONPATH"])
+            env.update({key: str(value) for key, value in environment.items()})
 
         proc = subprocess.Popen(
             [execPath, *args],
@@ -1180,7 +1131,7 @@ class PackageCommand:
         for line in proc.stdout:
             self._verbose_log(line.strip())
 
-        stdout, stderr_text = proc.communicate()
+        _, stderr_text = proc.communicate()
 
         if proc.returncode != 0:
             self._console.print(f"[red]{stderr_text}[/red]")
@@ -1201,12 +1152,11 @@ class PackageCommand:
 
         with zipfile.ZipFile(str(dest), "w", zipfile.ZIP_DEFLATED) as zf:
             for entity in all_files:
-                relativePath = entity.relative_to(source)
-                posixPath = "/".join(relativePath.parts)
-                zf.write(str(entity), posixPath)
+                relative_path = entity.relative_to(source)
+                posix_path = "/".join(relative_path.parts)
+                zf.write(str(entity), posix_path)
                 if progress and task_id is not None:
                     progress.update(task_id, advance=1)
 
     def calculate_file_hash(self, path: str) -> str:
-        digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
-        return digest
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()

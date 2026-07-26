@@ -622,7 +622,7 @@ class PackagerRuntimeTest(unittest.TestCase):
             finally:
                 os.chdir(previous_cwd)
 
-    def test_source_dot_does_not_embed_build_outputs(self) -> None:
+    def test_source_dot_does_not_embed_build_or_archive_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "__main__.py").write_text(
@@ -638,7 +638,9 @@ class PackagerRuntimeTest(unittest.TestCase):
             (runtime_cache / "python.exe").write_text(
                 "runtime", encoding="utf-8"
             )
-            stale_archive = build_dir / "plugin-x86_64.zip"
+            output_dir = root / "dist"
+            output_dir.mkdir()
+            stale_archive = output_dir / "plugin-x86_64.zip"
             stale_archive.write_text("stale", encoding="utf-8")
 
             previous_cwd = Path.cwd()
@@ -651,18 +653,19 @@ class PackagerRuntimeTest(unittest.TestCase):
                     platform="Android",
                     arch=["arm64-v8a"],
                     requirements=[],
-                    asset="build/plugin.zip",
+                    asset="dist/plugin.zip",
                     exclude=[],
                     skip_site_packages=True,
                     cleanup_app_files=[],
                     cleanup_package_files=[],
                 )
 
-                archive = build_dir / "plugin-arm64-v8a.zip"
+                archive = output_dir / "plugin-arm64-v8a.zip"
                 with zipfile.ZipFile(archive) as package:
                     self.assertFalse(
                         any(
-                            name == "build" or name.startswith("build/")
+                            name == "build"
+                            or name.startswith(("build/", "dist/plugin-"))
                             for name in package.namelist()
                         )
                     )
@@ -1127,8 +1130,12 @@ class PackagerRuntimeTest(unittest.TestCase):
                     )
 
                 merge.assert_not_called()
-                self.assertTrue((root / "build" / "plugin-arm64.zip").is_file())
-                self.assertTrue((root / "build" / "plugin-x86_64.zip").is_file())
+                self.assertTrue(
+                    (root / "build" / "plugin-arm64.zip").is_file()
+                )
+                self.assertTrue(
+                    (root / "build" / "plugin-x86_64.zip").is_file()
+                )
             finally:
                 os.chdir(previous_cwd)
 
@@ -1171,6 +1178,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 '[general]\nid = "fixture-plugin"\n',
                 encoding="utf-8",
             )
+            archive_base = root / "build" / "compiled.zip"
             archive = root / "build" / "compiled.zip"
 
             previous_cwd = Path.cwd()
@@ -1188,7 +1196,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                         platform="Windows",
                         arch=[],
                         requirements=[],
-                        asset=str(archive.relative_to(root)),
+                        asset=str(archive_base.relative_to(root)),
                         exclude=[],
                         skip_site_packages=True,
                         compile_app=True,
