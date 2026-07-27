@@ -23,6 +23,10 @@ from tools.package_command import (
     runtime_metadata_filename,
     site_packages_env_var,
 )
+from tools.package_installer import (
+    allow_source_distros_env_var,
+    mobile_pypi_url,
+)
 from tools.python_versions import (
     DEFAULT_PLUGIN_PYTHON_VERSION,
     PYTHON_RELEASES,
@@ -72,7 +76,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                     cleanup_package_files=[],
                 )
 
-                archive = root / "build" / "fixture-plugin-arm64-v8a.zip"
+                archive = root / "build" / "fixture-plugin-Android-arm64-v8a.zip"
                 self.assertTrue(archive.is_file())
                 self.assertTrue(Path(f"{archive}.hash").is_file())
                 self.assertFalse(
@@ -266,6 +270,8 @@ class PackagerRuntimeTest(unittest.TestCase):
             ("Android", "x86_64"): "x86_64-linux-android",
             ("Darwin", "arm64"): "aarch64-apple-darwin",
             ("Darwin", "x86_64"): "x86_64-apple-darwin",
+            ("Windows", ""): "windows",
+            ("Linux", ""): "linux",
         }
         with patch.object(command, "_target_python", return_value=target_python):
             for (platform, arch), expected in cases.items():
@@ -297,6 +303,76 @@ class PackagerRuntimeTest(unittest.TestCase):
             [str(target_python), "-m", "pip", "install"],
         )
         self.assertNotIn("--python-platform", fallback)
+
+    def test_installer_applies_target_policy_and_isolates_environment(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            command = PackageCommand()
+            command._console = Console(file=StringIO(), force_terminal=False)
+            observed: dict[str, object] = {}
+
+            def install(
+                args: list[str],
+                **kwargs: object,
+            ) -> subprocess.CompletedProcess[bytes]:
+                environment = kwargs["env"]
+                self.assertIsInstance(environment, dict)
+                assert isinstance(environment, dict)
+                sitecustomize_dir = Path(environment["PYTHONPATH"])
+                observed["sitecustomize_dir"] = sitecustomize_dir
+                observed["sitecustomize"] = (
+                    sitecustomize_dir / "sitecustomize.py"
+                ).read_text(encoding="utf-8")
+                observed["environment"] = environment
+                return subprocess.CompletedProcess(args, 0, b"installed", b"")
+
+            with (
+                patch.dict(
+                    os.environ,
+                    {allow_source_distros_env_var: "source-package"},
+                    clear=False,
+                ),
+                patch.object(
+                    command,
+                    "_build_install_command",
+                    return_value=["mock-install"],
+                ) as build_command,
+                patch(
+                    "tools.package_command.subprocess.run",
+                    side_effect=install,
+                ) as run,
+            ):
+                command._install_arch_dependencies(
+                    platform="Android",
+                    architecture="arm64-v8a",
+                    requirements=["fixture-package"],
+                    site_packages_dir=Path(temp) / "site-packages",
+                    pip_tool="uv",
+                    compile_packages=False,
+                    cleanup_globs=[],
+                    flutter_packages_copied=False,
+                )
+
+            self.assertEqual(
+                build_command.call_args.kwargs["pip_args"],
+                [
+                    "--only-binary",
+                    ":all:",
+                    "--no-binary",
+                    "source-package",
+                    "--extra-index-url",
+                    mobile_pypi_url,
+                ],
+            )
+            environment = observed["environment"]
+            self.assertIsInstance(environment, dict)
+            self.assertEqual(environment["PYTHONNOUSERSITE"], "1")
+            self.assertEqual(environment["PIP_REQUIRE_VIRTUALENV"], "false")
+            self.assertIn("android-24-arm64_v8a", observed["sitecustomize"])
+            self.assertFalse(observed["sitecustomize_dir"].exists())
+            self.assertTrue(run.call_args.kwargs["capture_output"])
+            self.assertFalse(run.call_args.kwargs["check"])
 
     def test_native_staging_defaults_site_packages_to_build_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -406,7 +482,11 @@ class PackagerRuntimeTest(unittest.TestCase):
                     self.assertTrue((staging / "__main__.py").is_file())
 
                     archive_base = root / "build" / "plugin.zip"
-                    archive = root / "build" / "plugin-arm64-v8a.zip"
+                    archive = (
+                        root
+                        / "build"
+                        / "fixture-plugin-Android-arm64-v8a.zip"
+                    )
                     command = PackageCommand()
                     command._console = Console(file=StringIO(), force_terminal=False)
                     command.run(
@@ -517,7 +597,11 @@ class PackagerRuntimeTest(unittest.TestCase):
                     ["arm64-v8a", "x86_64"],
                 )
                 for architecture in ("arm64-v8a", "x86_64"):
-                    archive = root / "build" / f"plugin-{architecture}.zip"
+                    archive = (
+                        root
+                        / "build"
+                        / f"fixture-plugin-Android-{architecture}.zip"
+                    )
                     archive_hash = Path(f"{archive}.hash")
                     self.assertTrue(archive.is_file())
                     self.assertEqual(
@@ -594,7 +678,11 @@ class PackagerRuntimeTest(unittest.TestCase):
 
                 self.assertFalse((root / "build" / "plugin.zip").exists())
                 for architecture in platforms["Android"]:
-                    archive = root / "build" / f"plugin-{architecture}.zip"
+                    archive = (
+                        root
+                        / "build"
+                        / f"fixture-plugin-Android-{architecture}.zip"
+                    )
                     self.assertTrue(archive.is_file())
                     self.assertTrue(Path(f"{archive}.hash").is_file())
                     with zipfile.ZipFile(archive) as package:
@@ -640,7 +728,7 @@ class PackagerRuntimeTest(unittest.TestCase):
             )
             output_dir = root / "dist"
             output_dir.mkdir()
-            stale_archive = output_dir / "plugin-x86_64.zip"
+            stale_archive = output_dir / "fixture-plugin-Linux.zip"
             stale_archive.write_text("stale", encoding="utf-8")
 
             previous_cwd = Path.cwd()
@@ -660,16 +748,16 @@ class PackagerRuntimeTest(unittest.TestCase):
                     cleanup_package_files=[],
                 )
 
-                archive = output_dir / "plugin-arm64-v8a.zip"
+                archive = output_dir / "fixture-plugin-Android-arm64-v8a.zip"
                 with zipfile.ZipFile(archive) as package:
                     self.assertFalse(
                         any(
                             name == "build"
-                            or name.startswith(("build/", "dist/plugin-"))
+                            or name.startswith(("build/", "dist/fixture-plugin"))
                             for name in package.namelist()
                         )
                     )
-                self.assertFalse(stale_archive.exists())
+                self.assertTrue(stale_archive.exists())
             finally:
                 os.chdir(previous_cwd)
 
@@ -740,9 +828,9 @@ class PackagerRuntimeTest(unittest.TestCase):
             output_dir = root / "build"
             output_dir.mkdir()
             for name in (
-                "plugin.zip",
-                "plugin-x86_64.zip",
-                "plugin-armeabi-v7a.zip",
+                "fixture-plugin.zip",
+                "fixture-plugin-Android-x86_64.zip",
+                "fixture-plugin-Android-armeabi-v7a.zip",
             ):
                 archive = output_dir / name
                 archive.write_text("stale", encoding="utf-8")
@@ -767,19 +855,105 @@ class PackagerRuntimeTest(unittest.TestCase):
                     cleanup_package_files=[],
                 )
 
-                current = output_dir / "plugin-arm64-v8a.zip"
+                current = output_dir / "fixture-plugin-Android-arm64-v8a.zip"
                 self.assertTrue(current.is_file())
                 self.assertTrue(Path(f"{current}.hash").is_file())
                 for stale_name in (
-                    "plugin.zip",
-                    "plugin-x86_64.zip",
-                    "plugin-armeabi-v7a.zip",
+                    "fixture-plugin.zip",
+                    "fixture-plugin-Android-x86_64.zip",
+                    "fixture-plugin-Android-armeabi-v7a.zip",
                 ):
                     stale_archive = output_dir / stale_name
                     self.assertFalse(stale_archive.exists())
                     self.assertFalse(Path(f"{stale_archive}.hash").exists())
             finally:
                 os.chdir(previous_cwd)
+
+    def test_platform_archives_coexist_across_sequential_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "plugin"
+            source.mkdir()
+            (source / "__main__.py").write_text(
+                "print('ok')\n", encoding="utf-8"
+            )
+            (source / "plugin.toml").write_text(
+                '[general]\nid = "fixture-plugin"\n',
+                encoding="utf-8",
+            )
+
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                command = PackageCommand()
+                command._console = Console(file=StringIO(), force_terminal=False)
+                for target_platform, target_architectures in (
+                    ("Android", ["arm64-v8a"]),
+                    ("Darwin", ["arm64"]),
+                    ("Windows", []),
+                    ("Linux", []),
+                ):
+                    command.run(
+                        source_dir=str(source),
+                        platform=target_platform,
+                        arch=target_architectures,
+                        requirements=[],
+                        asset="build/custom-output.zip",
+                        exclude=[],
+                        skip_site_packages=True,
+                        cleanup_app_files=[],
+                        cleanup_package_files=[],
+                    )
+
+                expected = {
+                    "fixture-plugin-Android-arm64-v8a.zip",
+                    "fixture-plugin-Darwin-arm64.zip",
+                    "fixture-plugin-Windows.zip",
+                    "fixture-plugin-Linux.zip",
+                }
+                for name in expected:
+                    archive = root / "build" / name
+                    self.assertTrue(archive.is_file(), name)
+                    self.assertTrue(Path(f"{archive}.hash").is_file(), name)
+                self.assertFalse((root / "build" / "custom-output.zip").exists())
+            finally:
+                os.chdir(previous_cwd)
+
+    def test_explicit_asset_still_requires_manifest_plugin_id(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "plugin"
+            source.mkdir()
+            (source / "__main__.py").write_text(
+                "print('ok')\n", encoding="utf-8"
+            )
+
+            for manifest in (
+                "[general]\n",
+                '[general]\nid = ""\n',
+                "[general]\nid = 1\n",
+            ):
+                with self.subTest(manifest=manifest):
+                    (source / "plugin.toml").write_text(
+                        manifest,
+                        encoding="utf-8",
+                    )
+                    command = PackageCommand()
+                    command._console = Console(
+                        file=StringIO(), force_terminal=False
+                    )
+                    with self.assertRaisesRegex(ValueError, r"general\]\.id"):
+                        command.run(
+                            source_dir=str(source),
+                            platform="Windows",
+                            arch=[],
+                            requirements=[],
+                            asset="custom/output.zip",
+                            exclude=[],
+                            skip_site_packages=True,
+                            cleanup_app_files=[],
+                            cleanup_package_files=[],
+                        )
 
     def test_failed_multi_arch_build_does_not_publish_partial_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -808,7 +982,8 @@ class PackagerRuntimeTest(unittest.TestCase):
                     reported_destination: Path | None = None,
                 ) -> None:
                     if reported_destination is not None and (
-                        reported_destination.name == "plugin-x86_64.zip"
+                        reported_destination.name
+                        == "fixture-plugin-Android-x86_64.zip"
                     ):
                         raise RuntimeError("simulated archive failure")
                     create_archive(
@@ -838,10 +1013,18 @@ class PackagerRuntimeTest(unittest.TestCase):
                         )
 
                 self.assertFalse(
-                    (root / "build" / "plugin-arm64-v8a.zip").exists()
+                    (
+                        root
+                        / "build"
+                        / "fixture-plugin-Android-arm64-v8a.zip"
+                    ).exists()
                 )
                 self.assertFalse(
-                    (root / "build" / "plugin-x86_64.zip").exists()
+                    (
+                        root
+                        / "build"
+                        / "fixture-plugin-Android-x86_64.zip"
+                    ).exists()
                 )
             finally:
                 os.chdir(previous_cwd)
@@ -862,7 +1045,9 @@ class PackagerRuntimeTest(unittest.TestCase):
             output_dir.mkdir()
             previous_archives: dict[Path, tuple[bytes, str]] = {}
             for architecture in ("arm64-v8a", "x86_64"):
-                archive = output_dir / f"plugin-{architecture}.zip"
+                archive = (
+                    output_dir / f"fixture-plugin-Android-{architecture}.zip"
+                )
                 archive.write_bytes(f"old-{architecture}".encode())
                 archive_hash = hashlib.md5(archive.read_bytes()).hexdigest()
                 Path(f"{archive}.hash").write_text(
@@ -881,7 +1066,8 @@ class PackagerRuntimeTest(unittest.TestCase):
                 destination = Path(destination_path)
                 if (
                     not failed
-                    and destination.name == "plugin-arm64-v8a.zip.hash"
+                    and destination.name
+                    == "fixture-plugin-Android-arm64-v8a.zip.hash"
                 ):
                     failed = True
                     raise OSError("simulated hash publication failure")
@@ -1131,10 +1317,14 @@ class PackagerRuntimeTest(unittest.TestCase):
 
                 merge.assert_not_called()
                 self.assertTrue(
-                    (root / "build" / "plugin-arm64.zip").is_file()
+                    (
+                        root / "build" / "fixture-plugin-Darwin-arm64.zip"
+                    ).is_file()
                 )
                 self.assertTrue(
-                    (root / "build" / "plugin-x86_64.zip").is_file()
+                    (
+                        root / "build" / "fixture-plugin-Darwin-x86_64.zip"
+                    ).is_file()
                 )
             finally:
                 os.chdir(previous_cwd)
@@ -1179,7 +1369,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 encoding="utf-8",
             )
             archive_base = root / "build" / "compiled.zip"
-            archive = root / "build" / "compiled.zip"
+            archive = root / "build" / "fixture-plugin-Windows.zip"
 
             previous_cwd = Path.cwd()
             try:

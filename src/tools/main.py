@@ -8,6 +8,7 @@ from rich.table import Table
 from .package_command import PackageCommand
 from .utils.selector import interactive_select, interactive_multiselect
 from .test_command import TestCommand
+from sys import version
 
 app = typer.Typer(
     name="pyrite-sdk",
@@ -24,6 +25,27 @@ ARCH_MAP = {
     "Linux": [""],
 }
 
+__version__ = "1.0.0"
+
+def version_callback(value: bool):
+    if value:
+        print(
+f"""PyriteSDK Version: {__version__}
+with Python {version}
+Use `pyrsdk --help` for more info"""
+        )
+        raise typer.Exit()
+
+VERSION_OPTION = Annotated[
+    bool,
+    typer.Option(
+        "--version",
+        "-v",
+        help="Show tool version and quit.",
+        is_eager=True,
+        callback=version_callback,
+    ),
+]
 
 def _interactive_mode() -> dict:
     """Interactively collect packaging parameters from the user."""
@@ -43,24 +65,25 @@ def _interactive_mode() -> dict:
     _console.print("[bold]Step 1:[/bold] 源目录")
     source_dir = Prompt.ask(
         "  源目录路径",
-        default=".",
+        default="src",
     )
     params["source_dir"] = source_dir
 
     # Step 2: platform
     _console.print("\n[bold]Step 2:[/bold] 目标平台")
-    params["platform"] = interactive_select(PLATFORMS, "请选择目标平台:")
+    params["platform"] = interactive_select(["all", *PLATFORMS], "请选择目标平台:")
 
     # Step 3: architecture
     available_archs = ARCH_MAP.get(params["platform"], [])
-    params["arch"] = interactive_multiselect(available_archs, "请选择目标架构 (默认全选):", default_all=True)
+    if available_archs:
+        params["arch"] = interactive_multiselect(available_archs, "请选择目标架构 (默认全选):", default_all=True)
 
     # Step 4: requirements
     _console.print(f"\n[bold]Step 4:[/bold] Python 依赖包")
 
     req_txt_input = Prompt.ask(
         "  requirements.txt 文件路径",
-        default="",
+        default="src/requirements.txt",
     ).strip()
 
     req_package_input = Prompt.ask(
@@ -162,13 +185,13 @@ def _build_requirements(
 @app.command("package")
 def package(
     platform: Annotated[
-        Optional[Literal["Android", "Darwin", "Windows", "Linux"]],
+        Optional[Literal["Android", "Darwin", "Windows", "Linux", "all", None]],
         typer.Option(
             "-p",
             "--platform",
             help="为特定平台安装依赖，例如 'Android'",
         ),
-    ] = "",
+    ] = None,
     source_dir: Annotated[
         Optional[str],
         typer.Argument(help="源目录"),
@@ -291,60 +314,54 @@ def package(
     ] = False,
 ) -> None:
     """将 Python 应用打包到 Flutter 资产中"""
-    use_interactive = interactive or (
-        not platform
-        and source_dir is None
-        and not any([arch, requirements, requirements_file])
-    )
+    use_interactive = interactive or not platform or source_dir is None
 
     if use_interactive:
         params = _interactive_mode()
-        cmd = PackageCommand()
-        cmd.run(
-            source_dir=params.get("source_dir"),
-            platform=params["platform"],
-            arch=params.get("arch", []),
-            requirements=_build_requirements(
-                params.get("requirements"),
-                params.get("requirements_file"),
-            ),
-            asset=params.get("asset"),
-            exclude=params.get("exclude", []),
-            skip_site_packages=params.get("skip_site_packages", False),
-            compile_app=params.get("compile_app", False),
-            compile_packages=params.get("compile_packages", False),
-            cleanup=params.get("cleanup", False),
-            cleanup_app=params.get("cleanup_app", False),
-            cleanup_app_files=params.get("cleanup_app_files", []),
-            cleanup_packages=params.get("cleanup_packages", False),
-            cleanup_package_files=params.get("cleanup_package_files", []),
-            verbose=params.get("verbose", False),
-            pip_tool=params.get("pip_tool", "uv"),
-        )
-        return
+        source_dir = params.get("source_dir")
+        platform = params["platform"]
+        arch = params.get("arch", [])
+        requirements = params.get("requirements")
+        requirements_file = params.get("requirements_file")
+        asset = params.get("asset")
+        exclude = params.get("exclude", [])
+        skip_site_packages = params.get("skip_site_packages", False)
+        compile_app = params.get("compile_app", False)
+        compile_packages = params.get("compile_packages", False)
+        cleanup = params.get("cleanup", False)
+        cleanup_app = params.get("cleanup_app", False)
+        cleanup_app_files = params.get("cleanup_app_files", [])
+        cleanup_packages = params.get("cleanup_packages", False)
+        cleanup_package_files = params.get("cleanup_package_files", [])
+        verbose = params.get("verbose", False)
+        pip_tool = params.get("pip_tool", "uv")
 
     requirements_file = requirements_file or str(Path(source_dir) / "requirements.txt")
     print(f"使用依赖文件: {requirements_file}")
 
     cmd = PackageCommand()
-    cmd.run(
-        source_dir=source_dir,
-        platform=platform,
-        arch=arch or [],
-        requirements=_build_requirements(requirements, requirements_file),
-        asset=asset,
-        exclude=exclude or [],
-        skip_site_packages=skip_site_packages,
-        compile_app=compile_app,
-        compile_packages=compile_packages,
-        cleanup=cleanup,
-        cleanup_app=cleanup_app,
-        cleanup_app_files=cleanup_app_files or [],
-        cleanup_packages=cleanup_packages,
-        cleanup_package_files=cleanup_package_files or [],
-        verbose=verbose,
-        pip_tool=pip_tool,
-    )
+    target_platforms = PLATFORMS if platform == "all" else [platform]
+    resolved_requirements = _build_requirements(requirements, requirements_file)
+    for target_platform in target_platforms:
+        print("正在处理目标平台：", target_platform)
+        cmd.run(
+            source_dir=source_dir,
+            platform=target_platform,
+            arch=arch or [],
+            requirements=resolved_requirements,
+            asset=asset,
+            exclude=exclude or [],
+            skip_site_packages=skip_site_packages,
+            compile_app=compile_app,
+            compile_packages=compile_packages,
+            cleanup=cleanup,
+            cleanup_app=cleanup_app,
+            cleanup_app_files=cleanup_app_files or [],
+            cleanup_packages=cleanup_packages,
+            cleanup_package_files=cleanup_package_files or [],
+            verbose=verbose,
+            pip_tool=pip_tool,
+        )
 
 @app.command("create")
 def create(
@@ -404,9 +421,9 @@ def test_plugin(
         _console
     )
 
-def main() -> None:
-    app()
-
+@app.callback()  # 为所有子命令添加此选项
+def common(version: VERSION_OPTION = False):
+    pass
 
 if __name__ == "__main__":
-    main()
+    app()

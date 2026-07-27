@@ -60,6 +60,28 @@ class PackagerCliTest(unittest.TestCase):
         self.assertEqual(result.exit_code, 2, result.output)
         self.assertIn("No such option", result.output)
 
+    def test_cli_packages_all_platforms(self) -> None:
+        runner = CliRunner()
+
+        with patch("tools.main.PackageCommand") as package_command:
+            result = runner.invoke(
+                app,
+                [
+                    "package",
+                    "examples/ui_plugin",
+                    "--platform",
+                    "all",
+                    "--skip-site-packages",
+                ],
+            )
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        calls = package_command.return_value.run.call_args_list
+        self.assertEqual(
+            [call.kwargs["platform"] for call in calls],
+            ["Android", "Darwin", "Windows", "Linux"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
