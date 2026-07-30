@@ -100,7 +100,7 @@ editor = ["read"]
 | 权限 | 命令 |
 | --- | --- |
 | `serial:read` | `sdk.serial.list_ports`, `sdk.serial.get_status`, `sdk.serial.read` |
-| `serial:write` | `sdk.serial.connect`, `sdk.serial.disconnect`, `sdk.serial.send`, `sdk.serial.send_command`, `sdk.serial.run_python`, `sdk.serial.set_baud_rate`, `sdk.serial.set_auto_reconnect` |
+| `serial:write` | `sdk.serial.connect`, `sdk.serial.disconnect`, `sdk.serial.send`, `sdk.serial.send_command`, `sdk.serial.run_python`, `sdk.serial.hardware_reset`, `sdk.serial.set_baud_rate`, `sdk.serial.set_auto_reconnect` |
 
 ## 数据贡献
 

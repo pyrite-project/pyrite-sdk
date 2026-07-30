@@ -243,6 +243,12 @@ class SerialSettings:
     def set_default_baud_rate(self, value: int, callback: Optional[Callable] = None): self._set("serial.default_baud_rate", value, callback)
     def get_auto_reconnect(self, callback: Optional[Callable] = None): self._get("serial.auto_reconnect", callback)
     def set_auto_reconnect(self, value: bool, callback: Optional[Callable] = None): self._set("serial.auto_reconnect", value, callback)
+    def get_repl_mode(self, callback: Optional[Callable] = None): self._get("serial.repl_mode", callback)
+    def set_repl_mode(self, value: str, callback: Optional[Callable] = None): self._set("serial.repl_mode", value, callback)
+    def get_file_transfer_mode(self, callback: Optional[Callable] = None): self._get("serial.file_transfer_mode", callback)
+    def set_file_transfer_mode(self, value: str, callback: Optional[Callable] = None): self._set("serial.file_transfer_mode", value, callback)
+    def get_hardware_reset_strategy(self, callback: Optional[Callable] = None): self._get("serial.hardware_reset_strategy", callback)
+    def set_hardware_reset_strategy(self, value: str, callback: Optional[Callable] = None): self._set("serial.hardware_reset_strategy", value, callback)
 
 
 class TerminalSettings:

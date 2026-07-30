@@ -1146,11 +1146,12 @@ plugin.serial.send(data, callback=None)
 plugin.serial.send_command(command, chunked=True, callback=None)
 plugin.serial.read(timeout_ms=1000, max_bytes=None, callback=None)
 plugin.serial.run_python(code, timeout_ms=20000, callback=None)
+plugin.serial.hardware_reset(callback=None)
 plugin.serial.set_baud_rate(value, callback=None)
 plugin.serial.set_auto_reconnect(value, callback=None)
 ```
 
-`send()` 接受字符串、`bytes` 或整数序列；`bytes` 会序列化为整数列表。
+`send()` 接受字符串、`bytes` 或整数序列；`bytes` 会序列化为整数列表。`hardware_reset()` 使用 IDE 当前选择的硬件复位策略；未连接或复位方式设为关闭时返回错误。`get_status()` 还会返回 `hardware_reset_strategy` 和 `hardware_reset_enabled`。
 
 ### 9.7 Settings
 
@@ -1161,7 +1162,7 @@ plugin.serial.set_auto_reconnect(value, callback=None)
 | `settings.theme` | `ThemeSettings` | 主题模式、风格、颜色、插件主题和 Material 右键菜单 |
 | `settings.editor` | `EditorSettings` | 字体、换行、缩进、建议、缩略图等编辑器配置 |
 | `settings.lsp` | `LspSettings` | LSP 传输、诊断和语言能力开关 |
-| `settings.serial` | `SerialSettings` | 默认波特率和自动重连 |
+| `settings.serial` | `SerialSettings` | 波特率、自动重连、REPL、文件传输和硬件复位 |
 | `settings.terminal` | `TerminalSettings` | 字体、字号和行高 |
 | `settings.micropython` | `MicroPythonStubsSettings` | 存根开关、层和额外路径 |
 
@@ -1175,9 +1176,21 @@ ThemeSettings 的值约定：
 | `get_active_plugin_theme_id` / `set_active_plugin_theme_id` | `"plugin_id::theme_name"`；`None` 表示内置主题 |
 | `get_use_material_context_menu` / `set_use_material_context_menu` | `bool` |
 
+SerialSettings 的新增值约定：
+
+| 方法 | 值 |
+| --- | --- |
+| `get_repl_mode` / `set_repl_mode` | `"rawRepl"` 或 `"paste"` |
+| `get_file_transfer_mode` / `set_file_transfer_mode` | `"streaming"` 或 `"chunked"` |
+| `get_hardware_reset_strategy` / `set_hardware_reset_strategy` | `"disabled"`、`"dtrPulse"`、`"rtsPulse"` 或 `"esp32"` |
+
+文件传输模式是偏好值；REPL 模式为 `paste` 时，IDE 始终使用分块传输。
+
 ```python
 plugin.settings.theme.get_mode(callback=lambda **response: print(response))
 plugin.settings.theme.set_color(0xFF008080)
+plugin.settings.serial.set_repl_mode("rawRepl")
+plugin.settings.serial.set_hardware_reset_strategy("esp32")
 ```
 
 设置读取回调收到 `data={"name": ..., "value": ...}`；设置成功时收到 `data=True`。

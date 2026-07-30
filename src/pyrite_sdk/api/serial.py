@@ -88,6 +88,12 @@ class Serial:
             callback=callback,
         )
 
+    def hardware_reset(self, callback: Optional[Callable] = None):
+        self._bridge.push_wait_response(
+            request("sdk.serial.hardware_reset"),
+            callback=callback,
+        )
+
     def set_baud_rate(self, value: int, callback: Optional[Callable] = None):
         self._bridge.push_wait_response(
             request("sdk.serial.set_baud_rate", payload={"value": value}),
