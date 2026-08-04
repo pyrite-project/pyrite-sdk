@@ -439,6 +439,53 @@ class DialogController(ComponentController):
         self._call("is_open", callback)
 
 
+class CanvasController(ComponentController):
+    """Imperative control of a mounted Canvas surface.
+
+    ``push_ops``/``set_ops`` write to the *ephemeral* overlay layer (lost on
+    resync/visibility-restore); persistent primitives belong in ``props.ops``.
+    Unlike snapshot/patch, invoke does not pass through the view payload guard,
+    so both enforce the 2 MiB arguments cap here, mirroring ``ViewModel``.
+    """
+
+    #: Mirror of view.MAX_VIEW_PAYLOAD_BYTES (imported lazily to avoid a cycle).
+    MAX_VIEW_PAYLOAD_BYTES = 2 * 1024 * 1024
+
+    def _guard_ops(self, arguments: dict) -> None:
+        import json
+
+        from .view import ViewProtocolError
+
+        size = len(json.dumps(arguments, separators=(",", ":")).encode("utf-8"))
+        if size > self.MAX_VIEW_PAYLOAD_BYTES:
+            raise ViewProtocolError(
+                f"canvas ops exceed {self.MAX_VIEW_PAYLOAD_BYTES} bytes"
+            )
+
+    def push_ops(self, ops, layer=None, callback=None):
+        arguments: dict = {"ops": list(ops)}
+        if layer is not None:
+            arguments["layer"] = layer
+        self._guard_ops(arguments)
+        self.component._invoke("push_ops", arguments, callback)
+
+    def set_ops(self, ops, layer=None, callback=None):
+        arguments: dict = {"ops": list(ops)}
+        if layer is not None:
+            arguments["layer"] = layer
+        self._guard_ops(arguments)
+        self.component._invoke("set_ops", arguments, callback)
+
+    def clear(self, callback=None):
+        self._call("clear", callback)
+
+    def clear_layer(self, layer, callback=None):
+        self._call("clear_layer", callback, layer=layer)
+
+    def hit_test(self, x, y, callback=None):
+        self._call("hit_test", callback, x=x, y=y)
+
+
 _CONTROLLERS = {
     "TextField": TextFieldController,
     "NumberField": NumberFieldController,
@@ -457,6 +504,7 @@ _CONTROLLERS = {
     "Dropdown": DropdownController,
     "ContextMenu": ContextMenuController,
     "Dialog": DialogController,
+    "Canvas": CanvasController,
 }
 
 
@@ -733,6 +781,27 @@ def Toolbar(*children, id=None, dense=None) -> Component:
     return Component("Toolbar", {"id": id, "dense": dense}, list(children))
 
 
+def AppBar(*actions, id=None, title=None) -> Component:
+    """A title bar with action children.
+
+    Actions are ``IconButton``/``Menu``/``Dropdown`` components passed
+    positionally; each carries its own handler. The component-tree ``AppBar``
+    renders only these action children and never the manifest command menu.
+    """
+    return Component("AppBar", {"id": id, "title": title}, list(actions))
+
+
+def Scaffold(*body, id=None, app_bar=None) -> Component:
+    """A two-slot page skeleton: an optional top ``AppBar`` and a body.
+
+    ``app_bar`` is placed as ``children[0]`` so the wire order matches the
+    host's "first child of type AppBar is the bar" rule; the remaining
+    positional children are the body.
+    """
+    children = ([app_bar] if app_bar is not None else []) + list(body)
+    return Component("Scaffold", {"id": id}, children)
+
+
 # -- Content ------------------------------------------------------------------
 
 
@@ -792,6 +861,49 @@ def Video(
             "showControls": show_controls,
         },
     )
+
+
+def Canvas(
+    *,
+    id: str,
+    width=None,
+    height=None,
+    ops=None,
+    interactive=None,
+    viewport=None,
+    on_tap: Optional[Callable] = None,
+    on_drag: Optional[Callable] = None,
+    on_hover: Optional[Callable] = None,
+    on_pointer: Optional[Callable] = None,
+) -> Component:
+    """A high-performance interactive custom-draw surface.
+
+    ``ops`` is the persistent base layer (rides snapshot/patch); use the
+    :class:`CanvasController` ``push_ops``/``set_ops`` for the ephemeral
+    overlay. All four events are opt-in: a handler is wired only when passed,
+    producing zero cross-process traffic otherwise. ``id`` is required because
+    both invoke and event delivery key on it.
+    """
+    component = Component(
+        "Canvas",
+        {
+            "id": id,
+            "width": width,
+            "height": height,
+            "ops": ops,
+            "interactive": interactive,
+            "viewport": viewport,
+        },
+    )
+    if on_tap:
+        component.on("tap", on_tap)
+    if on_drag:
+        component.on("drag", on_drag)
+    if on_hover:
+        component.on("hover", on_hover)
+    if on_pointer:
+        component.on("pointer", on_pointer)
+    return component
 
 
 class MarkdownLinkEvent(dict):

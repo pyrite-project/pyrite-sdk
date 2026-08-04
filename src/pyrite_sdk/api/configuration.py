@@ -25,7 +25,7 @@ class Configuration:
         *,
         callback: Optional[Callable] = None,
     ) -> None:
-        self._bridge.push(
+        self._bridge.push_wait_response(
             request(
                 "sdk.configuration.get",
                 payload={"id": configuration_id},
@@ -40,7 +40,7 @@ class Configuration:
         *,
         callback: Optional[Callable] = None,
     ) -> None:
-        self._bridge.push(
+        self._bridge.push_wait_response(
             request(
                 "sdk.configuration.set",
                 payload={"id": configuration_id, "value": value},
@@ -49,7 +49,7 @@ class Configuration:
         )
 
     def list(self, *, callback: Optional[Callable] = None) -> None:
-        self._bridge.push(
+        self._bridge.push_wait_response(
             request("sdk.configuration.list", payload={}),
             callback=callback,
         )

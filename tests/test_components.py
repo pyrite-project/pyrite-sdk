@@ -4,8 +4,10 @@ import unittest
 
 from pyrite_sdk.api.components import (
     COMPONENT_SCHEMA_VERSION,
+    AppBar,
     Badge,
     Button,
+    Canvas,
     Checkbox,
     Column,
     Component,
@@ -28,6 +30,7 @@ from pyrite_sdk.api.components import (
     PropertyEntry,
     RangeRequest,
     Row,
+    Scaffold,
     Select,
     Tab,
     Tabs,
@@ -41,6 +44,9 @@ from pyrite_sdk.api.components import (
     VirtualList,
     collect_handlers,
 )
+from pyrite_sdk.api import canvas
+from pyrite_sdk.api.resources import PluginResource
+from pyrite_sdk.api.view import ViewProtocolError
 from pyrite_sdk.api.view import Views
 from pyrite_sdk.api.icons import Icons
 
@@ -92,6 +98,36 @@ class ComponentShapeTest(unittest.TestCase):
         self.assertEqual(node["type"], "Column")
         self.assertEqual(len(node["children"]), 2)
         self.assertEqual(node["props"], {"gap": 4})
+
+    def test_app_bar_scaffold_and_canvas_match_the_native_wire_shape(self):
+        refresh = IconButton(id="refresh", icon=Icons.refresh)
+        page = Scaffold(
+            Text("Body"),
+            id="page",
+            app_bar=AppBar(refresh, title="Canvas tools"),
+        )
+        surface = Canvas(
+            id="surface",
+            width=320,
+            height=180,
+            interactive=True,
+            viewport={"scale": 2},
+            ops=[canvas.rect(0, 0, 20, 10, paint=canvas.paint(color="#ff0000"))],
+            on_tap=lambda payload: None,
+        )
+
+        self.assertEqual(page["children"][0]["type"], "AppBar")
+        self.assertEqual(page["children"][1]["type"], "Text")
+        self.assertEqual(surface["props"]["viewport"], {"scale": 2})
+        self.assertEqual(surface["props"]["ops"][0]["op"], "rect")
+        self.assertEqual(surface.to_json()["events"], {"tap": True})
+
+    def test_canvas_image_requires_a_plugin_scoped_resource(self):
+        resource = PluginResource("assets/preview.png")
+        op = canvas.image(resource, 1, 2, width=30, height=40)
+        self.assertEqual(op["src"], "plugin-resource:///assets/preview.png")
+        with self.assertRaisesRegex(TypeError, "plugin.resources.asset"):
+            canvas.image("assets/preview.png", 1, 2)
 
     def test_tabs_only_receive_tab_children(self):
         node = Tabs(Tab(Text("body"), id="t1", label="One"), selected="t1")
@@ -587,10 +623,43 @@ class ComponentControllerTest(unittest.TestCase):
             ("Dialog", lambda c, cb: c.show(cb), "show", {}),
             ("Dialog", lambda c, cb: c.close("done", cb), "close", {"result": "done"}),
             ("Dialog", lambda c, cb: c.is_open(cb), "is_open", {}),
+            (
+                "Canvas",
+                lambda c, cb: c.push_ops([{"op": "save"}], "preview", cb),
+                "push_ops",
+                {"ops": [{"op": "save"}], "layer": "preview"},
+            ),
+            (
+                "Canvas",
+                lambda c, cb: c.set_ops([{"op": "restore"}], callback=cb),
+                "set_ops",
+                {"ops": [{"op": "restore"}]},
+            ),
+            ("Canvas", lambda c, cb: c.clear(cb), "clear", {}),
+            (
+                "Canvas",
+                lambda c, cb: c.clear_layer("preview", cb),
+                "clear_layer",
+                {"layer": "preview"},
+            ),
+            (
+                "Canvas",
+                lambda c, cb: c.hit_test(10, 20, cb),
+                "hit_test",
+                {"x": 10, "y": 20},
+            ),
         ]
         for component_type, invoke, method, arguments in cases:
             with self.subTest(component_type=component_type, method=method):
                 self._assert_call(component_type, invoke, method, arguments)
+
+    def test_canvas_controller_rejects_oversized_invoke_payloads(self):
+        component = Canvas(id="surface")
+        self.model.snapshot([component])
+        with self.assertRaises(ViewProtocolError):
+            component.controller.push_ops(
+                [{"op": "text", "text": "x" * (2 * 1024 * 1024)}]
+            )
 
     def test_controller_rejects_unbound_or_unidentified_components(self):
         with self.assertRaisesRegex(RuntimeError, "not bound"):

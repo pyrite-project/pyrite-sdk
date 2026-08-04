@@ -117,6 +117,12 @@ class ViewModel:
         self._bridge.push_wait_response(
             request("sdk.view.open", payload=self._keys()), callback=callback
         )
+        # A snapshot taken before the bridge loop was live (e.g. in __init__)
+        # was dropped by push. open() runs from on_start with the handshake
+        # complete, so resend the current model now; otherwise the host keeps
+        # the empty loading model installed on open and the view spins forever.
+        if self._needs_snapshot and self._nodes and not self._closed:
+            self.snapshot(self._nodes, revision=self.revision)
 
     def close(self, callback: Optional[Callable] = None) -> None:
         self._closed = True
@@ -164,14 +170,18 @@ class ViewModel:
             raise ViewProtocolError(
                 f"snapshot exceeds {MAX_VIEW_PAYLOAD_BYTES} bytes"
             )
-        self._needs_snapshot = False
-        self._bridge.push_wait_response(
+        # push returns False when the bridge loop is not live yet (e.g. a
+        # snapshot sent from __init__, before plugin.start()). In that case the
+        # frame was dropped, so keep _needs_snapshot set: open() resends it once
+        # the handshake has completed.
+        delivered = self._bridge.push_wait_response(
             request(
                 "sdk.view.snapshot",
                 payload=payload,
             ),
             callback=callback,
         )
+        self._needs_snapshot = not delivered
 
     def _wire_nodes(self) -> list:
         """Nodes in wire form, with component handlers reduced to markers."""
@@ -512,11 +522,61 @@ class Views:
     def __init__(self, bridge: "Bridge"):
         self._bridge = bridge
         self._models: dict[tuple[str, str], ViewModel] = {}
+        # view_id -> container id, read lazily from the plugin manifest so the
+        # default instance id can match the host's sidebar placement.
+        self._view_containers: Optional[dict[str, str]] = None
 
     def create(self, view_id: str, instance_id: Optional[str] = None) -> ViewModel:
+        # The sidebar host mounts each contributed view at the fixed instance id
+        # "container:<containerId>". A plugin that just calls create(view_id) must
+        # land on that same key or its snapshot goes to an instance nobody renders
+        # (the view spins forever). Default to it from the manifest; an explicit
+        # instance_id (e.g. a host-allocated "tab:<n>") still wins.
+        if instance_id is None:
+            container = self._container_for(view_id)
+            if container:
+                instance_id = f"container:{container}"
         model = ViewModel(self._bridge, view_id, instance_id)
         self._models[(model.view_id, model.instance_id)] = model
         return model
+
+    def _container_for(self, view_id: str) -> Optional[str]:
+        if self._view_containers is None:
+            self._view_containers = self._load_view_containers()
+        return self._view_containers.get(view_id)
+
+    @staticmethod
+    def _load_view_containers() -> dict[str, str]:
+        """Maps each contributed view id to its container id from plugin.toml.
+
+        Best-effort: any failure (standalone run, missing/oddly-shaped manifest)
+        yields an empty map, so create() falls back to a random instance id.
+        """
+        import os
+        import tomllib
+        from pathlib import Path
+
+        plugin_dir = os.environ.get("PYRITE_IDE_PLUGIN_DIR")
+        if not plugin_dir:
+            return {}
+        manifest_path = Path(plugin_dir) / "plugin.toml"
+        try:
+            raw = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError, ValueError):
+            return {}
+        contributes = raw.get("contributes")
+        views = contributes.get("views") if isinstance(contributes, dict) else None
+        if not isinstance(views, list):
+            return {}
+        mapping: dict[str, str] = {}
+        for view in views:
+            if not isinstance(view, dict):
+                continue
+            view_id = view.get("id")
+            container = view.get("container")
+            if isinstance(view_id, str) and isinstance(container, str):
+                mapping[view_id] = container
+        return mapping
 
     def outline(
         self,
