@@ -1,16 +1,11 @@
-[general]
-name = "English Language Pack"
+manifest_version = 2
 id = "en-lang-pack"
+name = "English Language Pack"
 version = "1.0.0"
+type = "data"
+protocol_version = 1
 python_version = "3.14"
 author = "Pyrite Examples"
-type = "data"
-
-[permissions]
-data = true
-
-[platform]
-linux = true
-macos = true
-windows = true
-android = true
+activation_events = ["onStartup"]
+permissions = ["data.write"]
+platforms = ["linux", "macos", "windows", "android"]

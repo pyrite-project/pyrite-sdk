@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 import unittest
 import zipfile
 from io import StringIO
@@ -14,6 +13,7 @@ from unittest.mock import patch
 
 from rich.console import Console
 
+from pyrite_sdk.models.manifest import PluginManifestErrorCode, load_file
 from tools.main import ARCH_MAP, PLATFORMS
 from tools.package_command import (
     PackageCommand,
@@ -33,6 +33,30 @@ from tools.python_versions import (
     resolve_python_release,
 )
 from tools.sitecustomize import sitecustomize_py
+
+
+def _manifest_v2(
+    plugin_id: str = "fixture-plugin",
+    *,
+    python_version: str | None = None,
+    extra: str = "",
+) -> str:
+    python_line = (
+        "" if python_version is None else f'python_version = "{python_version}"\n'
+    )
+    return (
+        "manifest_version = 2\n"
+        f'id = "{plugin_id}"\n'
+        f'name = "{plugin_id}"\n'
+        'version = "1.0.0"\n'
+        'type = "service"\n'
+        "protocol_version = 1\n"
+        f"{python_line}"
+        "activation_events = []\n"
+        "permissions = []\n"
+        'platforms = ["windows", "linux", "macos", "android"]\n'
+        f"{extra}"
+    )
 
 
 class PackagerRuntimeTest(unittest.TestCase):
@@ -56,7 +80,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
 
@@ -85,17 +109,55 @@ class PackagerRuntimeTest(unittest.TestCase):
             finally:
                 os.chdir(previous_cwd)
 
-    def test_templates_and_examples_declare_python_version(self) -> None:
+    def test_templates_and_examples_use_valid_manifest_v2(self) -> None:
+        expected_permissions = {
+            "template-ui-plugin": ["ui.view"],
+            "template-service-plugin": ["file.read"],
+            "template-data-plugin": ["data.write"],
+            "en-lang-pack": ["data.write"],
+            "file-watcher": ["file.read"],
+            "micropython-stubs-example": [
+                "data.write",
+                "settings.write",
+                "ui.notify",
+            ],
+            "nord-theme": ["data.write"],
+            "debug-enhanced": [
+                "ui.view",
+                "editor.read",
+                "editor.write",
+                "tab.create",
+                "runtime.inspect",
+            ],
+        }
         manifests = [
             *Path("src/tools/template").rglob("plugin.toml"),
             *Path("examples").rglob("plugin.toml"),
         ]
         self.assertTrue(manifests)
-        for manifest in manifests:
-            with self.subTest(manifest=manifest):
-                with manifest.open("rb") as file:
-                    config = tomllib.load(file)
-                self.assertEqual(config["general"]["python_version"], "3.14")
+        for path in manifests:
+            with self.subTest(manifest=path):
+                manifest = load_file(path)
+                self.assertEqual(manifest.manifest_version, 2)
+                self.assertEqual(manifest.python_version, "3.14")
+                self.assertEqual(
+                    manifest.permissions,
+                    expected_permissions[manifest.id],
+                )
+
+    def test_packager_rejects_unsupported_manifests_with_stable_codes(self) -> None:
+        fixture_root = Path("tests/fixtures/manifest_v2")
+        cases = {
+            "manifest_v1.toml": PluginManifestErrorCode.UNSUPPORTED_VERSION,
+            "missing_version.toml": PluginManifestErrorCode.MISSING_VERSION,
+            "rfw_renderer.toml": (
+                PluginManifestErrorCode.RFW_RENDERER_UNSUPPORTED
+            ),
+        }
+        for name, code in cases.items():
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, code):
+                    PackageCommand._read_manifest(fixture_root / name)
 
     def test_supported_targets_and_android_tags_match_serious_python(self) -> None:
         self.assertEqual(PLATFORMS, ["Android", "Darwin", "Windows", "Linux"])
@@ -172,9 +234,10 @@ class PackagerRuntimeTest(unittest.TestCase):
                     "print('ok')\n", encoding="utf-8"
                 )
                 (source / "plugin.toml").write_text(
-                    "[general]\n"
-                    f'id = "fixture-{version}"\n'
-                    f'python_version = "{version}"\n',
+                    _manifest_v2(
+                        f"fixture-{version}",
+                        python_version=version,
+                    ),
                     encoding="utf-8",
                 )
                 python_dir = (
@@ -381,7 +444,7 @@ class PackagerRuntimeTest(unittest.TestCase):
             source.mkdir()
             (source / "__main__.py").write_text("print('ok')\n", encoding="utf-8")
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
             staging = root / "staged-app"
@@ -451,7 +514,7 @@ class PackagerRuntimeTest(unittest.TestCase):
             source.mkdir()
             (source / "__main__.py").write_text("print('ok')\n", encoding="utf-8")
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\npython_version = "3.12"\n',
+                _manifest_v2(python_version="3.12"),
                 encoding="utf-8",
             )
             staging = root / "staged-app"
@@ -538,7 +601,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
             stale_site_packages = source / "site-packages"
@@ -646,7 +709,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
             legacy_arch_dirs = [
@@ -717,7 +780,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
             (root / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
             build_dir = root / "build"
@@ -772,7 +835,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
             staging = root / "staged-app"
@@ -822,7 +885,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
             output_dir = root / "build"
@@ -878,7 +941,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
 
@@ -928,10 +991,17 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
 
+            valid_manifest = _manifest_v2()
             for manifest in (
-                "[general]\n",
-                '[general]\nid = ""\n',
-                "[general]\nid = 1\n",
+                valid_manifest.replace('id = "fixture-plugin"\n', ""),
+                valid_manifest.replace(
+                    'id = "fixture-plugin"',
+                    'id = ""',
+                ),
+                valid_manifest.replace(
+                    'id = "fixture-plugin"',
+                    "id = 1",
+                ),
             ):
                 with self.subTest(manifest=manifest):
                     (source / "plugin.toml").write_text(
@@ -942,7 +1012,10 @@ class PackagerRuntimeTest(unittest.TestCase):
                     command._console = Console(
                         file=StringIO(), force_terminal=False
                     )
-                    with self.assertRaisesRegex(ValueError, r"general\]\.id"):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        PluginManifestErrorCode.INVALID_SCHEMA,
+                    ):
                         command.run(
                             source_dir=str(source),
                             platform="Windows",
@@ -964,7 +1037,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
 
@@ -1038,7 +1111,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('new')\n", encoding="utf-8"
             )
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
             output_dir = root / "build"
@@ -1284,7 +1357,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 "print('ok')\n", encoding="utf-8"
             )
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
 
@@ -1335,13 +1408,19 @@ class PackagerRuntimeTest(unittest.TestCase):
             source.mkdir()
             (source / "__main__.py").write_text("print('ok')\n", encoding="utf-8")
             cases = [
-                ('python_version = "3.11"', "Unknown Python version: 3.11"),
-                ("python_version = 3.14", "python_version 必须是字符串"),
+                (
+                    _manifest_v2(python_version="3.11"),
+                    "Unknown Python version: 3.11",
+                ),
+                (
+                    _manifest_v2(extra="python_version = 3.14\n"),
+                    PluginManifestErrorCode.INVALID_SCHEMA,
+                ),
             ]
-            for declaration, error in cases:
-                with self.subTest(declaration=declaration):
+            for manifest, error in cases:
+                with self.subTest(error=error):
                     (source / "plugin.toml").write_text(
-                        f'[general]\nid = "fixture-plugin"\n{declaration}\n',
+                        manifest,
                         encoding="utf-8",
                     )
                     command = PackageCommand()
@@ -1365,7 +1444,7 @@ class PackagerRuntimeTest(unittest.TestCase):
             source.mkdir()
             (source / "__main__.py").write_text("print('ok')\n", encoding="utf-8")
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
             archive_base = root / "build" / "compiled.zip"
@@ -1407,7 +1486,7 @@ class PackagerRuntimeTest(unittest.TestCase):
             source.mkdir()
             (source / "__main__.py").write_text("print('ok')\n", encoding="utf-8")
             (source / "plugin.toml").write_text(
-                '[general]\nid = "fixture-plugin"\n',
+                _manifest_v2(),
                 encoding="utf-8",
             )
             cases = [

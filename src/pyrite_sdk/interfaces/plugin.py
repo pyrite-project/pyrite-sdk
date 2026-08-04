@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import Protocol, runtime_checkable, Callable, TYPE_CHECKING
-from ..interfaces.ui import PageType
 
 if TYPE_CHECKING:
     from ..core.bridge import Bridge
+
 
 @runtime_checkable
 class PluginType(Protocol):
@@ -14,11 +14,9 @@ class PluginType(Protocol):
     def on_pause(self): ...
     def on_resume(self): ...
     def on_dispose(self): ...
-    def on_refresh(self): ...
 
 
 class UiPluginType(PluginType, Protocol):
-    pages: dict[str, PageType]
     def on_start(self): ...
 
 

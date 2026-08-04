@@ -1,16 +1,11 @@
-[general]
-name = "Template Service Plugin"
+manifest_version = 2
 id = "template-service-plugin"
+name = "Template Service Plugin"
 version = "1.0.0"
+type = "service"
+protocol_version = 1
 python_version = "3.14"
 author = "Your name"
-type = "service"
-
-[permissions]
-file = true
-
-[platform]
-linux = true
-macos = true
-windows = true
-android = true
+activation_events = ["onStartup"]
+permissions = ["file.read"]
+platforms = ["linux", "macos", "windows", "android"]

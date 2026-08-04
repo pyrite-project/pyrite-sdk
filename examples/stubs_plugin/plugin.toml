@@ -1,17 +1,11 @@
-[general]
-name = "MicroPython Stubs Example"
+manifest_version = 2
 id = "micropython-stubs-example"
+name = "MicroPython Stubs Example"
 version = "1.0.0"
+type = "data"
+protocol_version = 1
 python_version = "3.14"
 author = "Pyrite Examples"
-type = "data"
-
-[permissions]
-data = true
-settings = true
-
-[platform]
-linux = true
-macos = true
-windows = true
-android = true
+activation_events = ["onStartup"]
+permissions = ["data.write", "settings.write", "ui.notify"]
+platforms = ["linux", "macos", "windows", "android"]

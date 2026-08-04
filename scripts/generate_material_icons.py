@@ -1,4 +1,4 @@
-"""Generate the Material icon metadata used by the RFW expression API."""
+"""Generate the Material icon metadata used by the native plugin API."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = (
-    REPO_ROOT / "src" / "pyrite_sdk" / "api" / "ui" / "sentence" / "_material_icons.py"
+    REPO_ROOT / "src" / "pyrite_sdk" / "api" / "material_icons.py"
 )
 
 BEGIN_MARKER = "// BEGIN GENERATED ICONS"
@@ -126,13 +126,10 @@ def render_module(icons: list[MaterialIcon], source_sha256: str) -> str:
         "",
         "from __future__ import annotations",
         "",
-        "from ._rfw_types import RFWData",
-        "",
-        "",
         "class _MaterialIconNamespaceHints:",
         '    """Static type hints for every generated Material icon."""',
     ]
-    lines.extend(f"    {icon.name}: RFWData" for icon in icons)
+    lines.extend(f"    {icon.name}: str" for icon in icons)
 
     lines.extend(
         [
@@ -169,6 +166,58 @@ def render_module(icons: list[MaterialIcon], source_sha256: str) -> str:
     return "\n".join(lines)
 
 
+def render_dart_module(icons: list[MaterialIcon], source_sha256: str) -> str:
+    lines = [
+        "// Generated Material icon metadata. Do not edit by hand.",
+        "// Source SHA-256: " + source_sha256,
+        "",
+        "import 'package:flutter/widgets.dart';",
+        "",
+        "const materialIcons = <String, IconData>{",
+    ]
+    for icon in icons:
+        entry = (
+            f"  '{icon.name}': IconData(0x{icon.codepoint:X}, "
+            "fontFamily: 'MaterialIcons'),"
+        )
+        if not icon.match_text_direction and len(entry) <= 80:
+            lines.append(entry)
+            continue
+        lines.extend(
+            [
+                f"  '{icon.name}': IconData(",
+                f"    0x{icon.codepoint:X},",
+                "    fontFamily: 'MaterialIcons',",
+            ]
+        )
+        if icon.match_text_direction:
+            lines.append("    matchTextDirection: true,")
+        lines.append("  ),")
+    lines.extend(
+        [
+            "};",
+            "",
+            "final materialIconCodePoints = Map<String, int>.unmodifiable({",
+            "  for (final entry in materialIcons.entries) entry.key: entry.value.codePoint,",
+            "});",
+            "",
+            "const materialIconsMatchingTextDirection = <String>{",
+        ]
+    )
+    lines.extend(
+        f"  '{icon.name}'," for icon in icons if icon.match_text_direction
+    )
+    lines.extend(
+        [
+            "};",
+            "",
+            "IconData? materialIcon(String name) => materialIcons[name];",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate Python metadata from Flutter's material/icons.dart"
@@ -189,6 +238,11 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="exit with status 1 when the generated module is not up to date",
     )
+    parser.add_argument(
+        "--dart-output",
+        type=Path,
+        help="optional generated Dart material icon catalog path",
+    )
     return parser.parse_args()
 
 
@@ -204,6 +258,7 @@ def main() -> int:
         return 2
 
     output = args.output.resolve()
+    dart_output = args.dart_output.resolve() if args.dart_output else None
     if args.check:
         try:
             current = output.read_text(encoding="utf-8")
@@ -212,11 +267,27 @@ def main() -> int:
         if current != generated:
             print(f"{output} is not up to date", file=sys.stderr)
             return 1
+        if dart_output is not None:
+            dart_generated = render_dart_module(icons, source_sha256)
+            try:
+                dart_current = dart_output.read_text(encoding="utf-8")
+            except FileNotFoundError:
+                dart_current = None
+            if dart_current != dart_generated:
+                print(f"{dart_output} is not up to date", file=sys.stderr)
+                return 1
         print(f"{output} is up to date ({len(icons)} icons)")
         return 0
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(generated, encoding="utf-8", newline="\n")
+    if dart_output is not None:
+        dart_output.parent.mkdir(parents=True, exist_ok=True)
+        dart_output.write_text(
+            render_dart_module(icons, source_sha256),
+            encoding="utf-8",
+            newline="\n",
+        )
     print(f"Generated {output} ({len(icons)} icons)")
     return 0
 

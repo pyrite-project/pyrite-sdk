@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from typing import Annotated, Dict, List, Literal, Optional
 import typer
@@ -27,14 +28,16 @@ ARCH_MAP = {
 
 __version__ = "1.0.0"
 
+
 def version_callback(value: bool):
     if value:
         print(
-f"""PyriteSDK Version: {__version__}
+            f"""PyriteSDK Version: {__version__}
 with Python {version}
 Use `pyrsdk --help` for more info"""
         )
         raise typer.Exit()
+
 
 VERSION_OPTION = Annotated[
     bool,
@@ -46,6 +49,7 @@ VERSION_OPTION = Annotated[
         callback=version_callback,
     ),
 ]
+
 
 def _interactive_mode() -> dict:
     """Interactively collect packaging parameters from the user."""
@@ -76,7 +80,9 @@ def _interactive_mode() -> dict:
     # Step 3: architecture
     available_archs = ARCH_MAP.get(params["platform"], [])
     if available_archs:
-        params["arch"] = interactive_multiselect(available_archs, "请选择目标架构 (默认全选):", default_all=True)
+        params["arch"] = interactive_multiselect(
+            available_archs, "请选择目标架构 (默认全选):", default_all=True
+        )
 
     # Step 4: requirements
     _console.print(f"\n[bold]Step 4:[/bold] Python 依赖包")
@@ -149,7 +155,9 @@ def _interactive_mode() -> dict:
         *([f"-r {params['requirements_file']}"] if params["requirements_file"] else []),
         *params["requirements"],
     ]
-    summary.add_row("依赖", ", ".join(dependency_summary) if dependency_summary else "无")
+    summary.add_row(
+        "依赖", ", ".join(dependency_summary) if dependency_summary else "无"
+    )
     summary.add_row("编译应用", "是" if params["compile_app"] else "否")
     summary.add_row("编译包", "是" if params["compile_packages"] else "否")
     summary.add_row("清理", "是" if params["cleanup"] else "否")
@@ -171,6 +179,7 @@ def _interactive_mode() -> dict:
 
     return params
 
+
 def _build_requirements(
     requirements: Optional[List[str] | object],
     requirements_file: Optional[str | object],
@@ -181,6 +190,7 @@ def _build_requirements(
     if isinstance(requirements, list):
         result.extend(requirements)
     return result
+
 
 @app.command("package")
 def package(
@@ -363,6 +373,7 @@ def package(
             pip_tool=pip_tool,
         )
 
+
 @app.command("create")
 def create(
     plugin_type: Annotated[
@@ -374,15 +385,30 @@ def create(
         typer.Argument(help="源目录"),
     ] = ".",
 ):
-    src_path = Path(__file__).parent/"template"/plugin_type
-    dst_path = Path(dir).resolve()/"src"
-    if not dst_path.exists():
-        dst_path.mkdir()
+    src_path = Path(__file__).parent / "template" / plugin_type
+    dst_path = Path(dir).resolve() / "src"
+    template_files = sorted(
+        (path for path in src_path.iterdir() if path.is_file()),
+        key=lambda path: path.name,
+    )
+    conflicts = [
+        dst_path / path.name
+        for path in template_files
+        if (dst_path / path.name).exists()
+    ]
+    if conflicts:
+        names = ", ".join(path.name for path in conflicts)
+        raise typer.BadParameter(
+            f"destination already contains template files: {names}",
+            param_hint="dir",
+        )
+    dst_path.mkdir(parents=True, exist_ok=True)
     print("Source path:", src_path)
     print(f"Creating template {plugin_type} plugin to", dst_path)
-    for f in src_path.iterdir():
-        f.copy(dst_path/f.name)
+    for source in template_files:
+        shutil.copy2(source, dst_path / source.name)
     print("Completed.")
+
 
 @app.command("test")
 def test_plugin(
@@ -390,40 +416,22 @@ def test_plugin(
         Optional[str],
         typer.Argument(help="源目录"),
     ] = ".",
-    rfw: Annotated[
-        bool,
-        typer.Option(
-            "--rfw",
-            help="输出序列化后的RFW文本",
-        ),
-    ] = False,
     raw_output: Annotated[
         bool,
         typer.Option(
             "--raw-output",
             help="输出纯文本",
-        )
+        ),
     ] = False,
-    no_format_rfw: Annotated[
-        bool,
-        typer.Option(
-            "--no-format-rfw",
-            help="不格式化RFW文本"
-        )
-    ] = False
 ):
     dst_path = Path(dir).resolve()
-    TestCommand().run(
-        dst_path,
-        rfw,
-        raw_output,
-        no_format_rfw,
-        _console
-    )
+    TestCommand().run(dst_path, raw_output, _console)
+
 
 @app.callback()  # 为所有子命令添加此选项
 def common(version: VERSION_OPTION = False):
     pass
+
 
 if __name__ == "__main__":
     app()

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, Any, Dict, List
 from uuid import uuid4
 import time
@@ -8,26 +8,9 @@ from .consts import PathScope, LifecycleHook, ErrorCode
 def new_id() -> str:
     return uuid4().hex
 
+
 def now() -> int:
     return int(time.time() * 1000)
-
-
-class PagePayload(BaseModel):
-    pages: Dict[str, str]
-
-
-class CallbackPayload(BaseModel):
-    callbacks: List[str]
-
-
-class VarSetPayload(BaseModel):
-    name: str
-    value: Any
-
-
-class CallbackBindingPayload(BaseModel):
-    name: str
-    var: str
 
 
 class PathRequestPayload(BaseModel):
@@ -133,33 +116,6 @@ class EditorScrollToLinePayload(BaseModel):
     line: int
 
 
-class EventCallbackPayload(BaseModel):
-    page: str
-    name: str
-    args: Dict[str, Any]
-
-
-class RouterPushPayload(BaseModel):
-    page: str
-
-
-class RouterPopPayload(BaseModel):
-    pass
-
-
-class RouterReplacePayload(BaseModel):
-    page: str
-
-
-class RouterGotoPayload(BaseModel):
-    page: str
-
-
-class RouterSyncPayload(BaseModel):
-    page: str
-    stack: List[str]
-
-
 class LifecyclePayload(BaseModel):
     hook: LifecycleHook
 
@@ -206,45 +162,99 @@ class PersistenceListKeysPayload(BaseModel):
 class PersistenceClearPayload(BaseModel):
     group: str
 
+
 class FileResponseListDir(BaseModel):
     dir_list: list[str]
 
+
 class Envelope(BaseModel):
-    version: str = "0.0"
-    id: str = Field(default_factory=new_id)
-    type: str
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    protocol_version: int = Field(
+        default=1,
+        ge=1,
+        validation_alias="protocolVersion",
+        serialization_alias="protocolVersion",
+    )
+    plugin_id: str = Field(
+        default="standalone",
+        min_length=1,
+        validation_alias="pluginId",
+        serialization_alias="pluginId",
+    )
+    session_id: str = Field(
+        default="standalone",
+        min_length=1,
+        validation_alias="sessionId",
+        serialization_alias="sessionId",
+    )
+    generation: int = Field(default=1, ge=1)
+    request_id: str = Field(
+        default_factory=new_id,
+        min_length=1,
+        validation_alias="requestId",
+        serialization_alias="requestId",
+    )
+    reply_to: Optional[str] = Field(
+        default=None,
+        validation_alias="replyTo",
+        serialization_alias="replyTo",
+    )
+    sequence: int = Field(default=1, ge=1)
+    type: str = Field(min_length=1)
     payload: dict
     data: Optional[Any] = None
-    reply_to: Optional[str] = None
     timestamp: int = Field(default_factory=now)
+    deadline: Optional[int] = Field(
+        default=None,
+        ge=0,
+        exclude_if=lambda value: value is None,
+    )
+
+    def json(self, *args, **kwargs) -> str:
+        kwargs.setdefault("by_alias", True)
+        return self.model_dump_json(*args, **kwargs)
 
 
-def request(type_: str, payload: Optional[BaseModel] = None, data: Optional[Any] = None) -> Envelope:
+def request(
+    type_: str,
+    payload: Optional[BaseModel] = None,
+    data: Optional[Any] = None,
+    *,
+    deadline: Optional[int] = None,
+) -> Envelope:
     if payload is None:
         p = {}
     elif isinstance(payload, dict):
         p = payload
     else:
-        p = payload.dict()
-    return Envelope(type=type_, payload=p, data=data)
+        p = payload.model_dump()
+    return Envelope(type=type_, payload=p, data=data, deadline=deadline)
 
 
 def ok(original: Envelope, data: Any = None) -> Envelope:
     role = original.type.split(".", 1)[0]
     return Envelope(
         type=f"{role}.response.ok",
-        payload=OkResponsePayload(data=data).dict(),
-        reply_to=original.id,
+        payload=OkResponsePayload(data=data).model_dump(),
+        plugin_id=original.plugin_id,
+        session_id=original.session_id,
+        generation=original.generation,
+        reply_to=original.request_id,
     )
 
 
-def err(original: Envelope, code: ErrorCode, message: str,
-        details: Any = None) -> Envelope:
+def err(
+    original: Envelope, code: ErrorCode, message: str, details: Any = None
+) -> Envelope:
     role = original.type.split(".", 1)[0]
     return Envelope(
         type=f"{role}.response.error",
         payload=ErrorResponsePayload(
             code=code, message=message, details=details
-        ).dict(),
-        reply_to=original.id,
+        ).model_dump(),
+        plugin_id=original.plugin_id,
+        session_id=original.session_id,
+        generation=original.generation,
+        reply_to=original.request_id,
     )

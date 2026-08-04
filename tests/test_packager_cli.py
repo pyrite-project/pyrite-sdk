@@ -1,12 +1,48 @@
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
+from pyrite_sdk.models.manifest import PluginType, load_file
 from typer.testing import CliRunner
 
 from tools.main import app, _build_requirements
 
 
 class PackagerCliTest(unittest.TestCase):
+    def test_create_generates_a_valid_manifest_v2_template(self) -> None:
+        cases = {
+            "ui": (PluginType.UI, ["ui.view"]),
+            "service": (PluginType.SERVICE, ["file.read"]),
+            "data": (PluginType.DATA, ["data.write"]),
+        }
+        for template, (plugin_type, permissions) in cases.items():
+            with (
+                self.subTest(template=template),
+                tempfile.TemporaryDirectory() as temp,
+            ):
+                result = CliRunner().invoke(app, ["create", template, temp])
+
+                self.assertEqual(result.exit_code, 0, result.output)
+                manifest = load_file(Path(temp) / "src" / "plugin.toml")
+                self.assertEqual(manifest.manifest_version, 2)
+                self.assertEqual(manifest.type, plugin_type)
+                self.assertEqual(manifest.permissions, permissions)
+
+    def test_create_refuses_to_overwrite_existing_template_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            destination = Path(temp) / "src"
+            destination.mkdir()
+            manifest = destination / "plugin.toml"
+            manifest.write_text("keep me\n", encoding="utf-8")
+
+            result = CliRunner().invoke(app, ["create", "ui", temp])
+
+            self.assertNotEqual(result.exit_code, 0, result.output)
+            self.assertIn("already contains template files", result.output)
+            self.assertEqual(manifest.read_text(encoding="utf-8"), "keep me\n")
+            self.assertFalse((destination / "__main__.py").exists())
+
     def test_requirements_file_expands_to_pip_requirements_args(self) -> None:
         self.assertEqual(
             _build_requirements(

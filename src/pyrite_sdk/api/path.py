@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path as FilePath
 from typing import Optional, Callable, TYPE_CHECKING
 
@@ -14,15 +13,11 @@ if TYPE_CHECKING:
 class Path:
     def __init__(self, bridge: Bridge):
         self._bridge = bridge
-        self._plugin_path = self._environment_path("PYRITE_IDE_PLUGIN_DIR")
-        self._data_path = self._environment_path("PYRITE_IDE_PLUGIN_DATA_DIR")
-        self._cache_path = self._environment_path("PYRITE_IDE_PLUGIN_CACHE_DIR")
-        self._temp_path = self._environment_path("PYRITE_IDE_PLUGIN_TEMP_DIR")
-
-    @staticmethod
-    def _environment_path(name: str) -> Optional[FilePath]:
-        value = os.environ.get(name)
-        return FilePath(value) if value else None
+        context = getattr(bridge, "context", None)
+        self._plugin_path = getattr(context, "plugin_dir", None)
+        self._data_path = getattr(context, "data_dir", None)
+        self._cache_path = getattr(context, "cache_dir", None)
+        self._temp_path = getattr(context, "temp_dir", None)
 
     def get(self, scope: str | PathScope, callback: Optional[Callable] = None):
         scope_value = scope.value if isinstance(scope, PathScope) else scope

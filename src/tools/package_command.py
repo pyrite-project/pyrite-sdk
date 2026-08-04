@@ -6,9 +6,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 from pathlib import Path
 
+from pyrite_sdk.models.manifest import (
+    ManifestValidationError,
+    PluginManifestV2,
+    load_file,
+)
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
@@ -109,18 +113,11 @@ class PackageCommand:
         self._console.print(Rule(style="dim"))
 
     @staticmethod
-    def _read_manifest(manifest: Path) -> dict:
-        if not manifest.is_file():
-            raise ValueError(f"plugin.toml 不存在: {manifest}")
+    def _read_manifest(manifest: Path) -> PluginManifestV2:
         try:
-            with manifest.open("rb") as file:
-                config = tomllib.load(file)
-        except (OSError, tomllib.TOMLDecodeError) as exc:
-            raise ValueError(f"无法读取 plugin.toml: {exc}") from exc
-        general = config.get("general")
-        if not isinstance(general, dict):
-            raise ValueError("plugin.toml 缺少 [general]")  # noqa: TRY004
-        return general
+            return load_file(manifest)
+        except ManifestValidationError as exc:
+            raise ValueError(f"{exc.code}: {exc.message}") from exc
 
     def _copy_app(
         self,
@@ -260,12 +257,8 @@ class PackageCommand:
                 self._console.print("[red]源目录不存在.[/red]")
                 sys.exit(2)
 
-            general = self._read_manifest(source / "plugin.toml")
-            requested_version = general.get("python_version")
-            if requested_version is not None and (
-                not isinstance(requested_version, str) or not requested_version
-            ):
-                raise ValueError("plugin.toml [general].python_version 必须是字符串")
+            manifest = self._read_manifest(source / "plugin.toml")
+            requested_version = manifest.python_version
             self._release = resolve_python_release(requested_version)
             self._log(
                 f"目标 Python: [cyan]{self._release.short_version}[/cyan] "
@@ -284,9 +277,7 @@ class PackageCommand:
             app_staging_root = os.environ.get(app_environment_var)
             explicit_asset = asset is not None and bool(asset.strip())
             native_staging = bool(app_staging_root and not explicit_asset)
-            plugin_id = general.get("id")
-            if not isinstance(plugin_id, str) or not plugin_id:
-                raise ValueError("plugin.toml [general].id 必须是字符串")
+            plugin_id = manifest.id
             asset_path = asset if explicit_asset else None
             if asset_path is None:
                 asset_path = f"build/{plugin_id}.zip"
