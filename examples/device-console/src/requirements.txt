@@ -1,1 +1,0 @@
-E:\Can1425\pyrite-sdk\dist\pyrite_sdk-1.0.0-py3-none-any.whl
