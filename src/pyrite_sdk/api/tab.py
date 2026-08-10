@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from ..models.schema import request
 
@@ -19,7 +19,7 @@ class TabViewInstance:
     instance_id: str
 
     @classmethod
-    def from_json(cls, data: dict) -> "TabViewInstance":
+    def from_json(cls, data: dict[str, Any]) -> "TabViewInstance":
         return cls(
             plugin_id=str(data.get("pluginId", "")),
             session_id=str(data.get("sessionId", "")),
@@ -40,13 +40,15 @@ class Tabs:
         *,
         title: Optional[str] = None,
         expansion: bool = False,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         payload = {"viewId": view_id, "expansion": expansion}
         if title is not None:
             payload["title"] = title
 
-        def _cb(data=None, error=None, **_) -> None:
+        def _cb(
+            data: Any = None, error: Any = None, **_: Any
+        ) -> None:
             if callback is None:
                 return
             if error is not None:

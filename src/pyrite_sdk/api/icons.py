@@ -9,7 +9,7 @@ from .material_icons import (
 class MaterialIcon(str):
     """Typed reference to one Flutter Material icon."""
 
-    def __new__(cls, name: str):
+    def __new__(cls, name: str) -> "MaterialIcon":
         if name not in MATERIAL_ICON_CODES:
             raise ValueError(f"Unknown Flutter Material icon: {name}")
         value = str.__new__(cls, f"material:{name}")

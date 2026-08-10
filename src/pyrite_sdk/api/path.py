@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path as FilePath
-from typing import Optional, Callable, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from ..models.consts import PathScope
 from ..models.schema import PathRequestPayload, request
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class Path:
-    def __init__(self, bridge: Bridge):
+    def __init__(self, bridge: Bridge) -> None:
         self._bridge = bridge
         context = getattr(bridge, "context", None)
         self._plugin_path = getattr(context, "plugin_dir", None)
@@ -19,7 +19,11 @@ class Path:
         self._cache_path = getattr(context, "cache_dir", None)
         self._temp_path = getattr(context, "temp_dir", None)
 
-    def get(self, scope: str | PathScope, callback: Optional[Callable] = None):
+    def get(
+        self,
+        scope: str | PathScope,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         scope_value = scope.value if isinstance(scope, PathScope) else scope
         self._bridge.push_wait_response(
             request(

@@ -1,10 +1,9 @@
 manifest_version = 2
-id = "template-service-plugin"
-name = "Template Service Plugin"
+id = "<plugin-id>"
+name = "<PluginId>"
 version = "1.0.0"
 type = "service"
 protocol_version = 1
-python_version = "3.14"
 author = "Your name"
 activation_events = ["onStartup"]
 permissions = ["file.read"]

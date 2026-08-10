@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import json
 from contextlib import contextmanager
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Iterable, Iterator, Optional, TYPE_CHECKING
 from uuid import uuid4
 
 from ..models.schema import request
@@ -16,6 +16,18 @@ from .components import (
 
 if TYPE_CHECKING:
     from ..core.bridge import Bridge
+    from .native_views import (
+        FormView,
+        LogView,
+        MarkdownView,
+        OutlineView,
+        TableColumn,
+        TableView,
+        TreeView,
+        VariableInspectorView,
+        ViewAction,
+        VirtualListView,
+    )
 
 
 MAX_SNAPSHOT_NODES = 20_000
@@ -37,14 +49,14 @@ class PatchOp:
         op: str,
         id: str,
         index: Optional[int] = None,
-        data: Optional[dict] = None,
-    ):
+        data: Optional[dict[str, Any]] = None,
+    ) -> None:
         self.op = op
         self.id = id
         self.index = index
         self.data = data
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict[str, Any]:
         payload: dict[str, Any] = {"op": self.op, "id": self.id}
         if self.index is not None:
             payload["index"] = self.index
@@ -66,12 +78,12 @@ class ViewModel:
         bridge: "Bridge",
         view_id: str,
         instance_id: Optional[str] = None,
-    ):
+    ) -> None:
         self._bridge = bridge
         self.view_id = view_id
         self.instance_id = instance_id or uuid4().hex
         self.revision = 0
-        self._nodes: list[dict] = []
+        self._nodes: list[dict[str, Any]] = []
         self._pending: list[PatchOp] = []
         self._in_flight: Optional[int] = None
         self._closed = False
@@ -80,27 +92,33 @@ class ViewModel:
         # pushes it back on ide.view.route.sync, so these mirror the last sync.
         self._route = "home"
         self._route_stack: list[str] = ["home"]
-        self._route_params: dict = {}
-        self._route_handlers: list[Callable] = []
+        self._route_params: dict[str, Any] = {}
+        self._route_handlers: list[
+            Callable[[str, dict[str, Any]], None]
+        ] = []
         # (component_id, event) -> handler, rebuilt from the component tree on
         # every snapshot/patch so a removed component's handler goes with it.
-        self._handlers: dict[tuple[str, str], Callable] = {}
-        self._transient_handlers: dict[tuple[str, str], Callable] = {}
+        self._handlers: dict[tuple[str, str], Callable[..., Any]] = {}
+        self._transient_handlers: dict[
+            tuple[str, str], Callable[..., Any]
+        ] = {}
         # Renderer-driven views send plain data nodes rather than a component
         # tree. Their root events are registered explicitly and survive model
         # snapshots, unlike handlers collected from component nodes.
-        self._explicit_handlers: dict[tuple[str, str], Callable] = {}
+        self._explicit_handlers: dict[
+            tuple[str, str], Callable[..., Any]
+        ] = {}
         self._visible = True
         self._needs_snapshot = False
         self._visibility_handlers: list[Callable[[bool], None]] = []
 
     # -- Identity -----------------------------------------------------------
 
-    def _keys(self) -> dict:
+    def _keys(self) -> dict[str, str]:
         return {"viewId": self.view_id, "instanceId": self.instance_id}
 
     @property
-    def nodes(self) -> list[dict]:
+    def nodes(self) -> list[dict[str, Any]]:
         return list(self._nodes)
 
     @property
@@ -113,7 +131,7 @@ class ViewModel:
 
     # -- Lifecycle ----------------------------------------------------------
 
-    def open(self, callback: Optional[Callable] = None) -> None:
+    def open(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.view.open", payload=self._keys()), callback=callback
         )
@@ -124,7 +142,7 @@ class ViewModel:
         if self._needs_snapshot and self._nodes and not self._closed:
             self.snapshot(self._nodes, revision=self.revision)
 
-    def close(self, callback: Optional[Callable] = None) -> None:
+    def close(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._closed = True
         self._pending.clear()
         self._in_flight = None
@@ -134,9 +152,9 @@ class ViewModel:
 
     def snapshot(
         self,
-        nodes: list[dict],
+        nodes: list[dict[str, Any]],
         revision: Optional[int] = None,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         """Sends a full snapshot and resets local patch state."""
         if self._closed:
@@ -183,12 +201,15 @@ class ViewModel:
         )
         self._needs_snapshot = not delivered
 
-    def _wire_nodes(self) -> list:
+    def _wire_nodes(self) -> list[Any]:
         """Nodes in wire form, with component handlers reduced to markers."""
         return [_wire_component_value(node) for node in self._nodes]
 
     def dispatch_event(
-        self, component_id: str, event: str, payload: Optional[dict] = None
+        self,
+        component_id: str,
+        event: str,
+        payload: Optional[dict[str, Any]] = None,
     ) -> bool:
         """Invokes the handler for a component event; True when one ran."""
         handler = self._explicit_handlers.get(
@@ -204,8 +225,10 @@ class ViewModel:
         return True
 
     async def request_context_menu(
-        self, component_id: str, payload: Optional[dict] = None
-    ) -> Optional[dict]:
+        self,
+        component_id: str,
+        payload: Optional[dict[str, Any]] = None,
+    ) -> Optional[dict[str, Any]]:
         """Invokes a row menu provider and returns its ContextMenu wire node."""
         handler = self._explicit_handlers.get(
             (component_id, "contextMenuRequest"),
@@ -223,7 +246,12 @@ class ViewModel:
         self._transient_handlers.update(collect_handlers(menu))
         return menu.to_json()
 
-    def on_event(self, component_id: str, event: str, handler: Callable) -> Callable:
+    def on_event(
+        self,
+        component_id: str,
+        event: str,
+        handler: Callable[..., Any],
+    ) -> Callable[..., Any]:
         """Register an event handler for a renderer root or component id."""
         self._explicit_handlers[(component_id, event)] = handler
         return handler
@@ -235,8 +263,8 @@ class ViewModel:
         self,
         component_id: str,
         method: str,
-        arguments: Optional[dict] = None,
-        callback: Optional[Callable] = None,
+        arguments: Optional[dict[str, Any]] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         """Invokes a typed operation on a mounted component in this instance."""
         if self._closed:
@@ -258,7 +286,9 @@ class ViewModel:
     def visible(self) -> bool:
         return self._visible
 
-    def on_visibility(self, handler: Callable[[bool], None]) -> Callable:
+    def on_visibility(
+        self, handler: Callable[[bool], None]
+    ) -> Callable[[bool], None]:
         self._visibility_handlers.append(handler)
         return handler
 
@@ -283,10 +313,12 @@ class ViewModel:
         return list(self._route_stack)
 
     @property
-    def route_params(self) -> dict:
+    def route_params(self) -> dict[str, Any]:
         return dict(self._route_params)
 
-    def on_route(self, handler: Callable) -> Callable:
+    def on_route(
+        self, handler: Callable[[str, dict[str, Any]], None]
+    ) -> Callable[[str, dict[str, Any]], None]:
         """Registers a handler called with (route, params) on every route sync."""
         self._route_handlers.append(handler)
         return handler
@@ -294,28 +326,28 @@ class ViewModel:
     def push_route(
         self,
         route: str,
-        params: Optional[dict] = None,
-        callback: Optional[Callable] = None,
+        params: Optional[dict[str, Any]] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         self._send_route("sdk.view.route.push", route, params, callback)
 
     def replace_route(
         self,
         route: str,
-        params: Optional[dict] = None,
-        callback: Optional[Callable] = None,
+        params: Optional[dict[str, Any]] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         self._send_route("sdk.view.route.replace", route, params, callback)
 
     def goto_route(
         self,
         route: str,
-        params: Optional[dict] = None,
-        callback: Optional[Callable] = None,
+        params: Optional[dict[str, Any]] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         self._send_route("sdk.view.route.goto", route, params, callback)
 
-    def pop_route(self, callback: Optional[Callable] = None) -> None:
+    def pop_route(self, callback: Optional[Callable[..., Any]] = None) -> None:
         if self._closed:
             raise ViewProtocolError("view is closed")
         self._bridge.push_wait_response(
@@ -326,8 +358,8 @@ class ViewModel:
         self,
         type: str,
         route: str,
-        params: Optional[dict],
-        callback: Optional[Callable],
+        params: Optional[dict[str, Any]],
+        callback: Optional[Callable[..., Any]],
     ) -> None:
         if self._closed:
             raise ViewProtocolError("view is closed")
@@ -339,7 +371,10 @@ class ViewModel:
         )
 
     def route_sync(
-        self, route: str, stack: list, params: Optional[dict] = None
+        self,
+        route: str,
+        stack: list[Any],
+        params: Optional[dict[str, Any]] = None,
     ) -> None:
         """Handles an ``ide.view.route.sync`` control frame."""
         self._route = route
@@ -350,10 +385,12 @@ class ViewModel:
 
     # -- Mutations ----------------------------------------------------------
 
-    def insert(self, id: str, data: dict, index: Optional[int] = None) -> None:
+    def insert(
+        self, id: str, data: dict[str, Any], index: Optional[int] = None
+    ) -> None:
         self._queue(PatchOp("insert", id, index=index, data=data))
 
-    def update(self, id: str, data: dict) -> None:
+    def update(self, id: str, data: dict[str, Any]) -> None:
         self._queue(PatchOp("update", id, data=data))
 
     def remove(self, id: str) -> None:
@@ -395,7 +432,7 @@ class ViewModel:
             self.flush()
 
     @contextmanager
-    def batch(self):
+    def batch(self) -> Iterator["ViewModel"]:
         """Groups operations so they are sent as one patch transaction."""
         self._batch_depth += 1
         try:
@@ -477,7 +514,9 @@ class ViewModel:
 
     # -- Host responses -----------------------------------------------------
 
-    def _on_patch_response(self, data=None, error=None, **_):
+    def _on_patch_response(
+        self, data: Any = None, error: Any = None, **_: Any
+    ) -> None:
         if error is not None:
             if getattr(error, "code", None) == "delivery_paused":
                 # Keep the locally updated model. The IDE sends an explicit
@@ -519,7 +558,7 @@ class ViewModel:
 class Views:
     """Creates and tracks the plugin's native view models."""
 
-    def __init__(self, bridge: "Bridge"):
+    def __init__(self, bridge: "Bridge") -> None:
         self._bridge = bridge
         self._models: dict[tuple[str, str], ViewModel] = {}
         # view_id -> container id, read lazily from the plugin manifest so the
@@ -584,8 +623,8 @@ class Views:
         instance_id: Optional[str] = None,
         *,
         title: str = "Outline",
-        actions=(),
-    ):
+        actions: Iterable["ViewAction"] = (),
+    ) -> "OutlineView":
         """Creates a typed ``native.outline`` view facade."""
         from .native_views import OutlineView
 
@@ -601,13 +640,13 @@ class Views:
         instance_id: Optional[str] = None,
         *,
         title: str = "Tree",
-        actions=(),
-        expanded_ids=None,
-        selected_id=None,
-        indent=None,
-        searchable=None,
-        empty_label=None,
-    ):
+        actions: Iterable["ViewAction"] = (),
+        expanded_ids: Optional[Iterable[str]] = None,
+        selected_id: Optional[str] = None,
+        indent: Optional[float] = None,
+        searchable: Optional[bool] = None,
+        empty_label: Optional[str] = None,
+    ) -> "TreeView":
         """Creates a typed ``native.tree`` view facade."""
         from .native_views import TreeView
 
@@ -627,12 +666,12 @@ class Views:
         instance_id: Optional[str] = None,
         *,
         title: str = "List",
-        actions=(),
-        item_count=None,
-        item_height=None,
-        selected_id=None,
-        empty_label=None,
-    ):
+        actions: Iterable["ViewAction"] = (),
+        item_count: Optional[int] = None,
+        item_height: Optional[float] = None,
+        selected_id: Optional[str] = None,
+        empty_label: Optional[str] = None,
+    ) -> "VirtualListView":
         """Creates a typed ``native.virtualList`` view facade."""
         from .native_views import VirtualListView
 
@@ -653,16 +692,16 @@ class Views:
         instance_id: Optional[str] = None,
         *,
         title: str = "Table",
-        columns=(),
-        actions=(),
-        row_count=None,
-        row_height=None,
-        show_header=None,
-        selected_id=None,
-        sort_column=None,
-        sort_ascending=None,
-        empty_label=None,
-    ):
+        columns: Iterable["TableColumn"] = (),
+        actions: Iterable["ViewAction"] = (),
+        row_count: Optional[int] = None,
+        row_height: Optional[float] = None,
+        show_header: Optional[bool] = None,
+        selected_id: Optional[str] = None,
+        sort_column: Optional[str] = None,
+        sort_ascending: Optional[bool] = None,
+        empty_label: Optional[str] = None,
+    ) -> "TableView":
         """Creates a typed ``native.table`` view facade."""
         from .native_views import TableView
 
@@ -687,8 +726,8 @@ class Views:
         instance_id: Optional[str] = None,
         *,
         title: str = "Form",
-        actions=(),
-    ):
+        actions: Iterable["ViewAction"] = (),
+    ) -> "FormView":
         """Creates a typed ``native.form`` view facade."""
         from .native_views import FormView
 
@@ -700,8 +739,8 @@ class Views:
         instance_id: Optional[str] = None,
         *,
         title: str = "Markdown",
-        actions=(),
-    ):
+        actions: Iterable["ViewAction"] = (),
+    ) -> "MarkdownView":
         """Creates a typed ``native.markdown`` view facade."""
         from .native_views import MarkdownView
 
@@ -715,10 +754,10 @@ class Views:
         instance_id: Optional[str] = None,
         *,
         title: str = "Log",
-        actions=(),
-        item_height=None,
-        empty_label=None,
-    ):
+        actions: Iterable["ViewAction"] = (),
+        item_height: Optional[float] = None,
+        empty_label: Optional[str] = None,
+    ) -> "LogView":
         """Creates a typed ``native.log`` view facade."""
         from .native_views import LogView
 
@@ -732,8 +771,8 @@ class Views:
         instance_id: Optional[str] = None,
         *,
         title: str = "Device Variables",
-        actions=(),
-    ):
+        actions: Iterable["ViewAction"] = (),
+    ) -> "VariableInspectorView":
         """Creates a typed ``native.variableInspector`` view facade."""
         from .native_views import VariableInspectorView
 
@@ -758,7 +797,7 @@ class Views:
         ]
         return matches[0] if len(matches) == 1 else None
 
-    def handle_frame(self, type: str, payload: dict) -> None:
+    def handle_frame(self, type: str, payload: dict[str, Any]) -> None:
         """Routes an inbound ``ide.view.*`` control frame to its model."""
         instance = payload.get("instance") or {}
         instance_id = instance.get("instanceId") or payload.get("instanceId")
@@ -796,7 +835,9 @@ class Views:
         elif type == "ide.view.visibility.changed":
             model.visibility_sync(bool(payload.get("visible", False)))
 
-    async def handle_context_menu_request(self, payload: dict) -> Optional[dict]:
+    async def handle_context_menu_request(
+        self, payload: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
         instance = payload.get("instance") or {}
         instance_id = instance.get("instanceId") or payload.get("instanceId")
         view_id = instance.get("viewId") or payload.get("viewId")

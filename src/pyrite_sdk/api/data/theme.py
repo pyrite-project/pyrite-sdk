@@ -7,10 +7,15 @@ if TYPE_CHECKING:
 
 
 class Theme:
-    def __init__(self, bridge: Bridge):
+    def __init__(self, bridge: Bridge) -> None:
         self._bridge = bridge
 
-    def contribute(self, name: str, data: Any, callback: Optional[Callable] = None):
+    def contribute(
+        self,
+        name: str,
+        data: Any,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.theme.contribute",
@@ -19,7 +24,12 @@ class Theme:
             callback=callback,
         )
 
-    def register_runtime(self, name: str, data: Any, callback: Optional[Callable] = None):
+    def register_runtime(
+        self,
+        name: str,
+        data: Any,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.theme.register_runtime",
@@ -28,13 +38,21 @@ class Theme:
             callback=callback,
         )
 
-    def revoke(self, name: str, callback: Optional[Callable] = None):
+    def revoke(
+        self,
+        name: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.theme.revoke", payload={"name": name}),
             callback=callback,
         )
 
-    def get(self, name: str, callback: Optional[Callable] = None):
+    def get(
+        self,
+        name: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.theme.get",
@@ -43,7 +61,7 @@ class Theme:
             callback=callback,
         )
 
-    def list(self, callback: Optional[Callable] = None):
+    def list(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.theme.list"),
             callback=callback,

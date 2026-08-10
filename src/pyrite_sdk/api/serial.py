@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Callable, Optional, Sequence, TYPE_CHECKING
 
 from ..models.schema import request
 
@@ -9,34 +9,40 @@ if TYPE_CHECKING:
 
 
 class Serial:
-    def __init__(self, bridge: Bridge):
+    def __init__(self, bridge: Bridge) -> None:
         self._bridge = bridge
 
-    def list_ports(self, callback: Optional[Callable] = None):
+    def list_ports(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.serial.list_ports"),
             callback=callback,
         )
 
-    def get_status(self, callback: Optional[Callable] = None):
+    def get_status(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.serial.get_status"),
             callback=callback,
         )
 
-    def connect(self, port: str, callback: Optional[Callable] = None):
+    def connect(
+        self, port: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.serial.connect", payload={"port": port}),
             callback=callback,
         )
 
-    def disconnect(self, callback: Optional[Callable] = None):
+    def disconnect(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.serial.disconnect"),
             callback=callback,
         )
 
-    def send(self, data: str | bytes | Sequence[int], callback: Optional[Callable] = None):
+    def send(
+        self,
+        data: str | bytes | Sequence[int],
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         if isinstance(data, bytes):
             payload_data = list(data)
         else:
@@ -50,8 +56,8 @@ class Serial:
         self,
         command: str,
         chunked: bool = True,
-        callback: Optional[Callable] = None,
-    ):
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.serial.send_command",
@@ -64,8 +70,8 @@ class Serial:
         self,
         timeout_ms: int = 1000,
         max_bytes: Optional[int] = None,
-        callback: Optional[Callable] = None,
-    ):
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         payload = {"timeout_ms": timeout_ms}
         if max_bytes is not None:
             payload["max_bytes"] = max_bytes
@@ -78,8 +84,8 @@ class Serial:
         self,
         code: str,
         timeout_ms: int = 20000,
-        callback: Optional[Callable] = None,
-    ):
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.serial.run_python",
@@ -88,19 +94,25 @@ class Serial:
             callback=callback,
         )
 
-    def hardware_reset(self, callback: Optional[Callable] = None):
+    def hardware_reset(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.serial.hardware_reset"),
             callback=callback,
         )
 
-    def set_baud_rate(self, value: int, callback: Optional[Callable] = None):
+    def set_baud_rate(
+        self, value: int, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.serial.set_baud_rate", payload={"value": value}),
             callback=callback,
         )
 
-    def set_auto_reconnect(self, value: bool, callback: Optional[Callable] = None):
+    def set_auto_reconnect(
+        self, value: bool, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.serial.set_auto_reconnect", payload={"value": value}),
             callback=callback,

@@ -7,7 +7,7 @@ from urllib.parse import quote
 class PluginResource(str):
     """Plugin-scoped, read-only resource below the package assets directory."""
 
-    def __new__(cls, path: str):
+    def __new__(cls, path: str) -> "PluginResource":
         normalized = path.replace("\\", "/")
         parts = PurePosixPath(normalized).parts
         if (

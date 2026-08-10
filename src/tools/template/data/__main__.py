@@ -1,7 +1,7 @@
 ﻿from pyrite_sdk.core.plugin import DataPlugin
 
 
-class TemplateThemePlugin(DataPlugin):
+class <PluginId>Plugin(DataPlugin):
     def on_contribute(self):
         self.theme.contribute(
             "nord",
@@ -18,7 +18,7 @@ class TemplateThemePlugin(DataPlugin):
         )
 
 
-plugin = TemplateThemePlugin()
+plugin = <PluginId>Plugin()
 
 if __name__ == "__main__":
     plugin.run_once()

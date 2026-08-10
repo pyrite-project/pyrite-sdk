@@ -13,19 +13,19 @@ helpers here also accept a list of ``(x, y)`` pairs and flatten it.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 from .resources import PluginResource
 
 
-def _compact(mapping: dict) -> dict:
+def _compact(mapping: dict[str, Any]) -> dict[str, Any]:
     """Returns [mapping] with ``None`` values removed, order preserved."""
     return {key: value for key, value in mapping.items() if value is not None}
 
 
-def _flatten_points(points) -> list:
+def _flatten_points(points: Iterable[Any]) -> list[Any]:
     """Accepts a flat ``[x0, y0, ...]`` list or ``[(x, y), ...]`` pairs."""
-    flat: list = []
+    flat: list[Any] = []
     for point in points:
         if isinstance(point, (list, tuple)):
             flat.extend(point)
@@ -41,17 +41,17 @@ class _Color:
     """Factory for canvas color tokens (hex ``#RRGGBB``/``#AARRGGBB`` or
     ``theme:<role>``). Callable for pass-through; theme roles are attributes."""
 
-    primary = "theme:primary"
-    on_primary = "theme:onPrimary"
-    secondary = "theme:secondary"
-    on_secondary = "theme:onSecondary"
-    surface = "theme:surface"
-    on_surface = "theme:onSurface"
-    on_surface_variant = "theme:onSurfaceVariant"
-    surface_container_highest = "theme:surfaceContainerHighest"
-    outline = "theme:outline"
-    error = "theme:error"
-    on_error = "theme:onError"
+    primary: str = "theme:primary"
+    on_primary: str = "theme:onPrimary"
+    secondary: str = "theme:secondary"
+    on_secondary: str = "theme:onSecondary"
+    surface: str = "theme:surface"
+    on_surface: str = "theme:onSurface"
+    on_surface_variant: str = "theme:onSurfaceVariant"
+    surface_container_highest: str = "theme:surfaceContainerHighest"
+    outline: str = "theme:outline"
+    error: str = "theme:error"
+    on_error: str = "theme:onError"
 
     def __call__(self, value: str) -> str:
         return str(value)
@@ -61,16 +61,20 @@ class _Color:
 
 
 #: Both ``Color`` and ``color`` produce a color token string.
-Color = _Color()
-color = Color
+Color: _Color = _Color()
+color: _Color = Color
 
 
 # -- Gradients ----------------------------------------------------------------
 
 
 def linear_gradient(
-    frm, to, colors, stops=None, tile_mode=None
-) -> dict:
+    frm: Iterable[Any],
+    to: Iterable[Any],
+    colors: Iterable[Any],
+    stops: Optional[Iterable[Any]] = None,
+    tile_mode: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "type": "linear",
@@ -84,8 +88,13 @@ def linear_gradient(
 
 
 def radial_gradient(
-    center, radius, colors, stops=None, focal=None, tile_mode=None
-) -> dict:
+    center: Iterable[Any],
+    radius: Any,
+    colors: Iterable[Any],
+    stops: Optional[Iterable[Any]] = None,
+    focal: Optional[Iterable[Any]] = None,
+    tile_mode: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "type": "radial",
@@ -104,16 +113,16 @@ def radial_gradient(
 
 def paint(
     *,
-    color=None,
-    stroke_width=None,
-    style=None,
-    stroke_cap=None,
-    stroke_join=None,
-    opacity=None,
-    blend_mode=None,
-    shader=None,
-    anti_alias=None,
-) -> dict:
+    color: Any = None,
+    stroke_width: Any = None,
+    style: Any = None,
+    stroke_cap: Any = None,
+    stroke_join: Any = None,
+    opacity: Any = None,
+    blend_mode: Any = None,
+    shader: Any = None,
+    anti_alias: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "color": color,
@@ -132,27 +141,54 @@ def paint(
 # -- Geometry -----------------------------------------------------------------
 
 
-def line(x1, y1, x2, y2, *, paint, id=None) -> dict:
+def line(
+    x1: Any,
+    y1: Any,
+    x2: Any,
+    y2: Any,
+    *,
+    paint: dict[str, Any],
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {"op": "line", "x1": x1, "y1": y1, "x2": x2, "y2": y2, "id": id, "paint": paint}
     )
 
 
-def polyline(points, *, paint, id=None) -> dict:
+def polyline(
+    points: Iterable[Any], *, paint: dict[str, Any], id: Any = None
+) -> dict[str, Any]:
     return _compact(
         {"op": "polyline", "points": _flatten_points(points), "id": id, "paint": paint}
     )
 
 
-def rect(x, y, w, h, *, paint, id=None) -> dict:
+def rect(
+    x: Any,
+    y: Any,
+    w: Any,
+    h: Any,
+    *,
+    paint: dict[str, Any],
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {"op": "rect", "x": x, "y": y, "w": w, "h": h, "id": id, "paint": paint}
     )
 
 
 def rrect(
-    x, y, w, h, *, paint, radius=None, rx=None, ry=None, id=None
-) -> dict:
+    x: Any,
+    y: Any,
+    w: Any,
+    h: Any,
+    *,
+    paint: dict[str, Any],
+    radius: Any = None,
+    rx: Any = None,
+    ry: Any = None,
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "rrect",
@@ -169,30 +205,45 @@ def rrect(
     )
 
 
-def circle(cx, cy, r, *, paint, id=None) -> dict:
+def circle(
+    cx: Any,
+    cy: Any,
+    r: Any,
+    *,
+    paint: dict[str, Any],
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {"op": "circle", "cx": cx, "cy": cy, "r": r, "id": id, "paint": paint}
     )
 
 
-def oval(x, y, w, h, *, paint, id=None) -> dict:
+def oval(
+    x: Any,
+    y: Any,
+    w: Any,
+    h: Any,
+    *,
+    paint: dict[str, Any],
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {"op": "oval", "x": x, "y": y, "w": w, "h": h, "id": id, "paint": paint}
     )
 
 
 def arc(
-    x,
-    y,
-    w,
-    h,
-    start_angle,
-    sweep_angle,
+    x: Any,
+    y: Any,
+    w: Any,
+    h: Any,
+    start_angle: Any,
+    sweep_angle: Any,
     *,
-    paint,
-    use_center=None,
-    id=None,
-) -> dict:
+    paint: dict[str, Any],
+    use_center: Any = None,
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "arc",
@@ -209,7 +260,13 @@ def arc(
     )
 
 
-def points(mode, points, *, paint, id=None) -> dict:
+def points(
+    mode: Any,
+    points: Iterable[Any],
+    *,
+    paint: dict[str, Any],
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "points",
@@ -221,7 +278,13 @@ def points(mode, points, *, paint, id=None) -> dict:
     )
 
 
-def polygon(points, *, paint, closed=None, id=None) -> dict:
+def polygon(
+    points: Iterable[Any],
+    *,
+    paint: dict[str, Any],
+    closed: Any = None,
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "polygon",
@@ -236,27 +299,35 @@ def polygon(points, *, paint, closed=None, id=None) -> dict:
 # -- Path ---------------------------------------------------------------------
 
 
-def move_to(x, y) -> dict:
+def move_to(x: Any, y: Any) -> dict[str, Any]:
     return {"c": "moveTo", "x": x, "y": y}
 
 
-def line_to(x, y) -> dict:
+def line_to(x: Any, y: Any) -> dict[str, Any]:
     return {"c": "lineTo", "x": x, "y": y}
 
 
-def quad_to(x1, y1, x, y) -> dict:
+def quad_to(x1: Any, y1: Any, x: Any, y: Any) -> dict[str, Any]:
     return {"c": "quadTo", "x1": x1, "y1": y1, "x": x, "y": y}
 
 
-def cubic_to(x1, y1, x2, y2, x, y) -> dict:
+def cubic_to(
+    x1: Any, y1: Any, x2: Any, y2: Any, x: Any, y: Any
+) -> dict[str, Any]:
     return {"c": "cubicTo", "x1": x1, "y1": y1, "x2": x2, "y2": y2, "x": x, "y": y}
 
 
-def close() -> dict:
+def close() -> dict[str, Any]:
     return {"c": "close"}
 
 
-def path(commands, *, paint, fill_rule=None, id=None) -> dict:
+def path(
+    commands: Iterable[dict[str, Any]],
+    *,
+    paint: dict[str, Any],
+    fill_rule: Any = None,
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "path",
@@ -272,19 +343,19 @@ def path(commands, *, paint, fill_rule=None, id=None) -> dict:
 
 
 def text(
-    x,
-    y,
-    value,
+    x: Any,
+    y: Any,
+    value: Any,
     *,
-    size=None,
-    family=None,
-    weight=None,
-    italic=None,
-    color=None,
-    align=None,
-    max_width=None,
-    id=None,
-) -> dict:
+    size: Any = None,
+    family: Any = None,
+    weight: Any = None,
+    italic: Any = None,
+    color: Any = None,
+    align: Any = None,
+    max_width: Any = None,
+    id: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "text",
@@ -308,18 +379,18 @@ def text(
 
 def image(
     src: PluginResource,
-    x,
-    y,
+    x: Any,
+    y: Any,
     *,
-    width=None,
-    height=None,
-    src_x=None,
-    src_y=None,
-    src_w=None,
-    src_h=None,
-    opacity=None,
-    id=None,
-) -> dict:
+    width: Any = None,
+    height: Any = None,
+    src_x: Any = None,
+    src_y: Any = None,
+    src_w: Any = None,
+    src_h: Any = None,
+    opacity: Any = None,
+    id: Any = None,
+) -> dict[str, Any]:
     if not isinstance(src, PluginResource):
         raise TypeError("Canvas image sources must use plugin.resources.asset(...)")
     return _compact(
@@ -343,7 +414,9 @@ def image(
 # -- Clip ---------------------------------------------------------------------
 
 
-def clip_rect(x, y, w, h, *, anti_alias=None) -> dict:
+def clip_rect(
+    x: Any, y: Any, w: Any, h: Any, *, anti_alias: Any = None
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "clip",
@@ -357,7 +430,15 @@ def clip_rect(x, y, w, h, *, anti_alias=None) -> dict:
     )
 
 
-def clip_rrect(x, y, w, h, radius, *, anti_alias=None) -> dict:
+def clip_rrect(
+    x: Any,
+    y: Any,
+    w: Any,
+    h: Any,
+    radius: Any,
+    *,
+    anti_alias: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "clip",
@@ -372,7 +453,12 @@ def clip_rrect(x, y, w, h, radius, *, anti_alias=None) -> dict:
     )
 
 
-def clip_path(commands, *, fill_rule=None, anti_alias=None) -> dict:
+def clip_path(
+    commands: Iterable[dict[str, Any]],
+    *,
+    fill_rule: Any = None,
+    anti_alias: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "clip",
@@ -387,15 +473,17 @@ def clip_path(commands, *, fill_rule=None, anti_alias=None) -> dict:
 # -- Layers -------------------------------------------------------------------
 
 
-def save() -> dict:
+def save() -> dict[str, Any]:
     return {"op": "save"}
 
 
-def restore() -> dict:
+def restore() -> dict[str, Any]:
     return {"op": "restore"}
 
 
-def save_layer(*, bounds=None, opacity=None) -> dict:
+def save_layer(
+    *, bounds: Optional[Iterable[Any]] = None, opacity: Any = None
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "saveLayer",
@@ -405,7 +493,12 @@ def save_layer(*, bounds=None, opacity=None) -> dict:
     )
 
 
-def group(*ops, opacity=None, transform=None, clip=None) -> dict:
+def group(
+    *ops: dict[str, Any],
+    opacity: Any = None,
+    transform: Optional[Iterable[Any]] = None,
+    clip: Any = None,
+) -> dict[str, Any]:
     return _compact(
         {
             "op": "group",
@@ -420,19 +513,23 @@ def group(*ops, opacity=None, transform=None, clip=None) -> dict:
 # -- Transform ----------------------------------------------------------------
 
 
-def translate(dx, dy) -> dict:
+def translate(dx: Any, dy: Any) -> dict[str, Any]:
     return {"op": "translate", "dx": dx, "dy": dy}
 
 
-def scale(sx, sy=None) -> dict:
+def scale(sx: Any, sy: Any = None) -> dict[str, Any]:
     return _compact({"op": "scale", "sx": sx, "sy": sy})
 
 
-def rotate(radians, px=None, py=None) -> dict:
+def rotate(radians: Any, px: Any = None, py: Any = None) -> dict[str, Any]:
     return _compact({"op": "rotate", "radians": radians, "px": px, "py": py})
 
 
-def matrix(*, affine=None, m4=None) -> dict:
+def matrix(
+    *,
+    affine: Optional[Iterable[Any]] = None,
+    m4: Any = None,
+) -> dict[str, Any]:
     if (affine is None) == (m4 is None):
         raise ValueError("matrix requires exactly one of affine or m4")
     if affine is not None:

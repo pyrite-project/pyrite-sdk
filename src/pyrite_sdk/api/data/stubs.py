@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 
 class Stubs:
-    def __init__(self, bridge: Bridge):
+    def __init__(self, bridge: Bridge) -> None:
         self._bridge = bridge
 
     def contribute(
@@ -20,8 +20,8 @@ class Stubs:
         version: str = "",
         aliases: Optional[list[str]] = None,
         metadata: Optional[dict[str, Any]] = None,
-        callback: Optional[Callable] = None,
-    ):
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.stubs.contribute",
@@ -45,8 +45,8 @@ class Stubs:
         version: str = "",
         aliases: Optional[list[str]] = None,
         metadata: Optional[dict[str, Any]] = None,
-        callback: Optional[Callable] = None,
-    ):
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.stubs.register_runtime",
@@ -62,16 +62,24 @@ class Stubs:
             callback=callback,
         )
 
-    def revoke(self, provider_id: str, callback: Optional[Callable] = None):
+    def revoke(
+        self,
+        provider_id: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.stubs.revoke", payload={"provider_id": provider_id}),
             callback=callback,
         )
 
-    def list(self, callback: Optional[Callable] = None):
+    def list(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(request("sdk.stubs.list"), callback=callback)
 
-    def get(self, provider_id: str, callback: Optional[Callable] = None):
+    def get(
+        self,
+        provider_id: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.stubs.get", payload={"provider_id": provider_id}),
             callback=callback,
@@ -80,8 +88,8 @@ class Stubs:
     def resolve_layers(
         self,
         layers: list[dict[str, str]],
-        callback: Optional[Callable] = None,
-    ):
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.stubs.resolve_layers", payload={"layers": layers}),
             callback=callback,

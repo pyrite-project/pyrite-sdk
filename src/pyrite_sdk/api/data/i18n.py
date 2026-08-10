@@ -7,10 +7,15 @@ if TYPE_CHECKING:
 
 
 class I18n:
-    def __init__(self, bridge: Bridge):
+    def __init__(self, bridge: Bridge) -> None:
         self._bridge = bridge
 
-    def contribute(self, locale: str, messages: Any, callback: Optional[Callable] = None):
+    def contribute(
+        self,
+        locale: str,
+        messages: Any,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.i18n.contribute",
@@ -19,7 +24,12 @@ class I18n:
             callback=callback,
         )
 
-    def register_runtime(self, locale: str, messages: Any, callback: Optional[Callable] = None):
+    def register_runtime(
+        self,
+        locale: str,
+        messages: Any,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.i18n.register_runtime",
@@ -28,13 +38,21 @@ class I18n:
             callback=callback,
         )
 
-    def revoke(self, locale: str, callback: Optional[Callable] = None):
+    def revoke(
+        self,
+        locale: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.i18n.revoke", payload={"locale": locale}),
             callback=callback,
         )
 
-    def get(self, locale: str, callback: Optional[Callable] = None):
+    def get(
+        self,
+        locale: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.i18n.get",
@@ -43,7 +61,7 @@ class I18n:
             callback=callback,
         )
 
-    def list(self, callback: Optional[Callable] = None):
+    def list(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.i18n.list"),
             callback=callback,

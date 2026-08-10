@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import inspect
+from typing import Any
 from ..core.bridge import Bridge
 from .context import PluginContext
 from ..api.file import *
@@ -42,9 +43,9 @@ class BasePlugin(ABC):
     def context(self) -> PluginContext:
         return self.bridge.context
 
-    def on_pause(self): ...
-    def on_resume(self): ...
-    def on_dispose(self): ...
+    def on_pause(self) -> Any: ...
+    def on_resume(self) -> Any: ...
+    def on_dispose(self) -> Any: ...
 
 
 class UiPlugin(BasePlugin):
@@ -65,7 +66,7 @@ class UiPlugin(BasePlugin):
         self.env = Environment(self.bridge)
 
     @abstractmethod
-    def on_start(self): ...
+    def on_start(self) -> Any: ...
 
 
 class ServicePlugin(BasePlugin):
@@ -83,7 +84,7 @@ class ServicePlugin(BasePlugin):
         self.env = Environment(self.bridge)
 
     @abstractmethod
-    def on_start(self): ...
+    def on_start(self) -> Any: ...
 
 
 class DataPlugin(BasePlugin):
@@ -93,14 +94,14 @@ class DataPlugin(BasePlugin):
         self.i18n = I18n(self.bridge)
         self.stubs = Stubs(self.bridge)
 
-    async def on_start(self):
+    async def on_start(self) -> None:
         result = self.on_contribute()
         if inspect.isawaitable(result):
             await result
         self.bridge.stop_when_idle()
 
     @abstractmethod
-    def on_contribute(self): ...
+    def on_contribute(self) -> Any: ...
 
-    def run_once(self):
+    def run_once(self) -> None:
         self.start()

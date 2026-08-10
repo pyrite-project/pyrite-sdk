@@ -28,7 +28,7 @@ class _QueueOverflowError(RuntimeError):
 
 
 class _RestartRegistry:
-    def __init__(self, bridge_module: Any):
+    def __init__(self, bridge_module: Any) -> None:
         self._channels: weakref.WeakValueDictionary[
             str, DartBridgeTransport
         ] = weakref.WeakValueDictionary()
@@ -93,7 +93,7 @@ class DartBridgeTransport(Transport):
         queue_size: int = 50,
         bridge_module: Any = None,
         dart_session_token: int | None = None,
-    ):
+    ) -> None:
         if port <= 0:
             raise ValueError("dart bridge port must be positive")
         if not channel_label:

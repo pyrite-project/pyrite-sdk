@@ -7,7 +7,7 @@ from ..models.schema import request
 
 if TYPE_CHECKING:
     from ..core.bridge import Bridge
-    from .events import PluginEventBus, Subscription
+    from .events import EventHandler, PluginEventBus, Subscription
 
 
 class StaleReferenceError(Exception):
@@ -36,7 +36,7 @@ class RuntimeSession:
     program_state: str = "idle"
 
     @classmethod
-    def from_json(cls, data: dict) -> "RuntimeSession":
+    def from_json(cls, data: dict[str, Any]) -> "RuntimeSession":
         return cls(
             session_id=data.get("sessionId", ""),
             generation=int(data.get("generation", 0)),
@@ -49,10 +49,10 @@ class RuntimeSession:
 class Scope:
     id: str
     name: str
-    raw: dict = field(default_factory=dict)
+    raw: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, data: dict) -> "Scope":
+    def from_json(cls, data: dict[str, Any]) -> "Scope":
         return cls(id=str(data.get("id", "")), name=str(data.get("name", "")), raw=data)
 
 
@@ -69,7 +69,7 @@ class Variable:
     indexed_variables: int = 0
 
     @classmethod
-    def from_json(cls, data: dict) -> "Variable":
+    def from_json(cls, data: dict[str, Any]) -> "Variable":
         return cls(
             name=str(data.get("name", "")),
             type=str(data.get("type", "")),
@@ -87,10 +87,10 @@ class ObjectInfo:
     type: str
     repr: str
     attributes: list[Variable] = field(default_factory=list)
-    raw: dict = field(default_factory=dict)
+    raw: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, data: dict) -> "ObjectInfo":
+    def from_json(cls, data: dict[str, Any]) -> "ObjectInfo":
         return cls(
             reference=str(data.get("reference", "")),
             type=str(data.get("type", "")),
@@ -108,12 +108,12 @@ class ObjectInfo:
 class Page:
     """A page of runtime items with optional total and start offset."""
 
-    items: list
+    items: list[Variable]
     total: Optional[int] = None
     start: int = 0
 
 
-def _error_for(error) -> Exception:
+def _error_for(error: Any) -> BaseException:
     """Maps a wire error to a specific runtime exception where applicable."""
     code = getattr(error, "code", None)
     if code == "stale_reference":
@@ -132,14 +132,14 @@ class Runtime:
     container is never returned whole.
     """
 
-    def __init__(self, bridge: "Bridge", events: "PluginEventBus"):
-        self._bridge = bridge
-        self._events = events
+    def __init__(self, bridge: "Bridge", events: "PluginEventBus") -> None:
+        self._bridge: Bridge = bridge
+        self._events: PluginEventBus = events
 
     # -- Queries ------------------------------------------------------------
 
-    def sessions(self, callback: Optional[Callable] = None) -> None:
-        def _cb(data=None, error=None, **_):
+    def sessions(self, callback: Optional[Callable[..., Any]] = None) -> None:
+        def _cb(data: Any = None, error: Any = None, **_: Any) -> None:
             if callback is None:
                 return
             if error is not None:
@@ -157,13 +157,15 @@ class Runtime:
         )
 
     def state(
-        self, session_id: Optional[str] = None, callback: Optional[Callable] = None
+        self,
+        session_id: Optional[str] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         payload: dict[str, Any] = {}
         if session_id is not None:
             payload["sessionId"] = session_id
 
-        def _cb(data=None, error=None, **_):
+        def _cb(data: Any = None, error: Any = None, **_: Any) -> None:
             if callback is None:
                 return
             if error is not None:
@@ -175,8 +177,12 @@ class Runtime:
             request("sdk.runtime.state", payload=payload), callback=_cb
         )
 
-    def scopes(self, session_id: str, callback: Optional[Callable] = None) -> None:
-        def _cb(data=None, error=None, **_):
+    def scopes(
+        self,
+        session_id: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
+        def _cb(data: Any = None, error: Any = None, **_: Any) -> None:
             if callback is None:
                 return
             if error is not None:
@@ -201,7 +207,7 @@ class Runtime:
         scope_id: str,
         start: int = 0,
         count: int = 0,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         self._bridge.push_wait_response(
             request(
@@ -221,7 +227,7 @@ class Runtime:
         reference: str,
         start: int = 0,
         count: int = 0,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         """Lazily fetch a paged slice of an object's children."""
         self._bridge.push_wait_response(
@@ -233,9 +239,11 @@ class Runtime:
         )
 
     def object_info(
-        self, reference: str, callback: Optional[Callable] = None
+        self,
+        reference: str,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
-        def _cb(data=None, error=None, **_):
+        def _cb(data: Any = None, error: Any = None, **_: Any) -> None:
             if callback is None:
                 return
             if error is not None:
@@ -248,8 +256,10 @@ class Runtime:
             callback=_cb,
         )
 
-    def _variables_cb(self, callback: Optional[Callable]):
-        def _cb(data=None, error=None, **_):
+    def _variables_cb(
+        self, callback: Optional[Callable[..., Any]]
+    ) -> Callable[..., None]:
+        def _cb(data: Any = None, error: Any = None, **_: Any) -> None:
             if callback is None:
                 return
             if error is not None:
@@ -271,31 +281,49 @@ class Runtime:
 
     # -- Subscriptions ------------------------------------------------------
 
-    def on_session_created(self, handler, **kwargs) -> "Subscription":
+    def on_session_created(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("runtime.session.created", handler, **kwargs)
 
-    def on_session_ended(self, handler, **kwargs) -> "Subscription":
+    def on_session_ended(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("runtime.session.ended", handler, **kwargs)
 
-    def on_session_state_changed(self, handler, **kwargs) -> "Subscription":
+    def on_session_state_changed(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe(
             "runtime.session.state.changed", handler, **kwargs
         )
 
-    def on_program_started(self, handler, **kwargs) -> "Subscription":
+    def on_program_started(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("runtime.program.started", handler, **kwargs)
 
-    def on_program_paused(self, handler, **kwargs) -> "Subscription":
+    def on_program_paused(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("runtime.program.paused", handler, **kwargs)
 
-    def on_program_resumed(self, handler, **kwargs) -> "Subscription":
+    def on_program_resumed(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("runtime.program.resumed", handler, **kwargs)
 
-    def on_program_finished(self, handler, **kwargs) -> "Subscription":
+    def on_program_finished(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("runtime.program.finished", handler, **kwargs)
 
-    def on_backend_restarted(self, handler, **kwargs) -> "Subscription":
+    def on_backend_restarted(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("runtime.backend.restarted", handler, **kwargs)
 
-    def on_variables_changed(self, handler, **kwargs) -> "Subscription":
+    def on_variables_changed(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("runtime.variables.changed", handler, **kwargs)

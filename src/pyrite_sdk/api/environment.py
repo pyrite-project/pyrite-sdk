@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from ..models.schema import request
 
@@ -27,12 +27,15 @@ class Environment:
     - desktop: 840px+
     """
 
-    def __init__(self, bridge: Bridge):
+    def __init__(self, bridge: Bridge) -> None:
         self._bridge = bridge
-        self._snapshot: Optional[dict] = None
-        self._change_handlers: list[Callable[[dict], None]] = []
+        self._snapshot: Optional[dict[str, Any]] = None
+        self._change_handlers: list[Callable[[dict[str, Any]], None]] = []
 
-    def get(self, callback: Optional[Callable[[dict], None]] = None) -> Optional[dict]:
+    def get(
+        self,
+        callback: Optional[Callable[[dict[str, Any]], None]] = None,
+    ) -> Optional[dict[str, Any]]:
         """Query the current environment snapshot.
 
         Returns immediately when called without a callback; invokes the callback
@@ -48,7 +51,7 @@ class Environment:
         }
         """
 
-        def _on_response(payload):
+        def _on_response(payload: dict[str, Any]) -> None:
             self._snapshot = payload
             if callback:
                 callback(payload)
@@ -59,7 +62,7 @@ class Environment:
         )
         return self._snapshot
 
-    def on_change(self, handler: Callable[[dict], None]):
+    def on_change(self, handler: Callable[[dict[str, Any]], None]) -> None:
         """Subscribe to environment changes.
 
         The handler is called whenever the layout mode switches (e.g., from
@@ -69,7 +72,7 @@ class Environment:
         """
         self._change_handlers.append(handler)
 
-    def _handle_change(self, snapshot: dict):
+    def _handle_change(self, snapshot: dict[str, Any]) -> None:
         """Internal: dispatch ide.env.changed to subscribers."""
         self._snapshot = snapshot
         for handler in self._change_handlers:

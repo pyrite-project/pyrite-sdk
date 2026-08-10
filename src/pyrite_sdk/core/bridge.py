@@ -11,7 +11,7 @@ import queue
 import weakref
 from pydantic import ValidationError
 from pathlib import Path
-from typing import Any, Awaitable, Optional, Callable, TYPE_CHECKING
+from typing import Any, Callable, Coroutine, Optional, TYPE_CHECKING
 from ..models.consts import *
 from ..models.schema import *
 from .errors import api_error_from_payload
@@ -40,19 +40,19 @@ OUTBOUND_DRAIN_BATCH_SIZE = 32
 
 
 class BridgeOutputRouter:
-    _stdout = None
-    _stderr = None
+    _stdout: Optional["BridgeOutputRouter"] = None
+    _stderr: Optional["BridgeOutputRouter"] = None
     _routes: dict[int, "Bridge"] = {}
-    _threading_patched = False
+    _threading_patched: bool = False
     _route_lock = threading.RLock()
 
-    def __init__(self, stream_name: str, original):
-        self.stream_name = stream_name
-        self.original = original
+    def __init__(self, stream_name: str, original: Any) -> None:
+        self.stream_name: str = stream_name
+        self.original: Any = original
         self._buffers: dict[int, str] = {}
 
     @classmethod
-    def install(cls):
+    def install(cls) -> None:
         with cls._route_lock:
             if cls._stdout is None:
                 cls._stdout = BridgeOutputRouter("stdout", sys.stdout)
@@ -63,7 +63,7 @@ class BridgeOutputRouter:
             cls._patch_threading()
 
     @classmethod
-    def register_current_thread(cls, bridge: "Bridge"):
+    def register_current_thread(cls, bridge: "Bridge") -> None:
         with cls._route_lock:
             if not getattr(bridge, "_output_redirected", False):
                 return
@@ -73,7 +73,9 @@ class BridgeOutputRouter:
             cls._routes[thread_id] = bridge
 
     @classmethod
-    def unregister_current_thread(cls, bridge: Optional["Bridge"] = None):
+    def unregister_current_thread(
+        cls, bridge: Optional["Bridge"] = None
+    ) -> None:
         thread_id = threading.get_ident()
         with cls._route_lock:
             current = cls._routes.get(thread_id)
@@ -83,7 +85,7 @@ class BridgeOutputRouter:
             cls._discard_buffers(thread_id)
 
     @classmethod
-    def unregister_bridge(cls, bridge: "Bridge"):
+    def unregister_bridge(cls, bridge: "Bridge") -> None:
         with cls._route_lock:
             thread_ids = [
                 thread_id
@@ -95,24 +97,24 @@ class BridgeOutputRouter:
                 cls._discard_buffers(thread_id)
 
     @classmethod
-    def _discard_buffers(cls, thread_id: int):
+    def _discard_buffers(cls, thread_id: int) -> None:
         for router in (cls._stdout, cls._stderr):
             if isinstance(router, BridgeOutputRouter):
                 router._buffers.pop(thread_id, None)
 
     @classmethod
-    def current_bridge(cls):
+    def current_bridge(cls) -> Optional["Bridge"]:
         with cls._route_lock:
             return cls._routes.get(threading.get_ident())
 
     @classmethod
-    def _patch_threading(cls):
+    def _patch_threading(cls) -> None:
         if cls._threading_patched:
             return
         original_start = threading.Thread.start
         original_bootstrap_inner = threading.Thread._bootstrap_inner
 
-        def start(thread, *args, **kwargs):
+        def start(thread: Any, *args: Any, **kwargs: Any) -> Any:
             bridge = cls.current_bridge()
             thread._pyrite_bridge = weakref.ref(bridge) if bridge is not None else None
             try:
@@ -121,7 +123,7 @@ class BridgeOutputRouter:
                 thread._pyrite_bridge = None
                 raise
 
-        def bootstrap_inner(thread, *args, **kwargs):
+        def bootstrap_inner(thread: Any, *args: Any, **kwargs: Any) -> Any:
             bridge_ref = getattr(thread, "_pyrite_bridge", None)
             try:
                 if bridge_ref is not None:
@@ -139,7 +141,7 @@ class BridgeOutputRouter:
         threading.Thread._bootstrap_inner = bootstrap_inner
         cls._threading_patched = True
 
-    def write(self, text: str):
+    def write(self, text: str) -> int:
         self.original.write(text)
         self.original.flush()
         cls = type(self)
@@ -155,7 +157,7 @@ class BridgeOutputRouter:
             self._buffers[thread_id] = buffer
         return len(text)
 
-    def flush(self):
+    def flush(self) -> None:
         self.original.flush()
         cls = type(self)
         with cls._route_lock:
@@ -168,11 +170,11 @@ class BridgeOutputRouter:
                 bridge.emit_output(self.stream_name, buffer)
                 self._buffers[thread_id] = ""
 
-    def isatty(self):
+    def isatty(self) -> bool:
         return self.original.isatty()
 
     @property
-    def encoding(self):
+    def encoding(self) -> Optional[str]:
         return getattr(self.original, "encoding", None)
 
 
@@ -182,14 +184,14 @@ class Bridge:
         plugin: PluginType,
         queue_size: int = 50,
         transport: Optional[Transport] = None,
-    ):
+    ) -> None:
         startup_environment = dict(os.environ)
         self.plugin = plugin
         self.running = True
-        self.connected_clients = set()
-        self.message_queue: Optional[asyncio.Queue] = None
+        self.connected_clients: set[Any] = set()
+        self.message_queue: Optional[asyncio.Queue[list[Any]]] = None
         # self.response_queue: Optional[asyncio.Queue] = None
-        self.callbacks: dict[str, Callable[[dict], Any]] = {}
+        self.callbacks: dict[str, Callable[..., Any]] = {}
         self._pending_responses = 0
         self._stop_when_idle = False
         self._stop_requested = False
@@ -226,7 +228,7 @@ class Bridge:
         self._handshake_state = "pending"
         self._request_tasks: dict[str, asyncio.Task[None]] = {}
         self._reporting_error = False
-        self._previous_loop_exception_handler = None
+        self._previous_loop_exception_handler: Optional[Callable[..., Any]] = None
 
     @property
     def context(self) -> PluginContext:
@@ -279,7 +281,11 @@ class Bridge:
         finally:
             self._reporting_error = False
 
-    def _handle_loop_exception(self, loop, context) -> None:
+    def _handle_loop_exception(
+        self,
+        loop: asyncio.AbstractEventLoop,
+        context: dict[str, Any],
+    ) -> None:
         error = context.get("exception")
         message = context.get("message") or "Unhandled asyncio exception"
         traceback_text = None
@@ -293,7 +299,7 @@ class Bridge:
             source="asyncio",
         )
 
-    async def _send_protocol_error(self, client, message: str):
+    async def _send_protocol_error(self, client: Any, message: str) -> None:
         await self.send(
             client,
             Envelope(
@@ -309,7 +315,7 @@ class Bridge:
     def _start_request_task(
         self,
         env: Envelope,
-        operation: Awaitable[None],
+        operation: Coroutine[Any, Any, None],
     ) -> None:
         previous = self._request_tasks.get(env.request_id)
         if previous is not None and not previous.done():
@@ -360,7 +366,9 @@ class Bridge:
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def _run_lifecycle_request(self, env: Envelope, client) -> None:
+    async def _run_lifecycle_request(
+        self, env: Envelope, client: Any
+    ) -> None:
         payload = LifecyclePayload(**env.payload)
         handler_name = LIFECYCLE_MAP.get(payload.hook)
         if handler_name is None:
@@ -426,7 +434,9 @@ class Bridge:
             ):
                 self.stop()
 
-    async def _run_command_request(self, env: Envelope, client) -> None:
+    async def _run_command_request(
+        self, env: Envelope, client: Any
+    ) -> None:
         commands = getattr(self.plugin, "commands", None)
         try:
             if commands is None:
@@ -458,7 +468,9 @@ class Bridge:
                 client,
             )
 
-    async def _run_context_menu_request(self, env: Envelope, client) -> None:
+    async def _run_context_menu_request(
+        self, env: Envelope, client: Any
+    ) -> None:
         views = getattr(self.plugin, "views", None)
         try:
             menu = (
@@ -486,16 +498,16 @@ class Bridge:
                 client,
             )
 
-    def redirect_output(self):
+    def redirect_output(self) -> None:
         BridgeOutputRouter.install()
         self._output_redirected = True
         BridgeOutputRouter.register_current_thread(self)
 
-    def _stop_output_routing(self):
+    def _stop_output_routing(self) -> None:
         self._output_redirected = False
         BridgeOutputRouter.unregister_bridge(self)
 
-    def emit_output(self, stream: str, text: str):
+    def emit_output(self, stream: str, text: str) -> None:
         if not text:
             return
         if self.asyncio_loop is None or self.message_queue is None:
@@ -532,10 +544,10 @@ class Bridge:
             chunks.append("".join(current))
         return chunks
 
-    def _log_internal(self, *values):
+    def _log_internal(self, *values: Any) -> None:
         print(*values, file=self._stdout, flush=True)
 
-    def flush_pending_output(self):
+    def flush_pending_output(self) -> None:
         if not self._pending_output:
             return
         pending = self._pending_output
@@ -543,7 +555,7 @@ class Bridge:
         for stream, text in pending:
             self.emit_output(stream, text)
 
-    async def handler(self, client):
+    async def handler(self, client: Any) -> None:
         if self.plugin is None:
             raise RuntimeError(
                 "Bridge.start(plugin) must be called "
@@ -878,7 +890,7 @@ class Bridge:
             await self._cancel_all_request_tasks()
             self.connected_clients.discard(client)
 
-    async def send(self, client, envelope: Envelope):
+    async def send(self, client: Any, envelope: Envelope) -> None:
         try:
             self._stamp(envelope)
             if envelope.type != "sdk.output.append":
@@ -893,14 +905,14 @@ class Bridge:
         except Exception as e:
             self._log_internal(f"Error in send: {e}")
 
-    async def send_all(self, envelope: Envelope):
+    async def send_all(self, envelope: Envelope) -> None:
         for client in self.connected_clients.copy():
             await self.send(client, envelope)
 
     def push(
         self,
         envelope: Envelope,
-        client=None,
+        client: Any = None,
         on_error: Optional[Callable[[BaseException], Any]] = None,
     ) -> bool:
         if self._disposed:
@@ -915,7 +927,7 @@ class Bridge:
                 on_error(TransportClosedError("Plugin message loop is closed"))
             return False
 
-        def _put():
+        def _put() -> None:
             message_queue = self.message_queue
             if message_queue is None:
                 if on_error is not None:
@@ -982,8 +994,8 @@ class Bridge:
     def push_wait_response(
         self,
         envelope: Envelope,
-        callback: Optional[Callable[[dict], Any]] = None,
-        client=None,
+        callback: Optional[Callable[..., Any]] = None,
+        client: Any = None,
     ) -> bool:
         env_id = envelope.request_id
         if env_id in self.callbacks:
@@ -999,7 +1011,7 @@ class Bridge:
             ),
         )
 
-    def stop_when_idle(self):
+    def stop_when_idle(self) -> None:
         self._stop_when_idle = True
         if self._pending_responses == 0:
             self.stop()
@@ -1041,7 +1053,7 @@ class Bridge:
             raise result
         return result
 
-    async def loop(self):
+    async def loop(self) -> None:
         while True:
             assert self.message_queue is not None
             batch = [await self.message_queue.get()]
@@ -1069,7 +1081,7 @@ class Bridge:
             await asyncio.sleep(0)
         self._log_internal("Plugin transport closed")
 
-    async def main(self):
+    async def main(self) -> None:
         self.message_queue = asyncio.Queue(maxsize=self.queue_size)
         # self.response_queue = asyncio.Queue(maxsize=self.queue_size)
         self.asyncio_loop = asyncio.get_running_loop()
@@ -1118,7 +1130,7 @@ class Bridge:
             self.message_queue = None
             self._stop_output_routing()
 
-    def start(self):
+    def start(self) -> None:
         try:
             self.redirect_output()
             if sys.platform == "win32":
@@ -1129,7 +1141,7 @@ class Bridge:
         finally:
             self._stop_output_routing()
 
-    def stop(self):
+    def stop(self) -> None:
         self._stop_requested = True
         self.running = False
         self._stop_output_routing()
@@ -1139,7 +1151,7 @@ class Bridge:
         if loop is None or loop.is_closed():
             return
 
-        def _stop_on_loop():
+        def _stop_on_loop() -> None:
             self.transport.close()
             if self.message_queue is not None:
                 try:

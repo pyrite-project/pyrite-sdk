@@ -5,7 +5,7 @@ import re
 import tomllib
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, NoReturn, Sequence, TypeGuard
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -14,7 +14,7 @@ _MIN_INT64 = -(1 << 63)
 _MAX_INT64 = (1 << 63) - 1
 
 
-def _is_int64(value: Any) -> bool:
+def _is_int64(value: Any) -> TypeGuard[int]:
     return (
         isinstance(value, int)
         and not isinstance(value, bool)
@@ -1030,7 +1030,7 @@ def _string_list(table: Mapping[str, Any], key: str, path: str) -> list[str]:
     return value
 
 
-def _schema_error(message: str) -> None:
+def _schema_error(message: str) -> NoReturn:
     raise ManifestValidationError(PluginManifestErrorCode.INVALID_SCHEMA, message)
 
 

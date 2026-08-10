@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 from ...models.schema import (
     request,
     FileRequestPathPayload,
@@ -15,10 +15,12 @@ if TYPE_CHECKING:
 
 
 class File:
-    def __init__(self, bridge: Bridge):
-        self._bridge = bridge
+    def __init__(self, bridge: Bridge) -> None:
+        self._bridge: Bridge = bridge
 
-    def get_file_list(self, path: str, callback: Optional[Callable] = None):
+    def get_file_list(
+        self, path: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.get_dir_list",
@@ -27,18 +29,20 @@ class File:
             callback=callback,
         )
 
-    def get_root_dir(self, callback: Optional[Callable] = None):
+    def get_root_dir(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.file.get_root_dir"),
             callback=callback,
         )
 
-    def save_current_file(self):
+    def save_current_file(self) -> None:
         self._bridge.push(
             request("sdk.file.save_current_file"),
         )
 
-    def save_current_file_as(self):
+    def save_current_file_as(self) -> None:
         self._bridge.push(
             request("sdk.file.save_current_file_as"),
         )
@@ -46,8 +50,8 @@ class File:
     def create_file(
         self,
         path: str,
-        callback: Optional[Callable] = None,
-    ):
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.create_file",
@@ -59,8 +63,8 @@ class File:
     def create_folder(
         self,
         path: str,
-        callback: Optional[Callable] = None,
-    ):
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.create_folder",
@@ -69,19 +73,23 @@ class File:
             callback=callback,
         )
 
-    def get_focus_file_node(self, callback: Optional[Callable] = None):
+    def get_focus_file_node(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.file.get_focus_file_node"),
             callback=callback,
         )
 
-    def get_focus_folder_node(self, callback: Optional[Callable] = None):
+    def get_focus_folder_node(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.file.get_focus_folder_node"),
             callback=callback,
         )
 
-    def open_file(self, path: str):
+    def open_file(self, path: str) -> None:
         self._bridge.push(
             request(
                 "sdk.file.open_file",
@@ -89,12 +97,12 @@ class File:
             ),
         )
 
-    def upload_selected_local_file_item(self):
+    def upload_selected_local_file_item(self) -> None:
         self._bridge.push(
             request("sdk.file.upload_selected_local_file_item"),
         )
 
-    def rename(self, path: str, new_name: str):
+    def rename(self, path: str, new_name: str) -> None:
         self._bridge.push(
             request(
                 "sdk.file.rename",
@@ -105,7 +113,7 @@ class File:
             ),
         )
 
-    def delete(self, path: str):
+    def delete(self, path: str) -> None:
         self._bridge.push(
             request(
                 "sdk.file.delete",
@@ -113,7 +121,7 @@ class File:
             ),
         )
 
-    def open_folder(self, path: str):
+    def open_folder(self, path: str) -> None:
         self._bridge.push(
             request(
                 "sdk.file.open_folder",
@@ -121,7 +129,9 @@ class File:
             ),
         )
 
-    def is_file(self, path: str, callback: Optional[Callable] = None):
+    def is_file(
+        self, path: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.is_file",
@@ -130,7 +140,9 @@ class File:
             callback=callback,
         )
 
-    def is_directory(self, path: str, callback: Optional[Callable] = None):
+    def is_directory(
+        self, path: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.is_directory",
@@ -139,7 +151,9 @@ class File:
             callback=callback,
         )
 
-    def read_file(self, path: str, callback: Optional[Callable] = None):
+    def read_file(
+        self, path: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.read_file",
@@ -148,7 +162,12 @@ class File:
             callback=callback,
         )
 
-    def write_file(self, path: str, content: str, callback: Optional[Callable] = None):
+    def write_file(
+        self,
+        path: str,
+        content: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.write_file",
@@ -157,7 +176,12 @@ class File:
             callback=callback,
         )
 
-    def copy_file(self, src: str, dst: str, callback: Optional[Callable] = None):
+    def copy_file(
+        self,
+        src: str,
+        dst: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.copy_file",
@@ -166,7 +190,12 @@ class File:
             callback=callback,
         )
 
-    def move_file(self, src: str, dst: str, callback: Optional[Callable] = None):
+    def move_file(
+        self,
+        src: str,
+        dst: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.move_file",
@@ -175,7 +204,9 @@ class File:
             callback=callback,
         )
 
-    def exists(self, path: str, callback: Optional[Callable] = None):
+    def exists(
+        self, path: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.exists",
@@ -184,7 +215,12 @@ class File:
             callback=callback,
         )
 
-    def upload_file(self, local_path: str, board_path: str, callback: Optional[Callable] = None):
+    def upload_file(
+        self,
+        local_path: str,
+        board_path: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.upload_file",
@@ -196,7 +232,12 @@ class File:
             callback=callback,
         )
 
-    def get_unique_name(self, name: str, is_folder: bool = False, callback: Optional[Callable] = None):
+    def get_unique_name(
+        self,
+        name: str,
+        is_folder: bool = False,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.file.get_unique_name",

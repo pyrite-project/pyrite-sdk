@@ -11,7 +11,7 @@ events are delivered as ``ide.view.event`` frames.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Awaitable, Callable, Iterable, Literal, Optional
 
 from .icons import MaterialIcon
 from .resources import PluginResource
@@ -25,10 +25,10 @@ def _icon(value: Optional[MaterialIcon]) -> Optional[str]:
 
 #: Schema version this builder set targets. Must match the host's
 #: ``componentSchemaVersion``.
-COMPONENT_SCHEMA_VERSION = 1
+COMPONENT_SCHEMA_VERSION: int = 1
 
 
-class Component(dict):
+class Component(dict[str, Any]):
     """A component schema node.
 
     Subclasses ``dict`` so it serializes directly into a view snapshot/patch,
@@ -38,10 +38,10 @@ class Component(dict):
     def __init__(
         self,
         type: str,
-        props: Optional[dict] = None,
-        children: Optional[list] = None,
-        events: Optional[dict] = None,
-    ):
+        props: Optional[dict[str, Any]] = None,
+        children: Optional[list[Any]] = None,
+        events: Optional[dict[str, Callable[..., Any]]] = None,
+    ) -> None:
         super().__init__()
         self["type"] = type
         if props:
@@ -53,14 +53,14 @@ class Component(dict):
             self["children"] = children
         if events:
             self["events"] = events
-        self._view_model = None
-        self._controller = None
+        self._view_model: Any = None
+        self._controller: Optional[ComponentController] = None
 
     @property
     def id(self) -> Optional[str]:
         return self.get("props", {}).get("id")
 
-    def on(self, event: str, handler: Callable) -> "Component":
+    def on(self, event: str, handler: Callable[..., Any]) -> "Component":
         """Attaches [handler] for [event]; returns self for chaining.
 
         The handler is stored on the node and collected by
@@ -70,7 +70,7 @@ class Component(dict):
         return self
 
     @property
-    def controller(self):
+    def controller(self) -> ComponentController:
         """Imperative controller for this mounted component."""
         if self._controller is None:
             controller_type = _CONTROLLERS.get(
@@ -79,12 +79,17 @@ class Component(dict):
             self._controller = controller_type(self)
         return self._controller
 
-    def _bind_view(self, view_model) -> None:
+    def _bind_view(self, view_model: Any) -> None:
         self._view_model = view_model
         for child in self.get("children", ()):
             _bind_component_value(child, view_model)
 
-    def _invoke(self, method: str, arguments=None, callback=None) -> None:
+    def _invoke(
+        self,
+        method: str,
+        arguments: Optional[dict[str, Any]] = None,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         if self._view_model is None:
             raise RuntimeError("component is not bound to a ViewModel")
         if not self.id:
@@ -93,7 +98,7 @@ class Component(dict):
             self.id, method, arguments or {}, callback=callback
         )
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict[str, Any]:
         """Returns the node with handlers replaced by their event names.
 
         The wire form carries only ``{event: True}`` markers; the host echoes the
@@ -111,7 +116,7 @@ class Component(dict):
         return node
 
 
-def _bind_component_value(value: Any, view_model) -> None:
+def _bind_component_value(value: Any, view_model: Any) -> None:
     if isinstance(value, Component):
         value._bind_view(view_model)
     elif isinstance(value, dict):
@@ -133,309 +138,442 @@ def _wire_component_value(value: Any) -> Any:
 
 
 class ComponentController:
-    def __init__(self, component: Component):
-        self.component = component
+    def __init__(self, component: Component) -> None:
+        self.component: Component = component
 
-    def _call(self, method: str, callback=None, **arguments) -> None:
+    def _call(
+        self,
+        method: str,
+        callback: Optional[Callable[..., Any]] = None,
+        **arguments: Any,
+    ) -> None:
         self.component._invoke(method, arguments, callback)
 
-    def is_mounted(self, callback=None):
+    def is_mounted(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("is_mounted", callback)
 
-    def ensure_visible(self, alignment=0.5, animated=True, callback=None):
+    def ensure_visible(
+        self,
+        alignment: int | float = 0.5,
+        animated: bool = True,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("ensure_visible", callback, alignment=alignment, animated=animated)
 
-    def get_bounds(self, callback=None):
+    def get_bounds(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("get_bounds", callback)
 
-    def request_focus(self, callback=None):
+    def request_focus(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("request_focus", callback)
 
-    def unfocus(self, callback=None):
+    def unfocus(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("unfocus", callback)
 
 
 class TextFieldController(ComponentController):
-    def get_text(self, callback=None):
+    def get_text(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("get_text", callback)
 
-    def set_text(self, text, callback=None):
+    def set_text(
+        self, text: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("set_text", callback, text=text)
 
-    def clear(self, callback=None):
+    def clear(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("clear", callback)
 
-    def select_all(self, callback=None):
+    def select_all(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("select_all", callback)
 
-    def get_selection(self, callback=None):
+    def get_selection(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("get_selection", callback)
 
-    def set_selection(self, start, end=None, callback=None):
+    def set_selection(
+        self,
+        start: int,
+        end: Optional[int] = None,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call(
             "set_selection", callback, start=start, end=start if end is None else end
         )
 
-    def replace_selection(self, text, callback=None):
+    def replace_selection(
+        self, text: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("replace_selection", callback, text=text)
 
 
 class NumberFieldController(TextFieldController):
-    def get_value(self, callback=None):
+    def get_value(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("get_value", callback)
 
-    def set_value(self, value, callback=None):
+    def set_value(
+        self,
+        value: int | float,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("set_value", callback, value=value)
 
-    def increment(self, callback=None):
+    def increment(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("increment", callback)
 
-    def decrement(self, callback=None):
+    def decrement(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("decrement", callback)
 
 
 class VirtualListController(ComponentController):
-    def select(self, id, callback=None):
+    def select(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("select", callback, id=id)
 
-    def clear_selection(self, callback=None):
+    def clear_selection(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("clear_selection", callback)
 
-    def reveal_item(self, id, animated=True, callback=None):
+    def reveal_item(
+        self,
+        id: str,
+        animated: bool = True,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("reveal_item", callback, id=id, animated=animated)
 
-    def jump_to_index(self, index, callback=None):
+    def jump_to_index(
+        self, index: int, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("jump_to_index", callback, index=index)
 
-    def animate_to_index(self, index, callback=None):
+    def animate_to_index(
+        self, index: int, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("animate_to_index", callback, index=index)
 
-    def scroll_by(self, delta, animated=True, callback=None):
+    def scroll_by(
+        self,
+        delta: int | float,
+        animated: bool = True,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("scroll_by", callback, delta=delta, animated=animated)
 
-    def get_visible_range(self, callback=None):
+    def get_visible_range(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("get_visible_range", callback)
 
 
 class TreeViewController(ComponentController):
-    def select(self, id, callback=None):
+    def select(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("select", callback, id=id)
 
-    def clear_selection(self, callback=None):
+    def clear_selection(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("clear_selection", callback)
 
-    def reveal(self, id, animated=True, callback=None):
+    def reveal(
+        self,
+        id: str,
+        animated: bool = True,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("reveal", callback, id=id, animated=animated)
 
-    def expand(self, id, callback=None):
+    def expand(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("expand", callback, id=id)
 
-    def collapse(self, id, callback=None):
+    def collapse(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("collapse", callback, id=id)
 
-    def toggle(self, id, callback=None):
+    def toggle(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("toggle", callback, id=id)
 
-    def expand_all(self, callback=None):
+    def expand_all(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("expand_all", callback)
 
-    def collapse_all(self, callback=None):
+    def collapse_all(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("collapse_all", callback)
 
-    def is_expanded(self, id, callback=None):
+    def is_expanded(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("is_expanded", callback, id=id)
 
-    def get_visible_nodes(self, callback=None):
+    def get_visible_nodes(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("get_visible_nodes", callback)
 
 
 class PropertyGridController(TreeViewController):
-    def activate(self, id, callback=None):
+    def activate(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("activate", callback, id=id)
 
 
 class DataTableController(ComponentController):
-    def select_row(self, id, callback=None):
+    def select_row(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("select_row", callback, id=id)
 
-    def clear_selection(self, callback=None):
+    def clear_selection(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("clear_selection", callback)
 
-    def reveal_row(self, id, animated=True, callback=None):
+    def reveal_row(
+        self,
+        id: str,
+        animated: bool = True,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("reveal_row", callback, id=id, animated=animated)
 
-    def reveal_cell(self, row_id, column_id, animated=True, callback=None):
+    def reveal_cell(
+        self,
+        row_id: str,
+        column_id: str,
+        animated: bool = True,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call(
             "reveal_cell", callback, rowId=row_id, columnId=column_id, animated=animated
         )
 
-    def jump_to_row(self, index, callback=None):
+    def jump_to_row(
+        self, index: int, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("jump_to_row", callback, index=index)
 
-    def animate_to_row(self, index, callback=None):
+    def animate_to_row(
+        self, index: int, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("animate_to_row", callback, index=index)
 
-    def get_visible_range(self, callback=None):
+    def get_visible_range(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("get_visible_range", callback)
 
 
 class TabsController(ComponentController):
-    def select(self, id, callback=None):
+    def select(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("select", callback, id=id)
 
-    def next(self, callback=None):
+    def next(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("next", callback)
 
-    def previous(self, callback=None):
+    def previous(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("previous", callback)
 
-    def get_selected(self, callback=None):
+    def get_selected(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("get_selected", callback)
 
 
 class SectionController(ComponentController):
-    def expand(self, callback=None):
+    def expand(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("expand", callback)
 
-    def collapse(self, callback=None):
+    def collapse(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("collapse", callback)
 
-    def toggle(self, callback=None):
+    def toggle(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("toggle", callback)
 
-    def is_expanded(self, callback=None):
+    def is_expanded(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("is_expanded", callback)
 
 
 class SplitViewController(ComponentController):
-    def get_ratios(self, callback=None):
+    def get_ratios(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("get_ratios", callback)
 
-    def set_ratio(self, index, ratio, callback=None):
+    def set_ratio(
+        self,
+        index: int,
+        ratio: int | float,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("set_ratio", callback, index=index, ratio=ratio)
 
-    def set_ratios(self, ratios, callback=None):
+    def set_ratios(
+        self,
+        ratios: Iterable[int | float],
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("set_ratios", callback, ratios=list(ratios))
 
-    def reset(self, callback=None):
+    def reset(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("reset", callback)
 
 
 class VideoController(ComponentController):
-    def play(self, callback=None):
+    def play(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("play", callback)
 
-    def pause(self, callback=None):
+    def pause(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("pause", callback)
 
-    def seek_to(self, position_ms, callback=None):
+    def seek_to(
+        self, position_ms: int, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("seek_to", callback, positionMs=position_ms)
 
-    def set_volume(self, volume, callback=None):
+    def set_volume(
+        self,
+        volume: int | float,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("set_volume", callback, volume=volume)
 
-    def set_speed(self, speed, callback=None):
+    def set_speed(
+        self,
+        speed: int | float,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("set_speed", callback, speed=speed)
 
-    def set_looping(self, looping, callback=None):
+    def set_looping(
+        self, looping: bool, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("set_looping", callback, looping=looping)
 
-    def get_state(self, callback=None):
+    def get_state(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("get_state", callback)
 
-    def enter_fullscreen(self, callback=None):
+    def enter_fullscreen(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("enter_fullscreen", callback)
 
-    def exit_fullscreen(self, callback=None):
+    def exit_fullscreen(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("exit_fullscreen", callback)
 
 
 class ImageController(ComponentController):
-    def reload(self, callback=None):
+    def reload(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("reload", callback)
 
-    def evict_cache(self, callback=None):
+    def evict_cache(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("evict_cache", callback)
 
-    def get_intrinsic_size(self, callback=None):
+    def get_intrinsic_size(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("get_intrinsic_size", callback)
 
 
 class MarkdownController(ComponentController):
-    def scroll_to_anchor(self, anchor, callback=None):
+    def scroll_to_anchor(
+        self, anchor: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("scroll_to_anchor", callback, anchor=anchor)
 
-    def get_anchor_offset(self, anchor, callback=None):
+    def get_anchor_offset(
+        self, anchor: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("get_anchor_offset", callback, anchor=anchor)
 
-    def select_all(self, callback=None):
+    def select_all(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("select_all", callback)
 
-    def copy_selection(self, callback=None):
+    def copy_selection(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("copy_selection", callback)
 
 
 class MenuController(ComponentController):
-    def open(self, callback=None):
+    def open(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("open", callback)
 
-    def close(self, callback=None):
+    def close(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("close", callback)
 
-    def toggle(self, callback=None):
+    def toggle(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("toggle", callback)
 
-    def is_open(self, callback=None):
+    def is_open(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("is_open", callback)
 
 
 class MenuBarController(ComponentController):
-    def open_menu(self, id, callback=None):
+    def open_menu(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("open_menu", callback, id=id)
 
-    def close(self, callback=None):
+    def close(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("close", callback)
 
-    def is_open(self, callback=None):
+    def is_open(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("is_open", callback)
 
 
 class DropdownController(ComponentController):
-    def open(self, callback=None):
+    def open(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("open", callback)
 
-    def close(self, callback=None):
+    def close(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("close", callback)
 
-    def select(self, id, callback=None):
+    def select(
+        self, id: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("select", callback, id=id)
 
-    def get_selected(self, callback=None):
+    def get_selected(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("get_selected", callback)
 
-    def is_open(self, callback=None):
+    def is_open(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("is_open", callback)
 
 
 class ContextMenuController(ComponentController):
-    def show(self, x=None, y=None, callback=None):
+    def show(
+        self,
+        x: Optional[int | float] = None,
+        y: Optional[int | float] = None,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("show", callback, x=x, y=y)
 
-    def close(self, callback=None):
+    def close(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("close", callback)
 
-    def is_open(self, callback=None):
+    def is_open(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("is_open", callback)
 
 
 class DialogController(ComponentController):
-    def show(self, callback=None):
+    def show(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("show", callback)
 
-    def close(self, result=None, callback=None):
+    def close(
+        self,
+        result: Any = None,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("close", callback, result=result)
 
-    def is_open(self, callback=None):
+    def is_open(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("is_open", callback)
 
 
@@ -449,9 +587,9 @@ class CanvasController(ComponentController):
     """
 
     #: Mirror of view.MAX_VIEW_PAYLOAD_BYTES (imported lazily to avoid a cycle).
-    MAX_VIEW_PAYLOAD_BYTES = 2 * 1024 * 1024
+    MAX_VIEW_PAYLOAD_BYTES: int = 2 * 1024 * 1024
 
-    def _guard_ops(self, arguments: dict) -> None:
+    def _guard_ops(self, arguments: dict[str, Any]) -> None:
         import json
 
         from .view import ViewProtocolError
@@ -462,31 +600,48 @@ class CanvasController(ComponentController):
                 f"canvas ops exceed {self.MAX_VIEW_PAYLOAD_BYTES} bytes"
             )
 
-    def push_ops(self, ops, layer=None, callback=None):
-        arguments: dict = {"ops": list(ops)}
+    def push_ops(
+        self,
+        ops: Iterable[dict[str, Any]],
+        layer: Optional[str] = None,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
+        arguments: dict[str, Any] = {"ops": list(ops)}
         if layer is not None:
             arguments["layer"] = layer
         self._guard_ops(arguments)
         self.component._invoke("push_ops", arguments, callback)
 
-    def set_ops(self, ops, layer=None, callback=None):
-        arguments: dict = {"ops": list(ops)}
+    def set_ops(
+        self,
+        ops: Iterable[dict[str, Any]],
+        layer: Optional[str] = None,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
+        arguments: dict[str, Any] = {"ops": list(ops)}
         if layer is not None:
             arguments["layer"] = layer
         self._guard_ops(arguments)
         self.component._invoke("set_ops", arguments, callback)
 
-    def clear(self, callback=None):
+    def clear(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("clear", callback)
 
-    def clear_layer(self, layer, callback=None):
+    def clear_layer(
+        self, layer: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._call("clear_layer", callback, layer=layer)
 
-    def hit_test(self, x, y, callback=None):
+    def hit_test(
+        self,
+        x: int | float,
+        y: int | float,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._call("hit_test", callback, x=x, y=y)
 
 
-_CONTROLLERS = {
+_CONTROLLERS: dict[str, type[ComponentController]] = {
     "TextField": TextFieldController,
     "NumberField": NumberFieldController,
     "VirtualList": VirtualListController,
@@ -508,7 +663,7 @@ _CONTROLLERS = {
 }
 
 
-class DataItem(dict):
+class DataItem(dict[str, Any]):
     """Base for typed rows that still serialize as ordinary wire maps."""
 
     @property
@@ -516,7 +671,7 @@ class DataItem(dict):
         return str(self["id"])
 
     @property
-    def metadata(self) -> dict:
+    def metadata(self) -> dict[str, Any]:
         return {
             key: value
             for key, value in self.items()
@@ -539,8 +694,8 @@ class ListItem(DataItem):
         id: str,
         label: str,
         icon: Optional[MaterialIcon] = None,
-        **data,
-    ):
+        **data: Any,
+    ) -> None:
         super().__init__(id=id, label=label, **data)
         if icon is not None:
             self["icon"] = _icon(icon)
@@ -564,8 +719,8 @@ class TreeNode(ListItem):
         parent_id: Optional[str] = None,
         icon: Optional[MaterialIcon] = None,
         has_children: bool = False,
-        **data,
-    ):
+        **data: Any,
+    ) -> None:
         super().__init__(
             id=id,
             label=label,
@@ -586,25 +741,27 @@ class TreeNode(ListItem):
 
 
 class TableRow(DataItem):
-    def __init__(self, *, id: str, cells: dict, **data):
+    def __init__(
+        self, *, id: str, cells: dict[str, Any], **data: Any
+    ) -> None:
         super().__init__(id=id, cells=cells, **data)
 
     @property
-    def cells(self) -> dict:
+    def cells(self) -> dict[str, Any]:
         return self["cells"]
 
 
-class TableColumn(dict):
+class TableColumn(dict[str, Any]):
     def __init__(
         self,
         *,
         id: str,
         label: str,
-        width=None,
-        flex=None,
-        frozen=None,
-        sortable=None,
-    ):
+        width: Optional[int | float] = None,
+        flex: Optional[int | float] = None,
+        frozen: Optional[bool] = None,
+        sortable: Optional[bool] = None,
+    ) -> None:
         super().__init__(id=id, label=label)
         for key, value in (
             ("width", width),
@@ -634,8 +791,8 @@ class PropertyEntry(DataItem):
         type_name: str = "",
         parent_id: Optional[str] = None,
         has_children: bool = False,
-        **metadata,
-    ):
+        **metadata: Any,
+    ) -> None:
         super().__init__(
             id=id,
             name=name,
@@ -664,8 +821,10 @@ class PropertyEntry(DataItem):
         return str(value) if value is not None else None
 
 
-class SelectOption(dict):
-    def __init__(self, *, value: str, label: str, disabled: bool = False):
+class SelectOption(dict[str, Any]):
+    def __init__(
+        self, *, value: str, label: str, disabled: bool = False
+    ) -> None:
         super().__init__(value=value, label=label, disabled=disabled)
 
     @property
@@ -677,8 +836,8 @@ class SelectOption(dict):
         return str(self["label"])
 
 
-class RangeRequest(dict):
-    def __init__(self, payload: dict):
+class RangeRequest(dict[str, Any]):
+    def __init__(self, payload: dict[str, Any]) -> None:
         super().__init__(payload)
 
     @property
@@ -691,10 +850,11 @@ class RangeRequest(dict):
 
 
 def collect_handlers(
-    node: Any, into: Optional[dict] = None
-) -> dict[tuple[str, str], Callable]:
+    node: Any,
+    into: Optional[dict[tuple[str, str], Callable[..., Any]]] = None,
+) -> dict[tuple[str, str], Callable[..., Any]]:
     """Walks a component tree collecting ``(component_id, event) -> handler``."""
-    handlers: dict[tuple[str, str], Callable] = {} if into is None else into
+    handlers: dict[tuple[str, str], Callable[..., Any]] = {} if into is None else into
     if isinstance(node, Component):
         component_id = node.id
         if component_id:
@@ -715,7 +875,15 @@ def collect_handlers(
 # -- Layout -------------------------------------------------------------------
 
 
-def Row(*children, id=None, gap=None, align=None, justify=None) -> Component:
+def Row(
+    *children: Component,
+    id: Optional[str] = None,
+    gap: Optional[int | float] = None,
+    align: Optional[Literal["start", "center", "end", "stretch"]] = None,
+    justify: Optional[
+        Literal["start", "center", "end", "spaceBetween", "spaceAround"]
+    ] = None,
+) -> Component:
     return Component(
         "Row",
         {"id": id, "gap": gap, "align": align, "justify": justify},
@@ -723,7 +891,15 @@ def Row(*children, id=None, gap=None, align=None, justify=None) -> Component:
     )
 
 
-def Column(*children, id=None, gap=None, align=None, justify=None) -> Component:
+def Column(
+    *children: Component,
+    id: Optional[str] = None,
+    gap: Optional[int | float] = None,
+    align: Optional[Literal["start", "center", "end", "stretch"]] = None,
+    justify: Optional[
+        Literal["start", "center", "end", "spaceBetween", "spaceAround"]
+    ] = None,
+) -> Component:
     return Component(
         "Column",
         {"id": id, "gap": gap, "align": align, "justify": justify},
@@ -731,7 +907,13 @@ def Column(*children, id=None, gap=None, align=None, justify=None) -> Component:
     )
 
 
-def Flex(*children, id=None, direction=None, flex=None, gap=None) -> Component:
+def Flex(
+    *children: Component,
+    id: Optional[str] = None,
+    direction: Optional[Literal["horizontal", "vertical"]] = None,
+    flex: Optional[int | float] = None,
+    gap: Optional[int | float] = None,
+) -> Component:
     return Component(
         "Flex",
         {"id": id, "direction": direction, "flex": flex, "gap": gap},
@@ -739,15 +921,30 @@ def Flex(*children, id=None, direction=None, flex=None, gap=None) -> Component:
     )
 
 
-def Grid(*children, columns: int, id=None, gap=None) -> Component:
+def Grid(
+    *children: Component,
+    columns: int | float,
+    id: Optional[str] = None,
+    gap: Optional[int | float] = None,
+) -> Component:
     return Component("Grid", {"id": id, "columns": columns, "gap": gap}, list(children))
 
 
-def Wrap(*children, id=None, gap=None, run_gap=None) -> Component:
+def Wrap(
+    *children: Component,
+    id: Optional[str] = None,
+    gap: Optional[int | float] = None,
+    run_gap: Optional[int | float] = None,
+) -> Component:
     return Component("Wrap", {"id": id, "gap": gap, "runGap": run_gap}, list(children))
 
 
-def SplitView(*children, id=None, direction=None, initial_ratio=None) -> Component:
+def SplitView(
+    *children: Component,
+    id: Optional[str] = None,
+    direction: Optional[Literal["horizontal", "vertical"]] = None,
+    initial_ratio: Optional[int | float] = None,
+) -> Component:
     return Component(
         "SplitView",
         {"id": id, "direction": direction, "initialRatio": initial_ratio},
@@ -755,11 +952,21 @@ def SplitView(*children, id=None, direction=None, initial_ratio=None) -> Compone
     )
 
 
-def Tabs(*children, id=None, selected=None) -> Component:
+def Tabs(
+    *children: Component,
+    id: Optional[str] = None,
+    selected: Optional[str] = None,
+) -> Component:
     return Component("Tabs", {"id": id, "selected": selected}, list(children))
 
 
-def Tab(child=None, *, id: str, label: str, icon=None) -> Component:
+def Tab(
+    child: Optional[Component] = None,
+    *,
+    id: str,
+    label: str,
+    icon: Optional[MaterialIcon] = None,
+) -> Component:
     return Component(
         "Tab",
         {"id": id, "label": label, "icon": _icon(icon)},
@@ -768,7 +975,11 @@ def Tab(child=None, *, id: str, label: str, icon=None) -> Component:
 
 
 def Section(
-    *children, id=None, title=None, collapsible=None, collapsed=None
+    *children: Component,
+    id: Optional[str] = None,
+    title: Optional[str] = None,
+    collapsible: Optional[bool] = None,
+    collapsed: Optional[bool] = None,
 ) -> Component:
     return Component(
         "Section",
@@ -777,11 +988,19 @@ def Section(
     )
 
 
-def Toolbar(*children, id=None, dense=None) -> Component:
+def Toolbar(
+    *children: Component,
+    id: Optional[str] = None,
+    dense: Optional[bool] = None,
+) -> Component:
     return Component("Toolbar", {"id": id, "dense": dense}, list(children))
 
 
-def AppBar(*actions, id=None, title=None) -> Component:
+def AppBar(
+    *actions: Component,
+    id: Optional[str] = None,
+    title: Optional[str] = None,
+) -> Component:
     """A title bar with action children.
 
     Actions are ``IconButton``/``Menu``/``Dropdown`` components passed
@@ -791,7 +1010,11 @@ def AppBar(*actions, id=None, title=None) -> Component:
     return Component("AppBar", {"id": id, "title": title}, list(actions))
 
 
-def Scaffold(*body, id=None, app_bar=None) -> Component:
+def Scaffold(
+    *body: Component,
+    id: Optional[str] = None,
+    app_bar: Optional[Component] = None,
+) -> Component:
     """A two-slot page skeleton: an optional top ``AppBar`` and a body.
 
     ``app_bar`` is placed as ``children[0]`` so the wire order matches the
@@ -804,8 +1027,21 @@ def Scaffold(*body, id=None, app_bar=None) -> Component:
 
 # -- Content ------------------------------------------------------------------
 
+def Card(child: Optional[Component] = None, *, id: Optional[str] = None) -> Component:#, elevation=None, padding=None, border_radius=None) -> Component:
+    return Component(
+        "Card",
+        {"id": id},#, "elevation": elevation, "padding": padding, "borderRadius": border_radius},
+        [child] if child is not None else None,
+    )
 
-def Text(value: str, *, id=None, style=None, muted=None, max_lines=None) -> Component:
+def Text(
+    value: str,
+    *,
+    id: Optional[str] = None,
+    style: Optional[Literal["body", "caption", "title", "heading", "code"]] = None,
+    muted: Optional[bool] = None,
+    max_lines: Optional[int | float] = None,
+) -> Component:
     return Component(
         "Text",
         {
@@ -818,12 +1054,22 @@ def Text(value: str, *, id=None, style=None, muted=None, max_lines=None) -> Comp
     )
 
 
-def Icon(name: MaterialIcon, *, id=None, size=None) -> Component:
+def Icon(
+    name: MaterialIcon,
+    *,
+    id: Optional[str] = None,
+    size: Optional[int | float] = None,
+) -> Component:
     return Component("Icon", {"id": id, "name": _icon(name), "size": size})
 
 
 def Image(
-    src: PluginResource, *, id=None, width=None, height=None, fit=None
+    src: PluginResource,
+    *,
+    id: Optional[str] = None,
+    width: Optional[int | float] = None,
+    height: Optional[int | float] = None,
+    fit: Optional[Literal["contain", "cover", "fill", "none"]] = None,
 ) -> Component:
     if not isinstance(src, PluginResource):
         raise TypeError("Image sources must use plugin.resources.asset(...)")
@@ -836,14 +1082,14 @@ def Image(
 def Video(
     src: PluginResource,
     *,
-    id=None,
-    width=None,
-    height=None,
-    fit=None,
-    autoplay=None,
-    looping=None,
-    muted=None,
-    show_controls=None,
+    id: Optional[str] = None,
+    width: Optional[int | float] = None,
+    height: Optional[int | float] = None,
+    fit: Optional[Literal["contain", "cover", "fill", "none"]] = None,
+    autoplay: Optional[bool] = None,
+    looping: Optional[bool] = None,
+    muted: Optional[bool] = None,
+    show_controls: Optional[bool] = None,
 ) -> Component:
     if not isinstance(src, PluginResource):
         raise TypeError("Video sources must use plugin.resources.asset(...)")
@@ -866,15 +1112,15 @@ def Video(
 def Canvas(
     *,
     id: str,
-    width=None,
-    height=None,
-    ops=None,
-    interactive=None,
-    viewport=None,
-    on_tap: Optional[Callable] = None,
-    on_drag: Optional[Callable] = None,
-    on_hover: Optional[Callable] = None,
-    on_pointer: Optional[Callable] = None,
+    width: Optional[int | float] = None,
+    height: Optional[int | float] = None,
+    ops: Any = None,
+    interactive: Optional[bool] = None,
+    viewport: Optional[dict[Any, Any]] = None,
+    on_tap: Optional[Callable[[dict[str, Any]], None]] = None,
+    on_drag: Optional[Callable[[dict[str, Any]], None]] = None,
+    on_hover: Optional[Callable[[dict[str, Any]], None]] = None,
+    on_pointer: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     """A high-performance interactive custom-draw surface.
 
@@ -906,8 +1152,8 @@ def Canvas(
     return component
 
 
-class MarkdownLinkEvent(dict):
-    def __init__(self, payload: dict):
+class MarkdownLinkEvent(dict[str, Any]):
+    def __init__(self, payload: dict[str, Any]) -> None:
         super().__init__(payload)
 
     @property
@@ -930,7 +1176,11 @@ def Markdown(
 
 
 def CodeBlock(
-    code: str, *, id=None, language=None, show_line_numbers=None
+    code: str,
+    *,
+    id: Optional[str] = None,
+    language: Optional[str] = None,
+    show_line_numbers: Optional[bool] = None,
 ) -> Component:
     return Component(
         "CodeBlock",
@@ -943,7 +1193,14 @@ def CodeBlock(
     )
 
 
-def Badge(label: str, *, id=None, tone=None) -> Component:
+def Badge(
+    label: str,
+    *,
+    id: Optional[str] = None,
+    tone: Optional[
+        Literal["neutral", "info", "success", "warning", "danger"]
+    ] = None,
+) -> Component:
     return Component("Badge", {"id": id, "label": label, "tone": tone})
 
 
@@ -953,13 +1210,13 @@ def Badge(label: str, *, id=None, tone=None) -> Component:
 def TextField(
     *,
     id: str,
-    value=None,
-    placeholder=None,
-    label=None,
-    enabled=None,
-    multiline=None,
-    on_change: Optional[Callable] = None,
-    on_submit: Optional[Callable] = None,
+    value: Optional[str] = None,
+    placeholder: Optional[str] = None,
+    label: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    multiline: Optional[bool] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+    on_submit: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component(
         "TextField",
@@ -982,14 +1239,14 @@ def TextField(
 def NumberField(
     *,
     id: str,
-    value=None,
-    min=None,
-    max=None,
-    step=None,
-    label=None,
-    enabled=None,
-    on_change: Optional[Callable] = None,
-    on_submit: Optional[Callable] = None,
+    value: Optional[int | float] = None,
+    min: Optional[int | float] = None,
+    max: Optional[int | float] = None,
+    step: Optional[int | float] = None,
+    label: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+    on_submit: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component(
         "NumberField",
@@ -1013,11 +1270,11 @@ def NumberField(
 def Select(
     *,
     id: str,
-    options: list,
-    value=None,
-    label=None,
-    enabled=None,
-    on_change: Optional[Callable] = None,
+    options: list[SelectOption | dict[str, Any]],
+    value: Optional[str] = None,
+    label: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component(
         "Select",
@@ -1037,10 +1294,10 @@ def Select(
 def Checkbox(
     *,
     id: str,
-    value=None,
-    label=None,
-    enabled=None,
-    on_change: Optional[Callable] = None,
+    value: Optional[bool] = None,
+    label: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component(
         "Checkbox",
@@ -1054,10 +1311,10 @@ def Checkbox(
 def Switch(
     *,
     id: str,
-    value=None,
-    label=None,
-    enabled=None,
-    on_change: Optional[Callable] = None,
+    value: Optional[bool] = None,
+    label: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component(
         "Switch",
@@ -1071,12 +1328,12 @@ def Switch(
 def Slider(
     *,
     id: str,
-    value=None,
-    min=None,
-    max=None,
-    step=None,
-    enabled=None,
-    on_change: Optional[Callable] = None,
+    value: Optional[int | float] = None,
+    min: Optional[int | float] = None,
+    max: Optional[int | float] = None,
+    step: Optional[int | float] = None,
+    enabled: Optional[bool] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component(
         "Slider",
@@ -1097,7 +1354,7 @@ def Slider(
 # -- Menus --------------------------------------------------------------------
 
 
-class MenuShortcut(dict):
+class MenuShortcut(dict[str, Any]):
     """A platform-aware keyboard shortcut shown beside a menu item."""
 
     def __init__(
@@ -1109,7 +1366,7 @@ class MenuShortcut(dict):
         shift: bool = False,
         alt: bool = False,
         meta: bool = False,
-    ):
+    ) -> None:
         super().__init__(
             key=key,
             primary=primary,
@@ -1124,10 +1381,10 @@ class MenuShortcut(dict):
         return str(self["key"])
 
 
-class MenuItem(dict):
+class MenuItem(dict[str, Any]):
     """Typed leaf menu entry."""
 
-    kind = "item"
+    kind: str = "item"
 
     def __init__(
         self,
@@ -1136,12 +1393,12 @@ class MenuItem(dict):
         label: str,
         icon: Optional[MaterialIcon] = None,
         trailing_icon: Optional[MaterialIcon] = None,
-        shortcut: Optional[MenuShortcut | dict] = None,
+        shortcut: Optional[MenuShortcut | dict[str, Any]] = None,
         enabled: Optional[bool] = None,
         visible: Optional[bool] = None,
         tone: Optional[str] = None,
         close_on_select: Optional[bool] = None,
-    ):
+    ) -> None:
         super().__init__(type=self.kind, id=id, label=label)
         _menu_put(self, "icon", _icon(icon))
         _menu_put(self, "trailingIcon", _icon(trailing_icon))
@@ -1160,39 +1417,39 @@ class MenuItem(dict):
         return str(self["label"])
 
 
-class MenuDivider(dict):
-    def __init__(self, label: Optional[str] = None):
+class MenuDivider(dict[str, Any]):
+    def __init__(self, label: Optional[str] = None) -> None:
         super().__init__(type="divider")
         _menu_put(self, "label", label)
 
 
 class MenuCheckboxItem(MenuItem):
-    kind = "checkbox"
+    kind: str = "checkbox"
 
-    def __init__(self, *, checked: bool = False, **kwargs):
+    def __init__(self, *, checked: bool = False, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self["checked"] = checked
 
 
 class MenuRadioItem(MenuItem):
-    kind = "radio"
+    kind: str = "radio"
 
-    def __init__(self, *, selected: bool = False, **kwargs):
+    def __init__(self, *, selected: bool = False, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self["selected"] = selected
 
 
-class Submenu(dict):
+class Submenu(dict[str, Any]):
     def __init__(
         self,
         *,
         label: str,
-        children: Iterable[dict],
+        children: Iterable[dict[str, Any]],
         id: Optional[str] = None,
         icon: Optional[MaterialIcon] = None,
         enabled: Optional[bool] = None,
         visible: Optional[bool] = None,
-    ):
+    ) -> None:
         super().__init__(type="submenu", label=label, children=list(children))
         _menu_put(self, "id", id)
         _menu_put(self, "icon", _icon(icon))
@@ -1209,7 +1466,7 @@ class Submenu(dict):
         return str(self["label"])
 
 
-class MenuEvent(dict):
+class MenuEvent(dict[str, Any]):
     """Payload emitted by a native menu selection."""
 
     @property
@@ -1242,7 +1499,7 @@ class MenuEvent(dict):
         return str(value) if value is not None else None
 
 
-def _menu_put(target: dict, key: str, value: Any) -> None:
+def _menu_put(target: dict[str, Any], key: str, value: Any) -> None:
     if value is not None:
         target[key] = dict(value) if isinstance(value, dict) else value
 
@@ -1254,10 +1511,10 @@ def Button(
     *,
     id: str,
     label: str,
-    icon=None,
-    variant=None,
-    enabled=None,
-    on_press: Optional[Callable] = None,
+    icon: Optional[MaterialIcon] = None,
+    variant: Optional[Literal["primary", "secondary", "ghost", "danger"]] = None,
+    enabled: Optional[bool] = None,
+    on_press: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component(
         "Button",
@@ -1278,9 +1535,9 @@ def IconButton(
     *,
     id: str,
     icon: MaterialIcon,
-    tooltip=None,
-    enabled=None,
-    on_press: Optional[Callable] = None,
+    tooltip: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    on_press: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component(
         "IconButton",
@@ -1294,17 +1551,19 @@ def IconButton(
 def Menu(
     *,
     id: str,
-    items: Iterable[dict],
-    label=None,
-    icon=None,
-    tooltip=None,
-    enabled=None,
-    icon_only=None,
-    alignment=None,
-    offset_x=None,
-    offset_y=None,
-    use_root_overlay=None,
-    child=None,
+    items: Iterable[dict[str, Any]],
+    label: Optional[str] = None,
+    icon: Optional[MaterialIcon] = None,
+    tooltip: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    icon_only: Optional[bool] = None,
+    alignment: Optional[
+        Literal["bottomStart", "bottomEnd", "topStart", "topEnd"]
+    ] = None,
+    offset_x: Optional[int | float] = None,
+    offset_y: Optional[int | float] = None,
+    use_root_overlay: Optional[bool] = None,
+    child: Optional[Component] = None,
     on_select: Optional[Callable[[MenuEvent], None]] = None,
 ) -> Component:
     component = Component(
@@ -1330,7 +1589,10 @@ def Menu(
 
 
 def MenuBar(
-    *, id: str, items: Iterable[dict], on_select: Optional[Callable] = None
+    *,
+    id: str,
+    items: Iterable[dict[str, Any]],
+    on_select: Optional[Callable[[MenuEvent], None]] = None,
 ) -> Component:
     component = Component("MenuBar", {"id": id, "items": list(items)})
     if on_select:
@@ -1339,11 +1601,11 @@ def MenuBar(
 
 
 def ContextMenu(
-    child=None,
+    child: Optional[Component] = None,
     *,
     id: str,
-    items: Iterable[dict],
-    enabled=None,
+    items: Iterable[dict[str, Any]],
+    enabled: Optional[bool] = None,
     on_select: Optional[Callable[[MenuEvent], None]] = None,
 ) -> Component:
     component = Component(
@@ -1358,8 +1620,8 @@ def ContextMenu(
 
 def _bind_context_menu_provider(
     component: Component,
-    entries: Optional[Iterable[dict]],
-    provider: Optional[Callable],
+    entries: Optional[Iterable[dict[str, Any]]],
+    provider: Optional[Callable[..., Any]],
 ) -> None:
     if provider is None:
         return
@@ -1369,14 +1631,16 @@ def _bind_context_menu_provider(
         if isinstance(entry, dict) and entry.get("id") is not None
     }
 
-    def request_menu(payload: dict):
+    def request_menu(payload: dict[str, Any]) -> Any:
         target = by_id.get(str(payload.get("targetId", "")))
         return None if target is None else provider(target)
 
     component.on("contextMenuRequest", request_menu)
 
 
-def _items_by_id(entries: Optional[Iterable[dict]]) -> dict[str, dict]:
+def _items_by_id(
+    entries: Optional[Iterable[dict[str, Any]]],
+) -> dict[str, dict[str, Any]]:
     return {
         str(entry.id if isinstance(entry, DataItem) else entry.get("id")): entry
         for entry in entries or ()
@@ -1387,15 +1651,15 @@ def _items_by_id(entries: Optional[Iterable[dict]]) -> dict[str, dict]:
 def _bind_item_event(
     component: Component,
     event: str,
-    entries: Optional[Iterable[dict]],
+    entries: Optional[Iterable[dict[str, Any]]],
     payload_key: str,
-    handler: Optional[Callable],
+    handler: Optional[Callable[..., Any]],
 ) -> None:
     if handler is None:
         return
     by_id = _items_by_id(entries)
 
-    def dispatch(payload: dict):
+    def dispatch(payload: dict[str, Any]) -> Any:
         item = by_id.get(str(payload.get(payload_key, "")))
         if item is not None:
             return handler(item)
@@ -1405,7 +1669,11 @@ def _bind_item_event(
 
 
 def Dropdown(
-    *, id: str, items: list, label=None, on_select: Optional[Callable] = None
+    *,
+    id: str,
+    items: list[dict[str, Any]],
+    label: Optional[str] = None,
+    on_select: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component("Dropdown", {"id": id, "items": items, "label": label})
     if on_select:
@@ -1414,11 +1682,11 @@ def Dropdown(
 
 
 def Dialog(
-    *children,
+    *children: Component,
     id: str,
-    title=None,
-    open=None,
-    on_close: Optional[Callable] = None,
+    title: Optional[str] = None,
+    open: Optional[bool] = None,
+    on_close: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     component = Component(
         "Dialog", {"id": id, "title": title, "open": open}, list(children)
@@ -1428,7 +1696,12 @@ def Dialog(
     return component
 
 
-def Tooltip(child=None, *, id=None, message: str) -> Component:
+def Tooltip(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    message: str,
+) -> Component:
     return Component(
         "Tooltip",
         {"id": id, "message": message},
@@ -1442,15 +1715,20 @@ def Tooltip(child=None, *, id=None, message: str) -> Component:
 def VirtualList(
     *,
     id: str,
-    items: Optional[list] = None,
-    item_count=None,
-    item_height=None,
-    selected_id=None,
-    empty_label=None,
-    on_select: Optional[Callable] = None,
-    on_activate: Optional[Callable] = None,
-    on_request_range: Optional[Callable] = None,
-    on_context_menu: Optional[Callable[[ListItem], Component]] = None,
+    items: Optional[list[ListItem | dict[str, Any]]] = None,
+    item_count: Optional[int | float] = None,
+    item_height: Optional[int | float] = None,
+    selected_id: Optional[str] = None,
+    empty_label: Optional[str] = None,
+    on_select: Optional[Callable[[ListItem | dict[str, Any]], None]] = None,
+    on_activate: Optional[Callable[[ListItem | dict[str, Any]], None]] = None,
+    on_request_range: Optional[Callable[[RangeRequest], None]] = None,
+    on_context_menu: Optional[
+        Callable[
+            [ListItem | dict[str, Any]],
+            Component | Awaitable[Component] | None,
+        ]
+    ] = None,
 ) -> Component:
     component = Component(
         "VirtualList",
@@ -1476,18 +1754,25 @@ def VirtualList(
 def TreeView(
     *,
     id: str,
-    nodes: Optional[list] = None,
-    expanded_ids: Optional[list] = None,
-    selected_id=None,
-    indent=None,
-    searchable=None,
-    empty_label=None,
-    on_select: Optional[Callable] = None,
-    on_activate: Optional[Callable] = None,
-    on_expand: Optional[Callable] = None,
-    on_collapse: Optional[Callable] = None,
-    on_request_children: Optional[Callable] = None,
-    on_context_menu: Optional[Callable[[TreeNode], Component]] = None,
+    nodes: Optional[list[TreeNode | dict[str, Any]]] = None,
+    expanded_ids: Optional[list[str]] = None,
+    selected_id: Optional[str] = None,
+    indent: Optional[int | float] = None,
+    searchable: Optional[bool] = None,
+    empty_label: Optional[str] = None,
+    on_select: Optional[Callable[[TreeNode | dict[str, Any]], None]] = None,
+    on_activate: Optional[Callable[[TreeNode | dict[str, Any]], None]] = None,
+    on_expand: Optional[Callable[[TreeNode | dict[str, Any]], None]] = None,
+    on_collapse: Optional[Callable[[TreeNode | dict[str, Any]], None]] = None,
+    on_request_children: Optional[
+        Callable[[TreeNode | dict[str, Any]], None]
+    ] = None,
+    on_context_menu: Optional[
+        Callable[
+            [TreeNode | dict[str, Any]],
+            Component | Awaitable[Component] | None,
+        ]
+    ] = None,
 ) -> Component:
     component = Component(
         "TreeView",
@@ -1516,20 +1801,25 @@ def TreeView(
 def DataTable(
     *,
     id: str,
-    columns: list,
-    rows: Optional[list] = None,
-    row_count=None,
-    row_height=None,
-    show_header=None,
-    selected_id=None,
-    sort_column=None,
-    sort_ascending=None,
-    empty_label=None,
-    on_select: Optional[Callable] = None,
-    on_activate: Optional[Callable] = None,
-    on_sort: Optional[Callable] = None,
-    on_request_range: Optional[Callable] = None,
-    on_context_menu: Optional[Callable[[TableRow], Component]] = None,
+    columns: list[TableColumn | dict[str, Any]],
+    rows: Optional[list[TableRow | dict[str, Any]]] = None,
+    row_count: Optional[int | float] = None,
+    row_height: Optional[int | float] = None,
+    show_header: Optional[bool] = None,
+    selected_id: Optional[str] = None,
+    sort_column: Optional[str] = None,
+    sort_ascending: Optional[bool] = None,
+    empty_label: Optional[str] = None,
+    on_select: Optional[Callable[[TableRow | dict[str, Any]], None]] = None,
+    on_activate: Optional[Callable[[TableRow | dict[str, Any]], None]] = None,
+    on_sort: Optional[Callable[[TableColumn | dict[str, Any]], None]] = None,
+    on_request_range: Optional[Callable[[RangeRequest], None]] = None,
+    on_context_menu: Optional[
+        Callable[
+            [TableRow | dict[str, Any]],
+            Component | Awaitable[Component] | None,
+        ]
+    ] = None,
 ) -> Component:
     component = Component(
         "DataTable",
@@ -1560,9 +1850,13 @@ def DataTable(
 def PropertyGrid(
     *,
     id: str,
-    entries: list,
-    on_select: Optional[Callable] = None,
-    on_expand: Optional[Callable] = None,
+    entries: list[PropertyEntry | dict[str, Any]],
+    on_select: Optional[
+        Callable[[PropertyEntry | dict[str, Any]], None]
+    ] = None,
+    on_expand: Optional[
+        Callable[[PropertyEntry | dict[str, Any]], None]
+    ] = None,
 ) -> Component:
     component = Component("PropertyGrid", {"id": id, "entries": entries})
     _bind_item_event(component, "select", entries, "nodeId", on_select)

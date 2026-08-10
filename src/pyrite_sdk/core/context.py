@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -220,7 +220,7 @@ class PluginContext:
         *,
         session_id: str,
         generation: int,
-        capabilities: Iterable[str],
+        capabilities: object,
     ) -> PluginContext:
         return replace(
             self,

@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import inspect
 import traceback
-from typing import Any, Awaitable, Callable, Mapping, Optional, TYPE_CHECKING
+from typing import Any, Callable, Mapping, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..core.bridge import Bridge
 
-CommandHandler = Callable[..., Optional[Awaitable[Any]]]
+CommandHandler = Callable[..., Any]
 
 
 class Commands:
     """Register Manifest command handlers and dispatch ``ide.command.execute``."""
 
-    def __init__(self, bridge: "Bridge"):
+    def __init__(self, bridge: "Bridge") -> None:
         self._bridge = bridge
         self._handlers: dict[str, CommandHandler] = {}
 

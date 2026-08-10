@@ -8,15 +8,16 @@ objects and a view facade.  This keeps renderer protocol details such as
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Awaitable, Callable, Iterable, Optional, TYPE_CHECKING
 
 from .icons import Icons, MaterialIcon
 
 if TYPE_CHECKING:
+    from .components import Component
     from .view import ViewModel
 
 
-EventHandler = Callable[[dict], None]
+EventHandler = Callable[[dict[str, Any]], None]
 
 
 class ChildrenState(str, Enum):
@@ -34,13 +35,13 @@ class IconColor(str, Enum):
     error = "error"
 
 
-def _value(value):
+def _value(value: Any) -> Any:
     if isinstance(value, MaterialIcon):
         return str(value)
     return value.value if isinstance(value, Enum) else value
 
 
-def _put(node: dict, key: str, value) -> None:
+def _put(node: dict[str, Any], key: str, value: Any) -> None:
     if key == "icon" and value is not None and not isinstance(value, MaterialIcon):
         raise TypeError("icon values must use pyrite_sdk.api.icons.Icons")
     value = _value(value)
@@ -48,7 +49,7 @@ def _put(node: dict, key: str, value) -> None:
         node[key] = value
 
 
-class NativeViewNode(dict):
+class NativeViewNode(dict[str, Any]):
     """Base class for typed renderer data that serializes as a wire node."""
 
     @property
@@ -98,8 +99,8 @@ class TreeItem(NativeViewNode):
         icon: Optional[MaterialIcon] = None,
         has_children: bool = False,
         children_state: str | ChildrenState = ChildrenState.loaded,
-        **metadata,
-    ):
+        **metadata: Any,
+    ) -> None:
         super().__init__(
             id=id,
             label=label,
@@ -118,14 +119,16 @@ class VirtualListItem(NativeViewNode):
         id: str,
         label: str,
         icon: Optional[MaterialIcon] = None,
-        **metadata,
-    ):
+        **metadata: Any,
+    ) -> None:
         super().__init__(id=id, label=label, **metadata)
         _put(self, "icon", icon)
 
 
 class TableRowItem(NativeViewNode):
-    def __init__(self, *, id: str, cells: dict[str, Any], **metadata):
+    def __init__(
+        self, *, id: str, cells: dict[str, Any], **metadata: Any
+    ) -> None:
         super().__init__(id=id, cells=dict(cells), **metadata)
 
     @property
@@ -133,7 +136,7 @@ class TableRowItem(NativeViewNode):
         return dict(self.get("cells") or {})
 
 
-class TableColumn(dict):
+class TableColumn(dict[str, Any]):
     def __init__(
         self,
         *,
@@ -143,7 +146,7 @@ class TableColumn(dict):
         flex: Optional[int] = None,
         frozen: Optional[bool] = None,
         sortable: Optional[bool] = None,
-    ):
+    ) -> None:
         super().__init__(id=id, label=label)
         _put(self, "width", width)
         _put(self, "flex", flex)
@@ -167,8 +170,8 @@ class FormField(NativeViewNode):
         label: str,
         value: Any = None,
         kind: str = "text",
-        options: Optional[Iterable[dict]] = None,
-    ):
+        options: Optional[Iterable[dict[str, Any]]] = None,
+    ) -> None:
         super().__init__(id=id, label=label, kind=kind, value=value)
         if options is not None:
             self["options"] = list(options)
@@ -183,7 +186,7 @@ class FormField(NativeViewNode):
 
 
 class MarkdownContent(NativeViewNode):
-    def __init__(self, text: str, *, id: str = "content"):
+    def __init__(self, text: str, *, id: str = "content") -> None:
         super().__init__(id=id, text=text)
 
     @property
@@ -199,7 +202,7 @@ class LogEntry(VirtualListItem):
         message: str,
         level: str = "info",
         timestamp: Optional[str] = None,
-    ):
+    ) -> None:
         super().__init__(id=id, label=message, level=level, timestamp=timestamp)
 
     @property
@@ -226,7 +229,7 @@ class OutlineItem(NativeViewNode):
         detail: Optional[str] = None,
         line: Optional[int] = None,
         column: Optional[int] = None,
-    ):
+    ) -> None:
         super().__init__(
             id=id,
             label=label,
@@ -274,7 +277,7 @@ class VariableEntry(NativeViewNode):
         icon_color: Optional[str | IconColor] = None,
         has_children: bool = False,
         children_state: str | ChildrenState = ChildrenState.loaded,
-    ):
+    ) -> None:
         super().__init__(
             id=id,
             name=name,
@@ -321,7 +324,7 @@ class VariableScope(VariableEntry):
         name: str,
         error: Optional[str] = None,
         has_children: bool = False,
-    ):
+    ) -> None:
         super().__init__(
             id=id,
             name=name,
@@ -341,7 +344,7 @@ class LoadMoreEntry(VariableEntry):
         parent_id: str,
         progress: str,
         label: str = "Load more...",
-    ):
+    ) -> None:
         super().__init__(
             id=id,
             parent_id=parent_id,
@@ -361,7 +364,7 @@ class ViewPlaceholder(NativeViewNode):
         label: str,
         icon: MaterialIcon = Icons.info_outline,
         icon_color: Optional[str | IconColor] = None,
-    ):
+    ) -> None:
         super().__init__(
             id=f"state:{state}",
             name=label,
@@ -387,15 +390,15 @@ class ViewAction:
         label: str,
         icon: MaterialIcon,
         on_trigger: EventHandler,
-    ):
+    ) -> None:
         if not isinstance(icon, MaterialIcon):
             raise TypeError("icon values must use pyrite_sdk.api.icons.Icons")
-        self.id = id
-        self.label = label
-        self.icon = icon
-        self.on_trigger = on_trigger
+        self.id: str = id
+        self.label: str = label
+        self.icon: MaterialIcon = icon
+        self.on_trigger: EventHandler = on_trigger
 
-    def _to_node(self, title: str) -> dict:
+    def _to_node(self, title: str) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.label,
@@ -418,14 +421,14 @@ class ViewMenuAction(ViewAction):
         *,
         id: str,
         label: str,
-        items: Iterable[dict],
+        items: Iterable[dict[str, Any]],
         icon: MaterialIcon = Icons.more_vert,
         on_trigger: EventHandler,
-    ):
+    ) -> None:
         super().__init__(id=id, label=label, icon=icon, on_trigger=on_trigger)
-        self.items = list(items)
+        self.items: list[dict[str, Any]] = list(items)
 
-    def _to_node(self, title: str) -> dict:
+    def _to_node(self, title: str) -> dict[str, Any]:
         node = super()._to_node(title)
         node["role"] = "appBarMenu"
         node["items"] = self.items
@@ -441,17 +444,24 @@ class RendererView:
         *,
         title: str,
         actions: Iterable[ViewAction] = (),
-    ):
-        self.model = model
-        self.title = title
+    ) -> None:
+        self.model: ViewModel = model
+        self.title: str = title
         self._actions: list[ViewAction] = list(actions)
         self._items: list[NativeViewNode] = []
         self._props: dict[str, Any] = {}
-        self._rendered_nodes: list[dict] = []
-        self._select_handler: Optional[EventHandler] = None
-        self._activate_handler: Optional[EventHandler] = None
-        self._request_children_handler: Optional[EventHandler] = None
-        self._context_menu_handler: Optional[Callable[[NativeViewNode], object]] = None
+        self._rendered_nodes: list[dict[str, Any]] = []
+        self._select_handler: Optional[Callable[[NativeViewNode], None]] = None
+        self._activate_handler: Optional[Callable[[NativeViewNode], None]] = None
+        self._request_children_handler: Optional[
+            Callable[[NativeViewNode], None]
+        ] = None
+        self._context_menu_handler: Optional[
+            Callable[
+                [NativeViewNode],
+                Component | Awaitable[Optional[Component]] | None,
+            ]
+        ] = None
         model.on_event(model.view_id, "select", self._handle_select)
         model.on_event(model.view_id, "activate", self._handle_activate)
         model.on_event(
@@ -482,35 +492,48 @@ class RendererView:
         return list(self._items)
 
     @property
-    def nodes(self) -> list[dict]:
+    def nodes(self) -> list[dict[str, Any]]:
         return [dict(node) for node in self._rendered_nodes]
 
-    def open(self, callback: Optional[Callable] = None) -> None:
+    def open(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self.model.open(callback=callback)
 
-    def close(self, callback: Optional[Callable] = None) -> None:
+    def close(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self.model.close(callback=callback)
 
-    def on_visibility(self, handler: Callable[[bool], None]) -> Callable:
+    def on_visibility(
+        self, handler: Callable[[bool], None]
+    ) -> Callable[[bool], None]:
         return self.model.on_visibility(handler)
 
-    def on_select(self, handler: Callable[[NativeViewNode], None]) -> Callable:
+    def on_select(
+        self, handler: Callable[[NativeViewNode], None]
+    ) -> Callable[[NativeViewNode], None]:
         self._select_handler = handler
         return handler
 
-    def on_activate(self, handler: Callable[[NativeViewNode], None]) -> Callable:
+    def on_activate(
+        self, handler: Callable[[NativeViewNode], None]
+    ) -> Callable[[NativeViewNode], None]:
         self._activate_handler = handler
         return handler
 
     def on_request_children(
         self, handler: Callable[[NativeViewNode], None]
-    ) -> Callable:
+    ) -> Callable[[NativeViewNode], None]:
         self._request_children_handler = handler
         return handler
 
     def on_context_menu(
-        self, handler: Callable[[NativeViewNode], object]
-    ) -> Callable[[NativeViewNode], object]:
+        self,
+        handler: Callable[
+            [NativeViewNode],
+            Component | Awaitable[Optional[Component]] | None,
+        ],
+    ) -> Callable[
+        [NativeViewNode],
+        Component | Awaitable[Optional[Component]] | None,
+    ]:
         self._context_menu_handler = handler
         if self.model.revision > 0:
             self._publish()
@@ -552,7 +575,7 @@ class RendererView:
             ]
         )
 
-    def _handle_select(self, payload: dict) -> None:
+    def _handle_select(self, payload: dict[str, Any]) -> None:
         node_id = str(
             payload.get("nodeId")
             or payload.get("entryId")
@@ -567,24 +590,28 @@ class RendererView:
             if item is not None:
                 self._select_handler(item)
 
-    def _handle_activate(self, payload: dict) -> None:
+    def _handle_activate(self, payload: dict[str, Any]) -> None:
         item = self._item_from_payload(payload)
         if self._activate_handler is not None and item is not None:
             self._activate_handler(item)
 
-    def _handle_request_children(self, payload: dict) -> None:
+    def _handle_request_children(self, payload: dict[str, Any]) -> None:
         item = self._item_from_payload(payload)
         if self._request_children_handler is not None and item is not None:
             self._request_children_handler(item)
 
-    def _handle_context_menu_request(self, payload: dict):
+    def _handle_context_menu_request(
+        self, payload: dict[str, Any]
+    ) -> Component | Awaitable[Optional[Component]] | None:
         if self._context_menu_handler is None:
             return None
         target_id = str(payload.get("targetId", ""))
         item = next((item for item in self._items if item.id == target_id), None)
         return None if item is None else self._context_menu_handler(item)
 
-    def _item_from_payload(self, payload: dict) -> Optional[NativeViewNode]:
+    def _item_from_payload(
+        self, payload: dict[str, Any]
+    ) -> Optional[NativeViewNode]:
         node_id = str(
             payload.get("nodeId")
             or payload.get("entryId")
@@ -624,7 +651,7 @@ class RendererView:
             )
         self._replace_nodes(nodes)
 
-    def _replace_nodes(self, nodes: list[dict]) -> None:
+    def _replace_nodes(self, nodes: list[dict[str, Any]]) -> None:
         copied = [dict(node) for node in nodes]
         if self.model.revision == 0:
             self.model.snapshot(copied)

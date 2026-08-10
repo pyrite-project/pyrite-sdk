@@ -751,7 +751,7 @@ class I18nKey(Enum):
     TERMINAL_STARTED = ('terminal.started', '启动 {title}: {executable}')
     TERMINAL_UNSUPPORTED_PLATFORM = ('terminal.unsupported_platform', '当前平台不支持桌面终端')
 
-    def __init__(self, key: str, fallback: str):
+    def __init__(self, key: str, fallback: str) -> None:
         self.key = key
         self.fallback = fallback
 

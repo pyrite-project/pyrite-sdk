@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Optional, List, Dict, Any, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 from ...models.schema import (
     request,
     EditorSetTextPayload,
@@ -20,18 +20,20 @@ if TYPE_CHECKING:
 
 
 class Editor:
-    def __init__(self, bridge: Bridge):
-        self._bridge = bridge
+    def __init__(self, bridge: Bridge) -> None:
+        self._bridge: Bridge = bridge
 
     # ── Text Content ──
 
-    def get_text(self, callback: Optional[Callable] = None):
+    def get_text(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.get_text"),
             callback=callback,
         )
 
-    def set_text(self, text: str, callback: Optional[Callable] = None):
+    def set_text(
+        self, text: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.set_text",
@@ -40,13 +42,17 @@ class Editor:
             callback=callback,
         )
 
-    def get_line_count(self, callback: Optional[Callable] = None):
+    def get_line_count(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.get_line_count"),
             callback=callback,
         )
 
-    def get_line_text(self, line: int, callback: Optional[Callable] = None):
+    def get_line_text(
+        self, line: int, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.get_line_text",
@@ -55,13 +61,17 @@ class Editor:
             callback=callback,
         )
 
-    def get_selected_text(self, callback: Optional[Callable] = None):
+    def get_selected_text(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.get_selected_text"),
             callback=callback,
         )
 
-    def insert_text(self, text: str, callback: Optional[Callable] = None):
+    def insert_text(
+        self, text: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.insert_text",
@@ -70,7 +80,13 @@ class Editor:
             callback=callback,
         )
 
-    def replace_range(self, start: int, end: int, text: str, callback: Optional[Callable] = None):
+    def replace_range(
+        self,
+        start: int,
+        end: int,
+        text: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.replace_range",
@@ -79,7 +95,7 @@ class Editor:
             callback=callback,
         )
 
-    def clear(self, callback: Optional[Callable] = None):
+    def clear(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.clear"),
             callback=callback,
@@ -87,13 +103,20 @@ class Editor:
 
     # ── Cursor & Selection ──
 
-    def get_cursor_position(self, callback: Optional[Callable] = None):
+    def get_cursor_position(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.get_cursor_position"),
             callback=callback,
         )
 
-    def set_cursor_position(self, line: int, column: int, callback: Optional[Callable] = None):
+    def set_cursor_position(
+        self,
+        line: int,
+        column: int,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.set_cursor_position",
@@ -102,13 +125,20 @@ class Editor:
             callback=callback,
         )
 
-    def get_selection(self, callback: Optional[Callable] = None):
+    def get_selection(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.get_selection"),
             callback=callback,
         )
 
-    def set_selection(self, start: int, end: int, callback: Optional[Callable] = None):
+    def set_selection(
+        self,
+        start: int,
+        end: int,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.set_selection",
@@ -117,13 +147,15 @@ class Editor:
             callback=callback,
         )
 
-    def select_all(self, callback: Optional[Callable] = None):
+    def select_all(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.select_all"),
             callback=callback,
         )
 
-    def go_to_line(self, line: int, callback: Optional[Callable] = None):
+    def go_to_line(
+        self, line: int, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.go_to_line",
@@ -134,19 +166,19 @@ class Editor:
 
     # ── Clipboard ──
 
-    def copy(self, callback: Optional[Callable] = None):
+    def copy(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.copy"),
             callback=callback,
         )
 
-    def cut(self, callback: Optional[Callable] = None):
+    def cut(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.cut"),
             callback=callback,
         )
 
-    def paste(self, callback: Optional[Callable] = None):
+    def paste(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.paste"),
             callback=callback,
@@ -154,25 +186,25 @@ class Editor:
 
     # ── Undo / Redo ──
 
-    def undo(self, callback: Optional[Callable] = None):
+    def undo(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.undo"),
             callback=callback,
         )
 
-    def redo(self, callback: Optional[Callable] = None):
+    def redo(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.redo"),
             callback=callback,
         )
 
-    def can_undo(self, callback: Optional[Callable] = None):
+    def can_undo(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.can_undo"),
             callback=callback,
         )
 
-    def can_redo(self, callback: Optional[Callable] = None):
+    def can_redo(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.can_redo"),
             callback=callback,
@@ -180,7 +212,13 @@ class Editor:
 
     # ── Search ──
 
-    def find(self, word: str, match_case: bool = False, whole_word: bool = False, callback: Optional[Callable] = None):
+    def find(
+        self,
+        word: str,
+        match_case: bool = False,
+        whole_word: bool = False,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.find",
@@ -189,7 +227,9 @@ class Editor:
             callback=callback,
         )
 
-    def find_regex(self, pattern: str, callback: Optional[Callable] = None):
+    def find_regex(
+        self, pattern: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.find_regex",
@@ -198,7 +238,9 @@ class Editor:
             callback=callback,
         )
 
-    def clear_search(self, callback: Optional[Callable] = None):
+    def clear_search(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.clear_search"),
             callback=callback,
@@ -206,7 +248,9 @@ class Editor:
 
     # ── Tab Management ──
 
-    def open_file(self, path: str, callback: Optional[Callable] = None):
+    def open_file(
+        self, path: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.open_file",
@@ -215,7 +259,9 @@ class Editor:
             callback=callback,
         )
 
-    def close_tab(self, path: str, callback: Optional[Callable] = None):
+    def close_tab(
+        self, path: str, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.close_tab",
@@ -224,13 +270,17 @@ class Editor:
             callback=callback,
         )
 
-    def get_current_tab(self, callback: Optional[Callable] = None):
+    def get_current_tab(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.get_current_tab"),
             callback=callback,
         )
 
-    def list_tabs(self, callback: Optional[Callable] = None):
+    def list_tabs(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.list_tabs"),
             callback=callback,
@@ -238,7 +288,13 @@ class Editor:
 
     # ── Decorations ──
 
-    def set_ghost_text(self, text: str, line: int, column: int, callback: Optional[Callable] = None):
+    def set_ghost_text(
+        self,
+        text: str,
+        line: int,
+        column: int,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.set_ghost_text",
@@ -247,13 +303,17 @@ class Editor:
             callback=callback,
         )
 
-    def clear_ghost_text(self, callback: Optional[Callable] = None):
+    def clear_ghost_text(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request("sdk.editor.clear_ghost_text"),
             callback=callback,
         )
 
-    def scroll_to_line(self, line: int, callback: Optional[Callable] = None):
+    def scroll_to_line(
+        self, line: int, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         self._bridge.push_wait_response(
             request(
                 "sdk.editor.scroll_to_line",

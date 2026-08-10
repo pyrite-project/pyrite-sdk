@@ -16,7 +16,9 @@ EventHandler = Callable[..., Optional[Awaitable[None]]]
 class Subscription:
     """A live event subscription. Call :meth:`dispose` to stop delivery."""
 
-    def __init__(self, bus: "PluginEventBus", subscription_id: str, topic: str):
+    def __init__(
+        self, bus: "PluginEventBus", subscription_id: str, topic: str
+    ) -> None:
         self._bus = bus
         self.id = subscription_id
         self.topic = topic
@@ -41,7 +43,7 @@ class PluginEventBus:
     handler that raises never propagates into the bridge event loop.
     """
 
-    def __init__(self, bridge: "Bridge"):
+    def __init__(self, bridge: "Bridge") -> None:
         self._bridge = bridge
         self._subscriptions: dict[str, tuple[Subscription, EventHandler]] = {}
 
@@ -53,7 +55,7 @@ class PluginEventBus:
         filter: Optional[Mapping[str, Any]] = None,
         delivery: Optional[str] = None,
         debounce_ms: Optional[int] = None,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> Subscription:
         """Subscribe ``handler`` to ``topic``.
 
@@ -80,7 +82,7 @@ class PluginEventBus:
         if delivery_spec:
             payload["delivery"] = delivery_spec
 
-        def _on_response(error=None, **_):
+        def _on_response(error: Any = None, **_: Any) -> None:
             if error is not None:
                 # The host rejected the subscription (unknown topic, denied
                 # permission): drop it locally so it can be retried.
@@ -106,7 +108,9 @@ class PluginEventBus:
             subscription._disposed = True
         self._subscriptions.clear()
 
-    async def dispatch(self, subscription_id: str, topic: str, events: list) -> None:
+    async def dispatch(
+        self, subscription_id: str, topic: str, events: list[Any]
+    ) -> None:
         """Deliver inbound events to the subscription handler.
 
         Exceptions raised by the handler are caught and logged so one bad

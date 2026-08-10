@@ -9,13 +9,16 @@ if TYPE_CHECKING:
     from ..core.bridge import Bridge
     from .events import PluginEventBus, Subscription
 
-ConfigurationHandler = Callable[..., Optional[Awaitable[None]]]
+ConfigurationHandler = Callable[
+    [Mapping[str, Any]],
+    Optional[Awaitable[None]],
+]
 
 
 class Configuration:
     """Read and update Manifest-declared configuration values."""
 
-    def __init__(self, bridge: "Bridge", events: "PluginEventBus"):
+    def __init__(self, bridge: "Bridge", events: "PluginEventBus") -> None:
         self._bridge = bridge
         self._events = events
 
@@ -23,7 +26,7 @@ class Configuration:
         self,
         configuration_id: str,
         *,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         self._bridge.push_wait_response(
             request(
@@ -38,7 +41,7 @@ class Configuration:
         configuration_id: str,
         value: Any,
         *,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         self._bridge.push_wait_response(
             request(
@@ -48,7 +51,7 @@ class Configuration:
             callback=callback,
         )
 
-    def list(self, *, callback: Optional[Callable] = None) -> None:
+    def list(self, *, callback: Optional[Callable[..., Any]] = None) -> None:
         self._bridge.push_wait_response(
             request("sdk.configuration.list", payload={}),
             callback=callback,

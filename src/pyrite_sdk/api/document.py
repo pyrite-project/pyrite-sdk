@@ -7,7 +7,7 @@ from ..models.schema import request
 
 if TYPE_CHECKING:
     from ..core.bridge import Bridge
-    from .events import PluginEventBus, Subscription
+    from .events import EventHandler, PluginEventBus, Subscription
 
 
 @dataclass
@@ -23,7 +23,7 @@ class Document:
     text: Optional[str] = None
 
     @classmethod
-    def from_json(cls, data: dict) -> "Document":
+    def from_json(cls, data: dict[str, Any]) -> "Document":
         return cls(
             document_id=data.get("documentId", ""),
             file_path=data.get("filePath", ""),
@@ -49,7 +49,7 @@ class Selection:
     cursor: Optional[Position] = None
 
     @classmethod
-    def from_json(cls, data: dict) -> "Selection":
+    def from_json(cls, data: dict[str, Any]) -> "Selection":
         cursor = data.get("cursor")
         return cls(
             document_id=data.get("documentId", ""),
@@ -77,10 +77,10 @@ class DocumentSymbol:
     kind: int
     detail: Optional[str] = None
     children: list["DocumentSymbol"] = field(default_factory=list)
-    raw: dict = field(default_factory=dict)
+    raw: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, data: dict) -> "DocumentSymbol":
+    def from_json(cls, data: dict[str, Any]) -> "DocumentSymbol":
         children = [
             cls.from_json(child)
             for child in data.get("children", [])
@@ -109,7 +109,7 @@ class SymbolResult:
     symbols: list[DocumentSymbol]
 
     @classmethod
-    def from_json(cls, data: dict) -> "SymbolResult":
+    def from_json(cls, data: dict[str, Any]) -> "SymbolResult":
         return cls(
             document_id=data.get("documentId", ""),
             revision=data.get("revision"),
@@ -133,16 +133,18 @@ class EditorDocuments:
     ``editor.document.*`` event topics behind typed helpers.
     """
 
-    def __init__(self, bridge: "Bridge", events: "PluginEventBus"):
-        self._bridge = bridge
-        self._events = events
+    def __init__(self, bridge: "Bridge", events: "PluginEventBus") -> None:
+        self._bridge: Bridge = bridge
+        self._events: PluginEventBus = events
 
     # -- Queries ------------------------------------------------------------
 
-    def get_active(self, callback: Optional[Callable] = None) -> None:
+    def get_active(
+        self, callback: Optional[Callable[..., Any]] = None
+    ) -> None:
         """Fetch the active document. ``callback(document=Document|None)``."""
 
-        def _cb(data=None, error=None, **_):
+        def _cb(data: Any = None, error: Any = None, **_: Any) -> None:
             if callback is None:
                 return
             if error is not None:
@@ -155,8 +157,12 @@ class EditorDocuments:
             callback=_cb,
         )
 
-    def get(self, document_id: str, callback: Optional[Callable] = None) -> None:
-        def _cb(data=None, error=None, **_):
+    def get(
+        self,
+        document_id: str,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> None:
+        def _cb(data: Any = None, error: Any = None, **_: Any) -> None:
             if callback is None:
                 return
             if error is not None:
@@ -173,13 +179,15 @@ class EditorDocuments:
         )
 
     def symbols(
-        self, document_id: str, callback: Optional[Callable] = None
+        self,
+        document_id: str,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         """Request document symbols. ``callback(result=SymbolResult)`` or
         ``callback(error=...)`` — the error carries code ``unavailable`` when
         the language service is off."""
 
-        def _cb(data=None, error=None, **_):
+        def _cb(data: Any = None, error: Any = None, **_: Any) -> None:
             if callback is None:
                 return
             if error is not None:
@@ -196,13 +204,15 @@ class EditorDocuments:
         )
 
     def get_selection(
-        self, document_id: Optional[str] = None, callback: Optional[Callable] = None
+        self,
+        document_id: Optional[str] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         payload: dict[str, Any] = {}
         if document_id is not None:
             payload["documentId"] = document_id
 
-        def _cb(data=None, error=None, **_):
+        def _cb(data: Any = None, error: Any = None, **_: Any) -> None:
             if callback is None:
                 return
             if error is not None:
@@ -220,7 +230,7 @@ class EditorDocuments:
         document_id: str,
         line: int,
         column: Optional[int] = None,
-        callback: Optional[Callable] = None,
+        callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         payload: dict[str, Any] = {"documentId": document_id, "line": line}
         if column is not None:
@@ -232,24 +242,36 @@ class EditorDocuments:
 
     # -- Subscriptions ------------------------------------------------------
 
-    def on_active_changed(self, handler, **kwargs) -> "Subscription":
+    def on_active_changed(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe(
             "editor.activeDocument.changed", handler, **kwargs
         )
 
-    def on_opened(self, handler, **kwargs) -> "Subscription":
+    def on_opened(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("editor.document.opened", handler, **kwargs)
 
-    def on_changed(self, handler, **kwargs) -> "Subscription":
+    def on_changed(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("editor.document.changed", handler, **kwargs)
 
-    def on_saved(self, handler, **kwargs) -> "Subscription":
+    def on_saved(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("editor.document.saved", handler, **kwargs)
 
-    def on_closed(self, handler, **kwargs) -> "Subscription":
+    def on_closed(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe("editor.document.closed", handler, **kwargs)
 
-    def on_selection_changed(self, handler, **kwargs) -> "Subscription":
+    def on_selection_changed(
+        self, handler: "EventHandler", **kwargs: Any
+    ) -> "Subscription":
         return self._events.subscribe(
             "editor.document.selection.changed", handler, **kwargs
         )

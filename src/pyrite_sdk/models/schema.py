@@ -202,7 +202,7 @@ class Envelope(BaseModel):
     )
     sequence: int = Field(default=1, ge=1)
     type: str = Field(min_length=1)
-    payload: dict
+    payload: dict[str, Any]
     data: Optional[Any] = None
     timestamp: int = Field(default_factory=now)
     deadline: Optional[int] = Field(
@@ -211,14 +211,14 @@ class Envelope(BaseModel):
         exclude_if=lambda value: value is None,
     )
 
-    def json(self, *args, **kwargs) -> str:
+    def json(self, *args: Any, **kwargs: Any) -> str:
         kwargs.setdefault("by_alias", True)
         return self.model_dump_json(*args, **kwargs)
 
 
 def request(
     type_: str,
-    payload: Optional[BaseModel] = None,
+    payload: Optional[BaseModel | dict[str, Any]] = None,
     data: Optional[Any] = None,
     *,
     deadline: Optional[int] = None,
