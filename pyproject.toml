@@ -1,6 +1,6 @@
 [project]
 name = "pyrite-sdk"
-version = "1.0.0"
+version = "1.1.0"
 description = "Expand your PyriteIDE"
 readme = "README.md"
 requires-python = ">=3.12"

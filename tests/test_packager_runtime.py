@@ -48,7 +48,7 @@ def _manifest_v2(
         "manifest_version = 2\n"
         f'id = "{plugin_id}"\n'
         f'name = "{plugin_id}"\n'
-        'version = "1.0.0"\n'
+        'version = "1.1.0"\n'
         'type = "service"\n'
         "protocol_version = 1\n"
         f"{python_line}"

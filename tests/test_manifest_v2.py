@@ -26,7 +26,7 @@ MINIMAL_UI_TOML = """
 manifest_version = 2
 id = "fixture-ui"
 name = "Fixture UI"
-version = "1.0.0"
+version = "1.1.0"
 type = "ui"
 protocol_version = 1
 python_version = "3.14"
@@ -110,7 +110,7 @@ def _full_manifest() -> PluginManifestV2:
     return build_manifest(
         plugin_id="python-tools",
         name="Python Tools",
-        version="1.0.0",
+        version="1.1.0",
         plugin_type=PluginType.UI,
         python_version="3.14",
         author="Pyrite",
@@ -207,7 +207,7 @@ class ManifestV2Test(unittest.TestCase):
         manifest = build_manifest(
             plugin_id="fixture-service",
             name="Fixture Service",
-            version="1.0.0",
+            version="1.1.0",
             plugin_type="service",
         )
 
@@ -223,7 +223,7 @@ class ManifestV2Test(unittest.TestCase):
             lambda: build_manifest(
                 plugin_id="fixture-ui",
                 name="Fixture UI",
-                version="1.0.0",
+                version="1.1.0",
                 plugin_type="ui",
             ),
         )
@@ -260,7 +260,7 @@ class ManifestV2Test(unittest.TestCase):
 
         deeply_nested = (
             'manifest_version = 2\nid = "nested"\nname = "Nested"\n'
-            'version = "1.0.0"\ntype = "service"\nprotocol_version = 1\n'
+            'version = "1.1.0"\ntype = "service"\nprotocol_version = 1\n'
             '[[contributes.configuration]]\nid = "nested.value"\n'
             'title = "Value"\ntype = "array"\ndefault = '
             + "[" * 600
@@ -351,7 +351,7 @@ class ManifestV2Test(unittest.TestCase):
         invalid_id = build_manifest(
             plugin_id="fixture",
             name="Fixture",
-            version="1.0.0",
+            version="1.1.0",
             plugin_type="service",
         ).model_copy(update={"id": "bad id"})
         self.assert_error_code(
@@ -367,7 +367,7 @@ class ManifestV2Test(unittest.TestCase):
         invalid_permission = build_manifest(
             plugin_id="fixture",
             name="Fixture",
-            version="1.0.0",
+            version="1.1.0",
             plugin_type="service",
         ).model_copy(update={"permissions": ["file.read", "file.read"]})
         self.assert_error_code(
@@ -380,7 +380,7 @@ class ManifestV2Test(unittest.TestCase):
             lambda: build_manifest(
                 plugin_id="fixture",
                 name="Fixture",
-                version="1.0.0",
+                version="1.1.0",
                 plugin_type="service",
                 contributes=PluginContributions(
                     configuration=[
@@ -418,7 +418,7 @@ class ManifestV2Test(unittest.TestCase):
                 manifest = build_manifest(
                     plugin_id="fixture",
                     name="Fixture",
-                    version="1.0.0",
+                    version="1.1.0",
                     plugin_type="service",
                     contributes=PluginContributions(
                         configuration=[
@@ -442,7 +442,7 @@ class ManifestV2Test(unittest.TestCase):
             lambda: build_manifest(
                 plugin_id="fixture",
                 name="Fixture",
-                version="1.0.0",
+                version="1.1.0",
                 plugin_type="service",
                 contributes=PluginContributions(
                     configuration=[
@@ -472,7 +472,7 @@ class ManifestV2Test(unittest.TestCase):
                     lambda configuration_type=configuration_type, default=default: build_manifest(
                         plugin_id="fixture",
                         name="Fixture",
-                        version="1.0.0",
+                        version="1.1.0",
                         plugin_type="service",
                         contributes=PluginContributions(
                             configuration=[
@@ -499,7 +499,7 @@ class ManifestV2Test(unittest.TestCase):
             lambda: build_manifest(
                 plugin_id="fixture",
                 name="Fixture",
-                version="1.0.0",
+                version="1.1.0",
                 plugin_type="service",
                 contributes=PluginContributions(
                     configuration=[
@@ -539,13 +539,13 @@ class ManifestV2Test(unittest.TestCase):
         alias = build_manifest(
             plugin_id="Alias",
             name="Alias",
-            version="1.0.0",
+            version="1.1.0",
             plugin_type="service",
         )
         installed_alias = build_manifest(
             plugin_id="alias",
             name="alias",
-            version="1.0.0",
+            version="1.1.0",
             plugin_type="service",
         )
         self.assert_error_code(
@@ -644,7 +644,7 @@ class ManifestV2Test(unittest.TestCase):
         return PluginManifestV2(
             id="fixture",
             name="Fixture",
-            version="1.0.0",
+            version="1.1.0",
             type=PluginType.UI,
             contributes=PluginContributions(
                 navigation_containers=[

@@ -1,7 +1,7 @@
 manifest_version = 2
 id = "minimal-ui"
 name = "Minimal UI"
-version = "1.0.0"
+version = "1.1.0"
 type = "ui"
 protocol_version = 1
 activation_events = ["onView:minimal-ui.main"]

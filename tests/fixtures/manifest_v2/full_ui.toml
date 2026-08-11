@@ -1,7 +1,7 @@
 manifest_version = 2
 id = "python-tools"
 name = "Python Tools"
-version = "1.0.0"
+version = "1.1.0"
 type = "ui"
 protocol_version = 1
 python_version = "3.14"

@@ -26,7 +26,7 @@ ARCH_MAP = {
     "Linux": [""],
 }
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 def to_kebab(s: str) -> str:
     """PascalCase → kebab-case"""

@@ -1,7 +1,7 @@
 manifest_version = 2
 id = "<plugin-id>"
 name = "<PluginId>"
-version = "1.0.0"
+version = "1.1.0"
 type = "data"
 protocol_version = 1
 author = "Your name"

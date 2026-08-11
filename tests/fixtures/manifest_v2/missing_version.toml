@@ -1,6 +1,6 @@
 id = "missing-version"
 name = "Missing Manifest Version"
-version = "1.0.0"
+version = "1.1.0"
 type = "service"
 protocol_version = 1
 activation_events = []

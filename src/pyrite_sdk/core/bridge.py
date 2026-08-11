@@ -698,7 +698,7 @@ class Bridge:
                             type="sdk.initialize",
                             payload={
                                 "protocolVersion": PROTOCOL_VERSION,
-                                "sdkVersion": "1.0.0",
+                                "sdkVersion": "1.1.0",
                                 "capabilities": SDK_CAPABILITIES,
                             },
                             reply_to=env.request_id,
