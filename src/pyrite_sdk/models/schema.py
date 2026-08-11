@@ -55,7 +55,7 @@ class FileRequestUniqueNamePayload(BaseModel):
     is_folder: bool = False
 
 
-class DialogOpenFolderPayload(BaseModel):
+class DialogOpenFilePayload(BaseModel):
     title: Optional[str] = None
     initial_directory: Optional[str] = None
 

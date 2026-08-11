@@ -385,6 +385,16 @@ class TerminalSettings:
     def set_font_size(self, value: float, callback: Optional[Callable[..., Any]] = None) -> None: self._set("terminal.font_size", value, callback)
     def get_line_height(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("terminal.line_height", callback)
     def set_line_height(self, value: float, callback: Optional[Callable[..., Any]] = None) -> None: self._set("terminal.line_height", value, callback)
+    def get_ligatures(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("terminal.ligatures", callback)
+    def set_ligatures(self, value: bool, callback: Optional[Callable[..., Any]] = None) -> None: self._set("terminal.ligatures", value, callback)
+    def get_appearance(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("terminal.appearance", callback)
+    def set_appearance(self, value: str, callback: Optional[Callable[..., Any]] = None) -> None: self._set("terminal.appearance", value, callback)
+    def get_minimum_contrast(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("terminal.minimum_contrast", callback)
+    def set_minimum_contrast(self, value: bool, callback: Optional[Callable[..., Any]] = None) -> None: self._set("terminal.minimum_contrast", value, callback)
+    def get_custom_foreground(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("terminal.custom_foreground", callback)
+    def set_custom_foreground(self, value: int, callback: Optional[Callable[..., Any]] = None) -> None: self._set("terminal.custom_foreground", value, callback)
+    def get_custom_background(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("terminal.custom_background", callback)
+    def set_custom_background(self, value: int, callback: Optional[Callable[..., Any]] = None) -> None: self._set("terminal.custom_background", value, callback)
 
 
 class MicroPythonStubsSettings:

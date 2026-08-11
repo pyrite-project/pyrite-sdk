@@ -246,7 +246,7 @@ def copy_directory(
         target = destination / entity.name
         if entity.is_dir():
             target.mkdir(exist_ok=True)
-            copy_directory(entity.resolve(), target, root_dir, exclude_list)
+            copy_directory(entity, target, root_dir, exclude_list)
         elif entity.is_file():
             shutil.copy2(entity, target)
 
