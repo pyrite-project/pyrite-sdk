@@ -28,6 +28,14 @@ ARCH_MAP = {
 
 __version__ = "1.0.0"
 
+def to_kebab(s: str) -> str:
+    """PascalCase → kebab-case"""
+    import re
+    return re.sub(r'([a-z])([A-Z])', r'\1-\2', s).lower()
+
+def to_pascal(s: str) -> str:
+    """kebab-case → PascalCase"""
+    return ''.join(part.capitalize() for part in s.split('-'))
 
 def version_callback(value: bool):
     if value:
@@ -380,6 +388,10 @@ def create(
         Literal["ui", "service", "data"],
         typer.Argument(help="插件类型"),
     ] = "ui",
+    plugin_id: Annotated[
+        Optional[str],
+        typer.Argument(help="插件 ID"),
+    ] = "my-plugin",
     dir: Annotated[
         Optional[str],
         typer.Argument(help="源目录"),
@@ -406,7 +418,12 @@ def create(
     print("Source path:", src_path)
     print(f"Creating template {plugin_type} plugin to", dst_path)
     for source in template_files:
-        shutil.copy2(source, dst_path / source.name)
+        with open(source, "r") as f:
+            content = f.read()\
+                .replace("<PluginId>", to_pascal(plugin_id))\
+                .replace("<plugin-id>", to_kebab(plugin_id))
+        with open(dst_path / source.name, "w") as f:
+            f.write(content)
     print("Completed.")
 
 

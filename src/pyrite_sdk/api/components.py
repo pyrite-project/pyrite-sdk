@@ -12,6 +12,7 @@ events are delivered as ``ide.view.event`` frames.
 from __future__ import annotations
 
 from typing import Any, Awaitable, Callable, Iterable, Literal, Optional
+from secrets import token_hex
 
 from .icons import MaterialIcon
 from .resources import PluginResource
@@ -691,11 +692,13 @@ class ListItem(DataItem):
     def __init__(
         self,
         *,
-        id: str,
+        id: Optional[str]=None,
         label: str,
         icon: Optional[MaterialIcon] = None,
         **data: Any,
     ) -> None:
+        if not id:
+            id = token_hex(16)
         super().__init__(id=id, label=label, **data)
         if icon is not None:
             self["icon"] = _icon(icon)
@@ -714,13 +717,15 @@ class TreeNode(ListItem):
     def __init__(
         self,
         *,
-        id: str,
+        id: Optional[str]=None,
         label: str,
         parent_id: Optional[str] = None,
         icon: Optional[MaterialIcon] = None,
         has_children: bool = False,
         **data: Any,
     ) -> None:
+        if not id:
+            id = token_hex(16)
         super().__init__(
             id=id,
             label=label,
@@ -742,8 +747,10 @@ class TreeNode(ListItem):
 
 class TableRow(DataItem):
     def __init__(
-        self, *, id: str, cells: dict[str, Any], **data: Any
+        self, *, id: Optional[str]=None, cells: dict[str, Any], **data: Any
     ) -> None:
+        if not id:
+            id = token_hex(16)
         super().__init__(id=id, cells=cells, **data)
 
     @property
@@ -755,13 +762,15 @@ class TableColumn(dict[str, Any]):
     def __init__(
         self,
         *,
-        id: str,
+        id: Optional[str]=None,
         label: str,
         width: Optional[int | float] = None,
         flex: Optional[int | float] = None,
         frozen: Optional[bool] = None,
         sortable: Optional[bool] = None,
     ) -> None:
+        if not id:
+            id = token_hex(16)
         super().__init__(id=id, label=label)
         for key, value in (
             ("width", width),
@@ -785,7 +794,7 @@ class PropertyEntry(DataItem):
     def __init__(
         self,
         *,
-        id: str,
+        id: Optional[str]=None,
         name: str,
         value: Any = "",
         type_name: str = "",
@@ -793,6 +802,8 @@ class PropertyEntry(DataItem):
         has_children: bool = False,
         **metadata: Any,
     ) -> None:
+        if not id:
+            id = token_hex(16)
         super().__init__(
             id=id,
             name=name,
@@ -963,10 +974,12 @@ def Tabs(
 def Tab(
     child: Optional[Component] = None,
     *,
-    id: str,
+    id: Optional[str]=None,
     label: str,
     icon: Optional[MaterialIcon] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     return Component(
         "Tab",
         {"id": id, "label": label, "icon": _icon(icon)},
@@ -1111,7 +1124,7 @@ def Video(
 
 def Canvas(
     *,
-    id: str,
+    id: Optional[str]=None,
     width: Optional[int | float] = None,
     height: Optional[int | float] = None,
     ops: Any = None,
@@ -1130,6 +1143,8 @@ def Canvas(
     producing zero cross-process traffic otherwise. ``id`` is required because
     both invoke and event delivery key on it.
     """
+    if not id:
+        id = token_hex(16)
     component = Component(
         "Canvas",
         {
@@ -1209,7 +1224,7 @@ def Badge(
 
 def TextField(
     *,
-    id: str,
+    id: Optional[str]=None,
     value: Optional[str] = None,
     placeholder: Optional[str] = None,
     label: Optional[str] = None,
@@ -1218,6 +1233,8 @@ def TextField(
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
     on_submit: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "TextField",
         {
@@ -1238,7 +1255,7 @@ def TextField(
 
 def NumberField(
     *,
-    id: str,
+    id: Optional[str]=None,
     value: Optional[int | float] = None,
     min: Optional[int | float] = None,
     max: Optional[int | float] = None,
@@ -1248,6 +1265,8 @@ def NumberField(
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
     on_submit: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "NumberField",
         {
@@ -1269,13 +1288,15 @@ def NumberField(
 
 def Select(
     *,
-    id: str,
+    id: Optional[str]=None,
     options: list[SelectOption | dict[str, Any]],
     value: Optional[str] = None,
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "Select",
         {
@@ -1293,12 +1314,14 @@ def Select(
 
 def Checkbox(
     *,
-    id: str,
+    id: Optional[str]=None,
     value: Optional[bool] = None,
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "Checkbox",
         {"id": id, "value": value, "label": label, "enabled": enabled},
@@ -1310,12 +1333,14 @@ def Checkbox(
 
 def Switch(
     *,
-    id: str,
+    id: Optional[str]=None,
     value: Optional[bool] = None,
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "Switch",
         {"id": id, "value": value, "label": label, "enabled": enabled},
@@ -1327,7 +1352,7 @@ def Switch(
 
 def Slider(
     *,
-    id: str,
+    id: Optional[str]=None,
     value: Optional[int | float] = None,
     min: Optional[int | float] = None,
     max: Optional[int | float] = None,
@@ -1335,6 +1360,8 @@ def Slider(
     enabled: Optional[bool] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "Slider",
         {
@@ -1389,7 +1416,7 @@ class MenuItem(dict[str, Any]):
     def __init__(
         self,
         *,
-        id: str,
+        id: Optional[str]=None,
         label: str,
         icon: Optional[MaterialIcon] = None,
         trailing_icon: Optional[MaterialIcon] = None,
@@ -1399,6 +1426,8 @@ class MenuItem(dict[str, Any]):
         tone: Optional[str] = None,
         close_on_select: Optional[bool] = None,
     ) -> None:
+        if not id:
+            id = token_hex(16)
         super().__init__(type=self.kind, id=id, label=label)
         _menu_put(self, "icon", _icon(icon))
         _menu_put(self, "trailingIcon", _icon(trailing_icon))
@@ -1509,13 +1538,15 @@ def _menu_put(target: dict[str, Any], key: str, value: Any) -> None:
 
 def Button(
     *,
-    id: str,
+    id: Optional[str]=None,
     label: str,
     icon: Optional[MaterialIcon] = None,
     variant: Optional[Literal["primary", "secondary", "ghost", "danger"]] = None,
     enabled: Optional[bool] = None,
     on_press: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "Button",
         {
@@ -1533,12 +1564,14 @@ def Button(
 
 def IconButton(
     *,
-    id: str,
+    id: Optional[str]=None,
     icon: MaterialIcon,
     tooltip: Optional[str] = None,
     enabled: Optional[bool] = None,
     on_press: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "IconButton",
         {"id": id, "icon": _icon(icon), "tooltip": tooltip, "enabled": enabled},
@@ -1550,7 +1583,7 @@ def IconButton(
 
 def Menu(
     *,
-    id: str,
+    id: Optional[str]=None,
     items: Iterable[dict[str, Any]],
     label: Optional[str] = None,
     icon: Optional[MaterialIcon] = None,
@@ -1566,6 +1599,8 @@ def Menu(
     child: Optional[Component] = None,
     on_select: Optional[Callable[[MenuEvent], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "Menu",
         {
@@ -1590,10 +1625,12 @@ def Menu(
 
 def MenuBar(
     *,
-    id: str,
+    id: Optional[str]=None,
     items: Iterable[dict[str, Any]],
     on_select: Optional[Callable[[MenuEvent], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component("MenuBar", {"id": id, "items": list(items)})
     if on_select:
         component.on("select", lambda payload: on_select(MenuEvent(payload)))
@@ -1603,11 +1640,13 @@ def MenuBar(
 def ContextMenu(
     child: Optional[Component] = None,
     *,
-    id: str,
+    id: Optional[str]=None,
     items: Iterable[dict[str, Any]],
     enabled: Optional[bool] = None,
     on_select: Optional[Callable[[MenuEvent], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "ContextMenu",
         {"id": id, "items": list(items), "enabled": enabled},
@@ -1670,11 +1709,13 @@ def _bind_item_event(
 
 def Dropdown(
     *,
-    id: str,
+    id: Optional[str]=None,
     items: list[dict[str, Any]],
     label: Optional[str] = None,
     on_select: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component("Dropdown", {"id": id, "items": items, "label": label})
     if on_select:
         component.on("select", on_select)
@@ -1683,11 +1724,13 @@ def Dropdown(
 
 def Dialog(
     *children: Component,
-    id: str,
+    id: Optional[str]=None,
     title: Optional[str] = None,
     open: Optional[bool] = None,
     on_close: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "Dialog", {"id": id, "title": title, "open": open}, list(children)
     )
@@ -1714,7 +1757,7 @@ def Tooltip(
 
 def VirtualList(
     *,
-    id: str,
+    id: Optional[str]=None,
     items: Optional[list[ListItem | dict[str, Any]]] = None,
     item_count: Optional[int | float] = None,
     item_height: Optional[int | float] = None,
@@ -1730,6 +1773,8 @@ def VirtualList(
         ]
     ] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "VirtualList",
         {
@@ -1753,7 +1798,7 @@ def VirtualList(
 
 def TreeView(
     *,
-    id: str,
+    id: Optional[str]=None,
     nodes: Optional[list[TreeNode | dict[str, Any]]] = None,
     expanded_ids: Optional[list[str]] = None,
     selected_id: Optional[str] = None,
@@ -1774,6 +1819,8 @@ def TreeView(
         ]
     ] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "TreeView",
         {
@@ -1800,7 +1847,7 @@ def TreeView(
 
 def DataTable(
     *,
-    id: str,
+    id: Optional[str]=None,
     columns: list[TableColumn | dict[str, Any]],
     rows: Optional[list[TableRow | dict[str, Any]]] = None,
     row_count: Optional[int | float] = None,
@@ -1821,6 +1868,8 @@ def DataTable(
         ]
     ] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component(
         "DataTable",
         {
@@ -1849,7 +1898,7 @@ def DataTable(
 
 def PropertyGrid(
     *,
-    id: str,
+    id: Optional[str]=None,
     entries: list[PropertyEntry | dict[str, Any]],
     on_select: Optional[
         Callable[[PropertyEntry | dict[str, Any]], None]
@@ -1858,6 +1907,8 @@ def PropertyGrid(
         Callable[[PropertyEntry | dict[str, Any]], None]
     ] = None,
 ) -> Component:
+    if not id:
+        id = token_hex(16)
     component = Component("PropertyGrid", {"id": id, "entries": entries})
     _bind_item_event(component, "select", entries, "nodeId", on_select)
     _bind_item_event(component, "expand", entries, "nodeId", on_expand)
