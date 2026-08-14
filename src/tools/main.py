@@ -1,5 +1,7 @@
 import shutil
 from pathlib import Path
+import sys
+import tomllib
 from typing import Annotated, Dict, List, Literal, Optional
 import typer
 from rich.console import Console
@@ -199,6 +201,22 @@ def _build_requirements(
         result.extend(requirements)
     return result
 
+def get_plugin_platforms(plugin_path: Path) -> list[str]:
+    PLATFORM_MAP = {
+        "linux": "Linux",
+        "macos": "Darwin",
+        "windows": "Windows",
+        "android": "Android"
+    }
+    with open(plugin_path/"plugin.toml", "rb") as config_file:
+        config = tomllib.load(config_file)
+    result = []
+    for platform in config.get("platforms", []):
+        if platform not in PLATFORM_MAP.keys():
+            _console.print(f"[red]未知平台: {platform}[/red]")
+            sys.exit(2)
+        result.append(PLATFORM_MAP[platform])
+    return result
 
 @app.command("package")
 def package(
@@ -358,7 +376,7 @@ def package(
     print(f"使用依赖文件: {requirements_file}")
 
     cmd = PackageCommand()
-    target_platforms = PLATFORMS if platform == "all" else [platform]
+    target_platforms = get_plugin_platforms(Path(source_dir)) if platform == "all" else [platform]
     resolved_requirements = _build_requirements(requirements, requirements_file)
     for target_platform in target_platforms:
         print("正在处理目标平台：", target_platform)

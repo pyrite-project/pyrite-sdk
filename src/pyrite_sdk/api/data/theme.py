@@ -19,7 +19,10 @@ class Theme:
         self._bridge.push_wait_response(
             request(
                 "sdk.theme.contribute",
-                payload={"name": name, "data": data},
+                payload={
+                    "name": name,
+                    "data": data
+                },
             ),
             callback=callback,
         )
@@ -33,7 +36,10 @@ class Theme:
         self._bridge.push_wait_response(
             request(
                 "sdk.theme.register_runtime",
-                payload={"name": name, "data": data},
+                payload={
+                    "name": name,
+                    "data": data
+                },
             ),
             callback=callback,
         )

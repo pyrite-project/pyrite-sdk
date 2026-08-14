@@ -18,3 +18,7 @@ wheels/
 # cache
 
 .*_cache/
+
+# Tool
+
+update.sh
