@@ -18,8 +18,8 @@ from .icons import MaterialIcon
 from .resources import PluginResource
 
 
-def _icon(value: Optional[MaterialIcon]) -> Optional[str]:
-    if value is not None and not isinstance(value, MaterialIcon):
+def _icon(value: Optional[MaterialIcon | str]) -> Optional[str]:
+    if value is not None and not isinstance(value, (MaterialIcon, str)):
         raise TypeError("icon values must use pyrite_sdk.api.icons.Icons")
     return str(value) if value is not None else None
 
@@ -92,9 +92,10 @@ class Component(dict[str, Any]):
         callback: Optional[Callable[..., Any]] = None,
     ) -> None:
         if self._view_model is None:
-            raise RuntimeError("component is not bound to a ViewModel")
+            raise RuntimeError("component is not bound to a ViewInstance")
         if not self.id:
-            raise ValueError("component requires an id before using its controller")
+            raise ValueError(
+                "component requires an id before using its controller")
         self._view_model.invoke_component(
             self.id, method, arguments or {}, callback=callback
         )
@@ -159,7 +160,8 @@ class ComponentController:
         animated: bool = True,
         callback: Optional[Callable[..., Any]] = None,
     ) -> None:
-        self._call("ensure_visible", callback, alignment=alignment, animated=animated)
+        self._call("ensure_visible", callback,
+                   alignment=alignment, animated=animated)
 
     def get_bounds(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._call("get_bounds", callback)
@@ -584,7 +586,7 @@ class CanvasController(ComponentController):
     ``push_ops``/``set_ops`` write to the *ephemeral* overlay layer (lost on
     resync/visibility-restore); persistent primitives belong in ``props.ops``.
     Unlike snapshot/patch, invoke does not pass through the view payload guard,
-    so both enforce the 2 MiB arguments cap here, mirroring ``ViewModel``.
+    so both enforce the 2 MiB arguments cap here, mirroring ``ViewInstance``.
     """
 
     #: Mirror of view.MAX_VIEW_PAYLOAD_BYTES (imported lazily to avoid a cycle).
@@ -692,9 +694,9 @@ class ListItem(DataItem):
     def __init__(
         self,
         *,
-        id: Optional[str]=None,
+        id: Optional[str] = None,
         label: str,
-        icon: Optional[MaterialIcon] = None,
+        icon: Optional[MaterialIcon | str] = None,
         **data: Any,
     ) -> None:
         if not id:
@@ -717,10 +719,10 @@ class TreeNode(ListItem):
     def __init__(
         self,
         *,
-        id: Optional[str]=None,
+        id: Optional[str] = None,
         label: str,
         parent_id: Optional[str] = None,
-        icon: Optional[MaterialIcon] = None,
+        icon: Optional[MaterialIcon | str] = None,
         has_children: bool = False,
         **data: Any,
     ) -> None:
@@ -747,7 +749,7 @@ class TreeNode(ListItem):
 
 class TableRow(DataItem):
     def __init__(
-        self, *, id: Optional[str]=None, cells: dict[str, Any], **data: Any
+        self, *, id: Optional[str] = None, cells: dict[str, Any], **data: Any
     ) -> None:
         if not id:
             id = token_hex(16)
@@ -762,7 +764,7 @@ class TableColumn(dict[str, Any]):
     def __init__(
         self,
         *,
-        id: Optional[str]=None,
+        id: Optional[str] = None,
         label: str,
         width: Optional[int | float] = None,
         flex: Optional[int | float] = None,
@@ -794,7 +796,7 @@ class PropertyEntry(DataItem):
     def __init__(
         self,
         *,
-        id: Optional[str]=None,
+        id: Optional[str] = None,
         name: str,
         value: Any = "",
         type_name: str = "",
@@ -865,7 +867,8 @@ def collect_handlers(
     into: Optional[dict[tuple[str, str], Callable[..., Any]]] = None,
 ) -> dict[tuple[str, str], Callable[..., Any]]:
     """Walks a component tree collecting ``(component_id, event) -> handler``."""
-    handlers: dict[tuple[str, str], Callable[..., Any]] = {} if into is None else into
+    handlers: dict[tuple[str, str], Callable[..., Any]
+                   ] = {} if into is None else into
     if isinstance(node, Component):
         component_id = node.id
         if component_id:
@@ -915,6 +918,43 @@ def Column(
         "Column",
         {"id": id, "gap": gap, "align": align, "justify": justify},
         list(children),
+    )
+
+
+def Padding(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    all_padding: Optional[int | float] = None,
+    left_padding: Optional[int | float] = None,
+    right_padding: Optional[int | float] = None,
+    top_padding: Optional[int | float] = None,
+    bottom_padding: Optional[int | float] = None,
+) -> Component:
+    return Component(
+        "Padding",
+        {
+            "id": id,
+            "allPadding": all_padding,
+            "leftPadding": left_padding,
+            "rightPadding": right_padding,
+            "topPadding": top_padding,
+            "bottomPadding": bottom_padding,
+        },
+        [child] if child is not None else None,
+    )
+
+
+def Expanded(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    flex: Optional[int | float] = None,
+) -> Component:
+    return Component(
+        "Expanded",
+        {"id": id, "flex": flex},
+        [child] if child is not None else None,
     )
 
 
@@ -974,9 +1014,9 @@ def Tabs(
 def Tab(
     child: Optional[Component] = None,
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     label: str,
-    icon: Optional[MaterialIcon] = None,
+    icon: Optional[MaterialIcon | str] = None,
 ) -> Component:
     if not id:
         id = token_hex(16)
@@ -1040,18 +1080,21 @@ def Scaffold(
 
 # -- Content ------------------------------------------------------------------
 
-def Card(child: Optional[Component] = None, *, id: Optional[str] = None) -> Component:#, elevation=None, padding=None, border_radius=None) -> Component:
+def Card(child: Optional[Component] = None, *, id: Optional[str] = None, elevation=None, padding=None, border_radius=None) -> Component:
     return Component(
         "Card",
-        {"id": id},#, "elevation": elevation, "padding": padding, "borderRadius": border_radius},
+        {"id": id, "elevation": elevation, "padding": padding,
+            "borderRadius": border_radius},
         [child] if child is not None else None,
     )
+
 
 def Text(
     value: str,
     *,
     id: Optional[str] = None,
-    style: Optional[Literal["body", "caption", "title", "heading", "code"]] = None,
+    style: Optional[Literal["body", "caption",
+                            "title", "heading", "code"]] = None,
     muted: Optional[bool] = None,
     max_lines: Optional[int | float] = None,
 ) -> Component:
@@ -1068,7 +1111,7 @@ def Text(
 
 
 def Icon(
-    name: MaterialIcon,
+    name: MaterialIcon | str,
     *,
     id: Optional[str] = None,
     size: Optional[int | float] = None,
@@ -1088,7 +1131,8 @@ def Image(
         raise TypeError("Image sources must use plugin.resources.asset(...)")
     return Component(
         "Image",
-        {"id": id, "src": str(src), "width": width, "height": height, "fit": fit},
+        {"id": id, "src": str(src), "width": width,
+         "height": height, "fit": fit},
     )
 
 
@@ -1124,7 +1168,7 @@ def Video(
 
 def Canvas(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     width: Optional[int | float] = None,
     height: Optional[int | float] = None,
     ops: Any = None,
@@ -1186,7 +1230,8 @@ def Markdown(
         raise ValueError("Markdown requires id when on_link_tap is set")
     component = Component("Markdown", {"id": id, "value": value})
     if on_link_tap:
-        component.on("linkTap", lambda payload: on_link_tap(MarkdownLinkEvent(payload)))
+        component.on("linkTap", lambda payload: on_link_tap(
+            MarkdownLinkEvent(payload)))
     return component
 
 
@@ -1224,7 +1269,7 @@ def Badge(
 
 def TextField(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     value: Optional[str] = None,
     placeholder: Optional[str] = None,
     label: Optional[str] = None,
@@ -1255,7 +1300,7 @@ def TextField(
 
 def NumberField(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     value: Optional[int | float] = None,
     min: Optional[int | float] = None,
     max: Optional[int | float] = None,
@@ -1288,7 +1333,7 @@ def NumberField(
 
 def Select(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     options: list[SelectOption | dict[str, Any]],
     value: Optional[str] = None,
     label: Optional[str] = None,
@@ -1314,7 +1359,7 @@ def Select(
 
 def Checkbox(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     value: Optional[bool] = None,
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
@@ -1333,7 +1378,7 @@ def Checkbox(
 
 def Switch(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     value: Optional[bool] = None,
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
@@ -1352,7 +1397,7 @@ def Switch(
 
 def Slider(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     value: Optional[int | float] = None,
     min: Optional[int | float] = None,
     max: Optional[int | float] = None,
@@ -1416,10 +1461,10 @@ class MenuItem(dict[str, Any]):
     def __init__(
         self,
         *,
-        id: Optional[str]=None,
+        id: Optional[str] = None,
         label: str,
-        icon: Optional[MaterialIcon] = None,
-        trailing_icon: Optional[MaterialIcon] = None,
+        icon: Optional[MaterialIcon | str] = None,
+        trailing_icon: Optional[MaterialIcon | str] = None,
         shortcut: Optional[MenuShortcut | dict[str, Any]] = None,
         enabled: Optional[bool] = None,
         visible: Optional[bool] = None,
@@ -1475,7 +1520,7 @@ class Submenu(dict[str, Any]):
         label: str,
         children: Iterable[dict[str, Any]],
         id: Optional[str] = None,
-        icon: Optional[MaterialIcon] = None,
+        icon: Optional[MaterialIcon | str] = None,
         enabled: Optional[bool] = None,
         visible: Optional[bool] = None,
     ) -> None:
@@ -1538,10 +1583,11 @@ def _menu_put(target: dict[str, Any], key: str, value: Any) -> None:
 
 def Button(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     label: str,
-    icon: Optional[MaterialIcon] = None,
-    variant: Optional[Literal["primary", "secondary", "ghost", "danger"]] = None,
+    icon: Optional[MaterialIcon | str] = None,
+    variant: Optional[Literal["primary",
+                              "secondary", "ghost", "danger"]] = None,
     enabled: Optional[bool] = None,
     on_press: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
@@ -1564,8 +1610,8 @@ def Button(
 
 def IconButton(
     *,
-    id: Optional[str]=None,
-    icon: MaterialIcon,
+    id: Optional[str] = None,
+    icon: MaterialIcon | str,
     tooltip: Optional[str] = None,
     enabled: Optional[bool] = None,
     on_press: Optional[Callable[[dict[str, Any]], None]] = None,
@@ -1574,7 +1620,8 @@ def IconButton(
         id = token_hex(16)
     component = Component(
         "IconButton",
-        {"id": id, "icon": _icon(icon), "tooltip": tooltip, "enabled": enabled},
+        {"id": id, "icon": _icon(
+            icon), "tooltip": tooltip, "enabled": enabled},
     )
     if on_press:
         component.on("press", on_press)
@@ -1583,10 +1630,10 @@ def IconButton(
 
 def Menu(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     items: Iterable[dict[str, Any]],
     label: Optional[str] = None,
-    icon: Optional[MaterialIcon] = None,
+    icon: Optional[MaterialIcon | str] = None,
     tooltip: Optional[str] = None,
     enabled: Optional[bool] = None,
     icon_only: Optional[bool] = None,
@@ -1625,7 +1672,7 @@ def Menu(
 
 def MenuBar(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     items: Iterable[dict[str, Any]],
     on_select: Optional[Callable[[MenuEvent], None]] = None,
 ) -> Component:
@@ -1640,7 +1687,7 @@ def MenuBar(
 def ContextMenu(
     child: Optional[Component] = None,
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     items: Iterable[dict[str, Any]],
     enabled: Optional[bool] = None,
     on_select: Optional[Callable[[MenuEvent], None]] = None,
@@ -1709,14 +1756,15 @@ def _bind_item_event(
 
 def Dropdown(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     items: list[dict[str, Any]],
     label: Optional[str] = None,
     on_select: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     if not id:
         id = token_hex(16)
-    component = Component("Dropdown", {"id": id, "items": items, "label": label})
+    component = Component(
+        "Dropdown", {"id": id, "items": items, "label": label})
     if on_select:
         component.on("select", on_select)
     return component
@@ -1724,7 +1772,7 @@ def Dropdown(
 
 def Dialog(
     *children: Component,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     title: Optional[str] = None,
     open: Optional[bool] = None,
     on_close: Optional[Callable[[dict[str, Any]], None]] = None,
@@ -1757,7 +1805,7 @@ def Tooltip(
 
 def VirtualList(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     items: Optional[list[ListItem | dict[str, Any]]] = None,
     item_count: Optional[int | float] = None,
     item_height: Optional[int | float] = None,
@@ -1790,7 +1838,8 @@ def VirtualList(
     _bind_item_event(component, "activate", items, "itemId", on_activate)
     if on_request_range:
         component.on(
-            "requestRange", lambda payload: on_request_range(RangeRequest(payload))
+            "requestRange", lambda payload: on_request_range(
+                RangeRequest(payload))
         )
     _bind_context_menu_provider(component, items, on_context_menu)
     return component
@@ -1798,7 +1847,7 @@ def VirtualList(
 
 def TreeView(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     nodes: Optional[list[TreeNode | dict[str, Any]]] = None,
     expanded_ids: Optional[list[str]] = None,
     selected_id: Optional[str] = None,
@@ -1847,7 +1896,7 @@ def TreeView(
 
 def DataTable(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     columns: list[TableColumn | dict[str, Any]],
     rows: Optional[list[TableRow | dict[str, Any]]] = None,
     row_count: Optional[int | float] = None,
@@ -1890,7 +1939,8 @@ def DataTable(
     _bind_item_event(component, "sort", columns, "columnId", on_sort)
     if on_request_range:
         component.on(
-            "requestRange", lambda payload: on_request_range(RangeRequest(payload))
+            "requestRange", lambda payload: on_request_range(
+                RangeRequest(payload))
         )
     _bind_context_menu_provider(component, rows, on_context_menu)
     return component
@@ -1898,7 +1948,7 @@ def DataTable(
 
 def PropertyGrid(
     *,
-    id: Optional[str]=None,
+    id: Optional[str] = None,
     entries: list[PropertyEntry | dict[str, Any]],
     on_select: Optional[
         Callable[[PropertyEntry | dict[str, Any]], None]
