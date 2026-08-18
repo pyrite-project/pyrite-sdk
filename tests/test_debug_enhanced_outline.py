@@ -11,7 +11,7 @@ from examples.debug_enhanced_plugin.outline import (
     scan_python_outline,
 )
 from pyrite_sdk.api.document import Document, DocumentSymbol, SymbolResult
-from pyrite_sdk.api.tab import TabViewInstance
+from pyrite_sdk.api.tab import ViewInstanceInfo
 from pyrite_sdk.api.view import Views
 from pyrite_sdk.models.manifest import load_file
 
@@ -363,7 +363,7 @@ class OutlineControllerTest(unittest.TestCase):
         self.assertEqual(view_id, OUTLINE_VIEW_ID)
         self.assertTrue(kwargs["expansion"])
         kwargs["callback"](
-            instance=TabViewInstance(
+            instance=ViewInstanceInfo(
                 "debug-enhanced", "session", OUTLINE_VIEW_ID, "tab:1"
             )
         )

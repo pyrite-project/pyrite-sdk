@@ -17,7 +17,7 @@ from ..api.events import PluginEventBus
 from ..api.document import EditorDocuments
 from ..api.environment import Environment
 from ..api.runtime import Runtime
-from ..api.tab import Tabs
+from ..api.tab import EditorTabs
 from ..api.view import Views
 from ..api.resources import Resources
 from ..api.commands import Commands
@@ -61,7 +61,7 @@ class UiPlugin(BasePlugin):
         self.serial = Serial(self.bridge)
         self.documents = EditorDocuments(self.bridge, self.events)
         self.runtime = Runtime(self.bridge, self.events)
-        self.tabs = Tabs(self.bridge)
+        self.editor_tabs = EditorTabs(self.bridge)
         self.views = Views(self.bridge)
         self.env = Environment(self.bridge)
 

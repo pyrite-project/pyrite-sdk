@@ -102,10 +102,6 @@ class EditorOpenFilePayload(BaseModel):
     path: str
 
 
-class EditorCloseTabPayload(BaseModel):
-    path: str
-
-
 class EditorGhostTextPayload(BaseModel):
     text: str
     line: int

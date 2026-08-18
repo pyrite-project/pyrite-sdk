@@ -11,7 +11,6 @@ from ...models.schema import (
     EditorFindPayload,
     EditorFindRegexPayload,
     EditorOpenFilePayload,
-    EditorCloseTabPayload,
     EditorGhostTextPayload,
     EditorScrollToLinePayload,
 )
@@ -256,33 +255,6 @@ class Editor:
                 "sdk.editor.open_file",
                 payload=EditorOpenFilePayload(path=path),
             ),
-            callback=callback,
-        )
-
-    def close_tab(
-        self, path: str, callback: Optional[Callable[..., Any]] = None
-    ) -> None:
-        self._bridge.push_wait_response(
-            request(
-                "sdk.editor.close_tab",
-                payload=EditorCloseTabPayload(path=path),
-            ),
-            callback=callback,
-        )
-
-    def get_current_tab(
-        self, callback: Optional[Callable[..., Any]] = None
-    ) -> None:
-        self._bridge.push_wait_response(
-            request("sdk.editor.get_current_tab"),
-            callback=callback,
-        )
-
-    def list_tabs(
-        self, callback: Optional[Callable[..., Any]] = None
-    ) -> None:
-        self._bridge.push_wait_response(
-            request("sdk.editor.list_tabs"),
             callback=callback,
         )
 

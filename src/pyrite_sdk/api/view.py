@@ -3,7 +3,15 @@ from __future__ import annotations
 import inspect
 import json
 from contextlib import contextmanager
-from typing import Any, Callable, Iterable, Iterator, Optional, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    Iterator,
+    Literal,
+    Optional,
+    TYPE_CHECKING,
+)
 from uuid import uuid4
 
 from ..models.schema import request
@@ -555,17 +563,95 @@ class ViewModel:
         self.snapshot(nodes, revision=self.revision + 1)
 
 
+ViewPlacement = Literal["sidebar", "editor", "expansion"]
+
+
+class ViewInstance(ViewModel):
+    """A plugin view model together with its host placement.
+
+    ``ViewModel`` remains the transport implementation.  Plugin code should
+    work with ``ViewInstance`` so that placement and lifecycle are represented
+    by the same object as the rendered view.
+    """
+
+    def __init__(
+        self,
+        bridge: "Bridge",
+        view_id: str,
+        instance_id: Optional[str] = None,
+        *,
+        placement: ViewPlacement = "sidebar",
+        tab_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+    ) -> None:
+        super().__init__(bridge, view_id, instance_id)
+        self.placement = placement
+        self.tab_id = tab_id
+        self.session_id = session_id
+
+    @classmethod
+    def from_host_response(
+        cls,
+        bridge: "Bridge",
+        data: dict[str, Any],
+        *,
+        placement: ViewPlacement,
+    ) -> "ViewInstance":
+        return cls(
+            bridge,
+            str(data.get("viewId", "")),
+            str(data.get("instanceId", "")),
+            placement=placement,
+            tab_id=data.get("tabId"),
+            session_id=data.get("sessionId"),
+        )
+
+    def focus(self, callback: Optional[Callable[..., Any]] = None) -> None:
+        """Activates this view instance in the host shell."""
+        if self.tab_id:
+            self._bridge.push_wait_response(
+                request("sdk.tab.activate", payload={"tab_id": self.tab_id}),
+                callback=callback,
+            )
+            return
+        self._bridge.push_wait_response(
+            request("sdk.view.focus", payload=self._keys()),
+            callback=callback,
+        )
+
+    def close(self, callback: Optional[Callable[..., Any]] = None) -> None:
+        """Closes the view instance and its editor tab, when one exists."""
+        if not self.tab_id:
+            super().close(callback=callback)
+            return
+        self._closed = True
+        self._pending.clear()
+        self._in_flight = None
+        self._bridge.push_wait_response(
+            request("sdk.tab.close", payload={"tab_id": self.tab_id}),
+            callback=callback,
+        )
+
+
 class Views:
-    """Creates and tracks the plugin's native view models."""
+    """Creates and tracks the plugin's native view instances."""
 
     def __init__(self, bridge: "Bridge") -> None:
         self._bridge = bridge
-        self._models: dict[tuple[str, str], ViewModel] = {}
+        self._models: dict[tuple[str, str], ViewInstance] = {}
         # view_id -> container id, read lazily from the plugin manifest so the
         # default instance id can match the host's sidebar placement.
         self._view_containers: Optional[dict[str, str]] = None
 
-    def create(self, view_id: str, instance_id: Optional[str] = None) -> ViewModel:
+    def create(
+        self,
+        view_id: str,
+        instance_id: Optional[str] = None,
+        *,
+        placement: ViewPlacement = "sidebar",
+        tab_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+    ) -> ViewInstance:
         # The sidebar host mounts each contributed view at the fixed instance id
         # "container:<containerId>". A plugin that just calls create(view_id) must
         # land on that same key or its snapshot goes to an instance nobody renders
@@ -575,9 +661,93 @@ class Views:
             container = self._container_for(view_id)
             if container:
                 instance_id = f"container:{container}"
-        model = ViewModel(self._bridge, view_id, instance_id)
+        if placement == "sidebar" and instance_id and instance_id.startswith("tab:"):
+            placement = "editor"
+        model = ViewInstance(
+            self._bridge,
+            view_id,
+            instance_id,
+            placement=placement,
+            tab_id=tab_id,
+            session_id=session_id,
+        )
         self._models[(model.view_id, model.instance_id)] = model
         return model
+
+    def open(
+        self,
+        view_id: str,
+        *,
+        placement: ViewPlacement = "sidebar",
+        title: Optional[str] = None,
+        callback: Optional[Callable[..., Any]] = None,
+    ) -> Optional[ViewInstance]:
+        """Opens a contributed view in a host placement.
+
+        Sidebar views have a deterministic instance id and are returned
+        immediately. Editor and expansion placements require a host-allocated
+        instance id, so the resulting ``ViewInstance`` is delivered through
+        ``callback(instance=..., error=...)``.
+        """
+        if placement not in ("sidebar", "editor", "expansion"):
+            raise ValueError(f"Unsupported view placement: {placement}")
+
+        if placement == "sidebar":
+            instance = self.create(view_id, placement=placement)
+
+            def _opened(data: Any = None, error: Any = None, **_: Any) -> None:
+                if callback is None:
+                    return
+                if error is not None:
+                    callback(error=error)
+                    return
+                callback(instance=instance)
+
+            instance.open(callback=_opened)
+            return instance
+
+        payload: dict[str, Any] = {
+            "viewId": view_id,
+            "expansion": placement == "expansion",
+        }
+        if title is not None:
+            payload["title"] = title
+
+        def _created(data: Any = None, error: Any = None, **_: Any) -> None:
+            if error is not None:
+                if callback is not None:
+                    callback(error=error)
+                return
+            if not isinstance(data, dict):
+                if callback is not None:
+                    callback(error=ValueError("Invalid view instance response"))
+                return
+            instance = ViewInstance.from_host_response(
+                self._bridge,
+                data,
+                placement=placement,
+            )
+            if not instance.view_id or not instance.instance_id:
+                if callback is not None:
+                    callback(error=ValueError("View response is missing identity"))
+                return
+            self._models[(instance.view_id, instance.instance_id)] = instance
+
+            def _opened(data: Any = None, error: Any = None, **_: Any) -> None:
+                if callback is None:
+                    return
+                if error is not None:
+                    callback(error=error)
+                    return
+                callback(instance=instance)
+
+            instance.open(callback=_opened)
+
+        self._bridge.push_wait_response(
+            request("sdk.tab.create_view", payload=payload),
+            callback=_created,
+        )
+        return None
 
     def _container_for(self, view_id: str) -> Optional[str]:
         if self._view_containers is None:
@@ -784,7 +954,7 @@ class Views:
 
     def get(
         self, instance_id: str, view_id: Optional[str] = None
-    ) -> Optional[ViewModel]:
+    ) -> Optional[ViewInstance]:
         if view_id is not None:
             return self._models.get((view_id, instance_id))
         matches = [

@@ -14,7 +14,7 @@ from .icons import Icons, MaterialIcon
 
 if TYPE_CHECKING:
     from .components import Component
-    from .view import ViewModel
+    from .view import ViewInstance
 
 
 EventHandler = Callable[[dict[str, Any]], None]
@@ -440,12 +440,12 @@ class RendererView:
 
     def __init__(
         self,
-        model: "ViewModel",
+        model: "ViewInstance",
         *,
         title: str,
         actions: Iterable[ViewAction] = (),
     ) -> None:
-        self.model: ViewModel = model
+        self.model: ViewInstance = model
         self.title: str = title
         self._actions: list[ViewAction] = list(actions)
         self._items: list[NativeViewNode] = []

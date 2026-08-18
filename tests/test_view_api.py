@@ -4,6 +4,7 @@ from pyrite_sdk.core.errors import SdkApiError
 from pyrite_sdk.api.view import (
     MAX_PATCH_OPS,
     MAX_SNAPSHOT_NODES,
+    ViewInstance,
     ViewModel,
     ViewProtocolError,
     Views,
@@ -240,6 +241,71 @@ class ViewsTest(unittest.TestCase):
         a.insert("a2", {})
         self.assertEqual(len(a.nodes), 2)
         self.assertEqual(len(b.nodes), 1)
+
+    def test_create_returns_view_instance(self):
+        instance = self.views.create("outline", instance_id="sidebar")
+        self.assertIsInstance(instance, ViewInstance)
+        self.assertEqual(instance.placement, "sidebar")
+
+    def test_open_sidebar_opens_and_returns_instance(self):
+        received = {}
+        instance = self.views.open(
+            "outline",
+            callback=lambda instance=None, error=None: received.update(
+                instance=instance,
+                error=error,
+            ),
+        )
+        self.assertIsNotNone(instance)
+        envelope, callback = self.bridge.last()
+        self.assertEqual(envelope.type, "sdk.view.open")
+        callback(data={"instance": {"viewId": "outline"}})
+        self.assertIs(received["instance"], instance)
+        self.assertIsNone(received["error"])
+
+    def test_open_editor_allocates_then_opens_instance(self):
+        received = {}
+        result = self.views.open(
+            "outline",
+            placement="editor",
+            callback=lambda instance=None, error=None: received.update(
+                instance=instance,
+                error=error,
+            ),
+        )
+        self.assertIsNone(result)
+        create_envelope, create_callback = self.bridge.last()
+        self.assertEqual(create_envelope.type, "sdk.tab.create_view")
+        create_callback(
+            data={
+                "pluginId": "demo",
+                "sessionId": "session",
+                "viewId": "outline",
+                "instanceId": "tab:1",
+                "tabId": "plugin://demo/outline#tab:1",
+            }
+        )
+        open_envelope, open_callback = self.bridge.last()
+        self.assertEqual(open_envelope.type, "sdk.view.open")
+        open_callback(data={"instance": {"viewId": "outline"}})
+        self.assertEqual(received["instance"].placement, "editor")
+        self.assertEqual(received["instance"].tab_id, "plugin://demo/outline#tab:1")
+        self.assertIsNone(received["error"])
+
+    def test_tab_view_instance_focus_and_close_use_tab_id(self):
+        instance = self.views.create(
+            "outline",
+            "tab:1",
+            placement="editor",
+            tab_id="plugin://demo/outline#tab:1",
+        )
+        instance.focus()
+        focus, _ = self.bridge.last()
+        self.assertEqual(focus.type, "sdk.tab.activate")
+        instance.close()
+        close, _ = self.bridge.last()
+        self.assertEqual(close.type, "sdk.tab.close")
+        self.assertEqual(close.payload, {"tab_id": "plugin://demo/outline#tab:1"})
 
     def test_handle_frame_routes_ack_to_the_right_instance(self):
         a = self.views.create("outline", instance_id="ia")

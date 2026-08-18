@@ -8,7 +8,7 @@ from examples.debug_enhanced_plugin.device_variables import (
     DeviceVariablesController,
 )
 from pyrite_sdk.api.runtime import Page, RuntimeSession, Scope, Variable
-from pyrite_sdk.api.tab import TabViewInstance
+from pyrite_sdk.api.tab import ViewInstanceInfo
 from pyrite_sdk.api.view import Views
 
 
@@ -328,7 +328,7 @@ class DeviceVariablesControllerTest(unittest.TestCase):
             self.assertEqual(kwargs["title"], "设备变量")
             self.assertEqual(kwargs["expansion"], expansion)
             kwargs["callback"](
-                instance=TabViewInstance(
+                instance=ViewInstanceInfo(
                     "debug-enhanced",
                     "session",
                     VARIABLES_VIEW_ID,

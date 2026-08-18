@@ -91,7 +91,7 @@ class I18nKey(Enum):
     PLUGINS_CONFIRM_DELETE_TITLE = ('plugins.confirm_delete.title', '确认删除')
     PLUGINS_CONFIRM_DELETE_MESSAGE = ('plugins.confirm_delete.message', '确定要删除插件「{name}」吗？')
     PLUGINS_EMPTY_TITLE = ('plugins.empty.title', '尚未安装插件')
-    PLUGINS_EMPTY_MESSAGE = ('plugins.empty.message', '从本地 ZIP 包注册插件后，它们会显示在这里。')
+    PLUGINS_EMPTY_MESSAGE = ('plugins.empty.message', '从本地 PYRIX 包注册插件后，它们会显示在这里。')
     FILE_LOCAL_PROJECT_TITLE = ('file.local.title', '本地项目')
     FILE_BOARD_TITLE = ('file.board.title', '设备文件')
     FILE_SELECTED_COUNT = ('file.selected_count', '已选择 {count} 项')
