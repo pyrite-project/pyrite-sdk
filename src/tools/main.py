@@ -141,7 +141,7 @@ def _interactive_mode() -> dict:
     _console.print(f"\n[bold]Step 6:[/bold] 输出路径")
     params["asset"] = Prompt.ask(
         "  资产输出路径",
-        default="build/app.zip",
+        default="build/app.pyrix",
     )
 
     # Hidden defaults

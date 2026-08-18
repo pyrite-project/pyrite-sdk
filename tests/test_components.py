@@ -13,6 +13,7 @@ from pyrite_sdk.api.components import (
     Component,
     ContextMenu,
     DataTable,
+    Expanded,
     Flex,
     Icon,
     IconButton,
@@ -28,6 +29,7 @@ from pyrite_sdk.api.components import (
     Submenu,
     PropertyGrid,
     PropertyEntry,
+    Padding,
     RangeRequest,
     Row,
     Scaffold,
@@ -98,6 +100,36 @@ class ComponentShapeTest(unittest.TestCase):
         self.assertEqual(node["type"], "Column")
         self.assertEqual(len(node["children"]), 2)
         self.assertEqual(node["props"], {"gap": 4})
+
+    def test_padding_shape(self):
+        node = Padding(
+            Text("a"),
+            id="padding",
+            all_padding=12,
+            left_padding=1,
+            right_padding=2,
+            top_padding=3,
+            bottom_padding=4,
+        )
+        self.assertEqual(node["type"], "Padding")
+        self.assertEqual(
+            node["props"],
+            {
+                "id": "padding",
+                "allPadding": 12,
+                "leftPadding": 1,
+                "rightPadding": 2,
+                "topPadding": 3,
+                "bottomPadding": 4,
+            },
+        )
+        self.assertEqual(node["children"][0]["type"], "Text")
+
+    def test_expanded_shape(self):
+        node = Expanded(Text("a"), id="expanded", flex=2)
+        self.assertEqual(node["type"], "Expanded")
+        self.assertEqual(node["props"], {"id": "expanded", "flex": 2})
+        self.assertEqual(node["children"][0]["type"], "Text")
 
     def test_app_bar_scaffold_and_canvas_match_the_native_wire_shape(self):
         refresh = IconButton(id="refresh", icon=Icons.refresh)

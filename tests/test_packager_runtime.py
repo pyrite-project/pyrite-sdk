@@ -61,10 +61,10 @@ def _manifest_v2(
 
 class PackagerRuntimeTest(unittest.TestCase):
     def test_archive_destination_appends_named_architecture(self) -> None:
-        destination = Path("out/foo.bundle.zip")
+        destination = Path("out/foo.bundle.pyrix")
         self.assertEqual(
             PackageCommand._archive_destination(destination, "arm64-v8a"),
-            Path("out/foo.bundle-arm64-v8a.zip"),
+            Path("out/foo.bundle-arm64-v8a.pyrix"),
         )
         self.assertEqual(
             PackageCommand._archive_destination(destination, ""),
@@ -100,11 +100,11 @@ class PackagerRuntimeTest(unittest.TestCase):
                     cleanup_package_files=[],
                 )
 
-                archive = root / "build" / "fixture-plugin-Android-arm64-v8a.zip"
+                archive = root / "build" / "fixture-plugin-Android-arm64-v8a.pyrix"
                 self.assertTrue(archive.is_file())
                 self.assertTrue(Path(f"{archive}.hash").is_file())
                 self.assertFalse(
-                    (root / "build" / "fixture-plugin.zip").exists()
+                    (root / "build" / "fixture-plugin.pyrix").exists()
                 )
             finally:
                 os.chdir(previous_cwd)
@@ -287,7 +287,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                             platform="Windows",
                             arch=[],
                             requirements=["example-package"],
-                            asset=f"build/{version}.zip",
+                            asset=f"build/{version}.pyrix",
                             exclude=[],
                             cleanup_app_files=[],
                             cleanup_package_files=[],
@@ -544,11 +544,11 @@ class PackagerRuntimeTest(unittest.TestCase):
                     )
                     self.assertTrue((staging / "__main__.py").is_file())
 
-                    archive_base = root / "build" / "plugin.zip"
+                    archive_base = root / "build" / "plugin.pyrix"
                     archive = (
                         root
                         / "build"
-                        / "fixture-plugin-Android-arm64-v8a.zip"
+                        / "fixture-plugin-Android-arm64-v8a.pyrix"
                     )
                     command = PackageCommand()
                     command._console = Console(file=StringIO(), force_terminal=False)
@@ -648,13 +648,13 @@ class PackagerRuntimeTest(unittest.TestCase):
                         platform="Android",
                         arch=["arm64-v8a", "x86_64"],
                         requirements=["fixture-package"],
-                        asset="build/plugin.zip",
+                        asset="build/plugin.pyrix",
                         exclude=[],
                         cleanup_app_files=[],
                         cleanup_package_files=[],
                     )
 
-                self.assertFalse((root / "build" / "plugin.zip").exists())
+                self.assertFalse((root / "build" / "plugin.pyrix").exists())
                 self.assertEqual(
                     [call.kwargs["arch"] for call in build_command.call_args_list],
                     ["arm64-v8a", "x86_64"],
@@ -663,7 +663,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                     archive = (
                         root
                         / "build"
-                        / f"fixture-plugin-Android-{architecture}.zip"
+                        / f"fixture-plugin-Android-{architecture}.pyrix"
                     )
                     archive_hash = Path(f"{archive}.hash")
                     self.assertTrue(archive.is_file())
@@ -732,19 +732,19 @@ class PackagerRuntimeTest(unittest.TestCase):
                     platform="Android",
                     arch=[],
                     requirements=[],
-                    asset="build/plugin.zip",
+                    asset="build/plugin.pyrix",
                     exclude=[],
                     skip_site_packages=True,
                     cleanup_app_files=[],
                     cleanup_package_files=[],
                 )
 
-                self.assertFalse((root / "build" / "plugin.zip").exists())
+                self.assertFalse((root / "build" / "plugin.pyrix").exists())
                 for architecture in platforms["Android"]:
                     archive = (
                         root
                         / "build"
-                        / f"fixture-plugin-Android-{architecture}.zip"
+                        / f"fixture-plugin-Android-{architecture}.pyrix"
                     )
                     self.assertTrue(archive.is_file())
                     self.assertTrue(Path(f"{archive}.hash").is_file())
@@ -791,7 +791,7 @@ class PackagerRuntimeTest(unittest.TestCase):
             )
             output_dir = root / "dist"
             output_dir.mkdir()
-            stale_archive = output_dir / "fixture-plugin-Linux.zip"
+            stale_archive = output_dir / "fixture-plugin-Linux.pyrix"
             stale_archive.write_text("stale", encoding="utf-8")
 
             previous_cwd = Path.cwd()
@@ -804,14 +804,14 @@ class PackagerRuntimeTest(unittest.TestCase):
                     platform="Android",
                     arch=["arm64-v8a"],
                     requirements=[],
-                    asset="dist/plugin.zip",
+                    asset="dist/plugin.pyrix",
                     exclude=[],
                     skip_site_packages=True,
                     cleanup_app_files=[],
                     cleanup_package_files=[],
                 )
 
-                archive = output_dir / "fixture-plugin-Android-arm64-v8a.zip"
+                archive = output_dir / "fixture-plugin-Android-arm64-v8a.pyrix"
                 with zipfile.ZipFile(archive) as package:
                     self.assertFalse(
                         any(
@@ -891,9 +891,9 @@ class PackagerRuntimeTest(unittest.TestCase):
             output_dir = root / "build"
             output_dir.mkdir()
             for name in (
-                "fixture-plugin.zip",
-                "fixture-plugin-Android-x86_64.zip",
-                "fixture-plugin-Android-armeabi-v7a.zip",
+                "fixture-plugin.pyrix",
+                "fixture-plugin-Android-x86_64.pyrix",
+                "fixture-plugin-Android-armeabi-v7a.pyrix",
             ):
                 archive = output_dir / name
                 archive.write_text("stale", encoding="utf-8")
@@ -911,20 +911,20 @@ class PackagerRuntimeTest(unittest.TestCase):
                     platform="Android",
                     arch=["arm64-v8a"],
                     requirements=[],
-                    asset="build/plugin.zip",
+                    asset="build/plugin.pyrix",
                     exclude=[],
                     skip_site_packages=True,
                     cleanup_app_files=[],
                     cleanup_package_files=[],
                 )
 
-                current = output_dir / "fixture-plugin-Android-arm64-v8a.zip"
+                current = output_dir / "fixture-plugin-Android-arm64-v8a.pyrix"
                 self.assertTrue(current.is_file())
                 self.assertTrue(Path(f"{current}.hash").is_file())
                 for stale_name in (
-                    "fixture-plugin.zip",
-                    "fixture-plugin-Android-x86_64.zip",
-                    "fixture-plugin-Android-armeabi-v7a.zip",
+                    "fixture-plugin.pyrix",
+                    "fixture-plugin-Android-x86_64.pyrix",
+                    "fixture-plugin-Android-armeabi-v7a.pyrix",
                 ):
                     stale_archive = output_dir / stale_name
                     self.assertFalse(stale_archive.exists())
@@ -961,7 +961,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                         platform=target_platform,
                         arch=target_architectures,
                         requirements=[],
-                        asset="build/custom-output.zip",
+                        asset="build/custom-output.pyrix",
                         exclude=[],
                         skip_site_packages=True,
                         cleanup_app_files=[],
@@ -969,16 +969,16 @@ class PackagerRuntimeTest(unittest.TestCase):
                     )
 
                 expected = {
-                    "fixture-plugin-Android-arm64-v8a.zip",
-                    "fixture-plugin-Darwin-arm64.zip",
-                    "fixture-plugin-Windows.zip",
-                    "fixture-plugin-Linux.zip",
+                    "fixture-plugin-Android-arm64-v8a.pyrix",
+                    "fixture-plugin-Darwin-arm64.pyrix",
+                    "fixture-plugin-Windows.pyrix",
+                    "fixture-plugin-Linux.pyrix",
                 }
                 for name in expected:
                     archive = root / "build" / name
                     self.assertTrue(archive.is_file(), name)
                     self.assertTrue(Path(f"{archive}.hash").is_file(), name)
-                self.assertFalse((root / "build" / "custom-output.zip").exists())
+                self.assertFalse((root / "build" / "custom-output.pyrix").exists())
             finally:
                 os.chdir(previous_cwd)
 
@@ -1021,7 +1021,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                             platform="Windows",
                             arch=[],
                             requirements=[],
-                            asset="custom/output.zip",
+                            asset="custom/output.pyrix",
                             exclude=[],
                             skip_site_packages=True,
                             cleanup_app_files=[],
@@ -1056,7 +1056,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 ) -> None:
                     if reported_destination is not None and (
                         reported_destination.name
-                        == "fixture-plugin-Android-x86_64.zip"
+                        == "fixture-plugin-Android-x86_64.pyrix"
                     ):
                         raise RuntimeError("simulated archive failure")
                     create_archive(
@@ -1078,7 +1078,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                             platform="Android",
                             arch=["arm64-v8a", "x86_64"],
                             requirements=[],
-                            asset="build/plugin.zip",
+                            asset="build/plugin.pyrix",
                             exclude=[],
                             skip_site_packages=True,
                             cleanup_app_files=[],
@@ -1089,14 +1089,14 @@ class PackagerRuntimeTest(unittest.TestCase):
                     (
                         root
                         / "build"
-                        / "fixture-plugin-Android-arm64-v8a.zip"
+                        / "fixture-plugin-Android-arm64-v8a.pyrix"
                     ).exists()
                 )
                 self.assertFalse(
                     (
                         root
                         / "build"
-                        / "fixture-plugin-Android-x86_64.zip"
+                        / "fixture-plugin-Android-x86_64.pyrix"
                     ).exists()
                 )
             finally:
@@ -1119,7 +1119,7 @@ class PackagerRuntimeTest(unittest.TestCase):
             previous_archives: dict[Path, tuple[bytes, str]] = {}
             for architecture in ("arm64-v8a", "x86_64"):
                 archive = (
-                    output_dir / f"fixture-plugin-Android-{architecture}.zip"
+                    output_dir / f"fixture-plugin-Android-{architecture}.pyrix"
                 )
                 archive.write_bytes(f"old-{architecture}".encode())
                 archive_hash = hashlib.md5(archive.read_bytes()).hexdigest()
@@ -1140,7 +1140,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                 if (
                     not failed
                     and destination.name
-                    == "fixture-plugin-Android-arm64-v8a.zip.hash"
+                    == "fixture-plugin-Android-arm64-v8a.pyrix.hash"
                 ):
                     failed = True
                     raise OSError("simulated hash publication failure")
@@ -1163,7 +1163,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                             platform="Android",
                             arch=["arm64-v8a", "x86_64"],
                             requirements=[],
-                            asset="build/plugin.zip",
+                            asset="build/plugin.pyrix",
                             exclude=[],
                             skip_site_packages=True,
                             cleanup_app_files=[],
@@ -1183,12 +1183,12 @@ class PackagerRuntimeTest(unittest.TestCase):
     def test_archive_publication_rejects_directory_family_paths(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            destination = root / "plugin.zip"
-            staged = root / "staged.zip"
+            destination = root / "plugin.pyrix"
+            staged = root / "staged.pyrix"
             staged.write_bytes(b"new archive")
             Path(f"{staged}.hash").write_text("new hash", encoding="ascii")
 
-            conflicting_directory = root / "plugin-arm64-v8a.zip"
+            conflicting_directory = root / "plugin-arm64-v8a.pyrix"
             conflicting_directory.mkdir()
             with self.assertRaisesRegex(
                 ValueError, "is not a regular file"
@@ -1210,13 +1210,13 @@ class PackagerRuntimeTest(unittest.TestCase):
     ) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            destination = root / "plugin.zip"
-            staged = root / "staged.zip"
+            destination = root / "plugin.pyrix"
+            staged = root / "staged.pyrix"
             staged.write_bytes(b"new archive")
             Path(f"{staged}.hash").write_text("new hash", encoding="ascii")
-            linked_output = root / "plugin-arm64-v8a.zip"
+            linked_output = root / "plugin-arm64-v8a.pyrix"
             try:
-                linked_output.symlink_to(root / "missing.zip")
+                linked_output.symlink_to(root / "missing.pyrix")
             except OSError as error:
                 self.skipTest(f"Symbolic links are unavailable: {error}")
 
@@ -1236,13 +1236,13 @@ class PackagerRuntimeTest(unittest.TestCase):
     ) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            destination = root / "plugin.zip"
-            staged = root / "staged.zip"
+            destination = root / "plugin.pyrix"
+            staged = root / "staged.pyrix"
             staged.write_bytes(b"new archive")
             Path(f"{staged}.hash").write_text("new hash", encoding="ascii")
-            linked_target = root / "existing.zip"
+            linked_target = root / "existing.pyrix"
             linked_target.write_bytes(b"linked archive")
-            linked_output = root / "plugin-arm64-v8a.zip"
+            linked_output = root / "plugin-arm64-v8a.pyrix"
             try:
                 linked_output.symlink_to(linked_target)
             except OSError as error:
@@ -1265,11 +1265,11 @@ class PackagerRuntimeTest(unittest.TestCase):
     ) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            destination = root / "plugin.zip"
-            published = root / "plugin-arm64-v8a.zip"
+            destination = root / "plugin.pyrix"
+            published = root / "plugin-arm64-v8a.pyrix"
             published.write_bytes(b"old archive")
             Path(f"{published}.hash").write_text("old hash", encoding="ascii")
-            staged = root / "staged.zip"
+            staged = root / "staged.pyrix"
             staged.write_bytes(b"new archive")
             Path(f"{staged}.hash").write_text("new hash", encoding="ascii")
 
@@ -1306,11 +1306,11 @@ class PackagerRuntimeTest(unittest.TestCase):
     ) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            destination = root / "plugin.zip"
-            published = root / "plugin-arm64-v8a.zip"
+            destination = root / "plugin.pyrix"
+            published = root / "plugin-arm64-v8a.pyrix"
             published.write_bytes(b"old archive")
             Path(f"{published}.hash").write_text("old hash", encoding="ascii")
-            staged = root / "staged.zip"
+            staged = root / "staged.pyrix"
             staged.write_bytes(b"new archive")
             Path(f"{staged}.hash").write_text("new hash", encoding="ascii")
 
@@ -1382,7 +1382,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                         platform="Darwin",
                         arch=["arm64", "x86_64"],
                         requirements=["fixture-package"],
-                        asset="build/plugin.zip",
+                        asset="build/plugin.pyrix",
                         exclude=[],
                         cleanup_app_files=[],
                         cleanup_package_files=[],
@@ -1391,12 +1391,12 @@ class PackagerRuntimeTest(unittest.TestCase):
                 merge.assert_not_called()
                 self.assertTrue(
                     (
-                        root / "build" / "fixture-plugin-Darwin-arm64.zip"
+                        root / "build" / "fixture-plugin-Darwin-arm64.pyrix"
                     ).is_file()
                 )
                 self.assertTrue(
                     (
-                        root / "build" / "fixture-plugin-Darwin-x86_64.zip"
+                        root / "build" / "fixture-plugin-Darwin-x86_64.pyrix"
                     ).is_file()
                 )
             finally:
@@ -1447,8 +1447,8 @@ class PackagerRuntimeTest(unittest.TestCase):
                 _manifest_v2(),
                 encoding="utf-8",
             )
-            archive_base = root / "build" / "compiled.zip"
-            archive = root / "build" / "fixture-plugin-Windows.zip"
+            archive_base = root / "build" / "compiled.pyrix"
+            archive = root / "build" / "fixture-plugin-Windows.pyrix"
 
             previous_cwd = Path.cwd()
             try:
@@ -1518,7 +1518,7 @@ class PackagerRuntimeTest(unittest.TestCase):
                             "platform": "Windows",
                             "arch": [],
                             "requirements": [],
-                            "asset": f"build/missing-{required_file}.zip",
+                            "asset": f"build/missing-{required_file}.pyrix",
                             "exclude": [],
                             "skip_site_packages": True,
                             "cleanup_app_files": [],

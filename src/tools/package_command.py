@@ -280,7 +280,7 @@ class PackageCommand:
             plugin_id = manifest.id
             asset_path = asset if explicit_asset else None
             if asset_path is None:
-                asset_path = f"build/{plugin_id}.zip"
+                asset_path = f"build/{plugin_id}.pyrix"
             elif asset_path.startswith(("/", "\\")):
                 asset_path = asset_path[1:]
             requested_archive = current_path / asset_path

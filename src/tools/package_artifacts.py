@@ -377,7 +377,7 @@ def build_archives(
                 )
                 descriptor, archive_name = tempfile.mkstemp(
                     prefix="pyrite_plugin_archive",
-                    suffix=".zip",
+                    suffix=".pyrix",
                     dir=destination.parent,
                 )
                 os.close(descriptor)
