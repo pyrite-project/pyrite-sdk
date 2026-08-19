@@ -662,6 +662,7 @@ _CONTROLLERS: dict[str, type[ComponentController]] = {
     "Dropdown": DropdownController,
     "ContextMenu": ContextMenuController,
     "Dialog": DialogController,
+    "AlertDialog": DialogController,
     "Canvas": CanvasController,
 }
 
@@ -958,6 +959,354 @@ def Expanded(
     )
 
 
+def SizedBox(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    width: Optional[int | float] = None,
+    height: Optional[int | float] = None,
+) -> Component:
+    return Component(
+        "SizedBox",
+        {"id": id, "width": width, "height": height},
+        [child] if child is not None else None,
+    )
+
+
+def Spacer(*, id: Optional[str] = None, flex: Optional[int | float] = None) -> Component:
+    return Component("Spacer", {"id": id, "flex": flex})
+
+
+def Align(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    alignment: Optional[
+        Literal[
+            "topLeft",
+            "topCenter",
+            "topRight",
+            "centerLeft",
+            "center",
+            "centerRight",
+            "bottomLeft",
+            "bottomCenter",
+            "bottomRight",
+        ]
+    ] = None,
+    width_factor: Optional[int | float] = None,
+    height_factor: Optional[int | float] = None,
+) -> Component:
+    return Component(
+        "Align",
+        {
+            "id": id,
+            "alignment": alignment,
+            "widthFactor": width_factor,
+            "heightFactor": height_factor,
+        },
+        [child] if child is not None else None,
+    )
+
+
+def Container(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    width: Optional[int | float] = None,
+    height: Optional[int | float] = None,
+    padding: Optional[int | float] = None,
+    margin: Optional[int | float] = None,
+    color: Optional[str] = None,
+    border_radius: Optional[int | float] = None,
+    alignment: Optional[
+        Literal[
+            "topLeft",
+            "topCenter",
+            "topRight",
+            "centerLeft",
+            "center",
+            "centerRight",
+            "bottomLeft",
+            "bottomCenter",
+            "bottomRight",
+        ]
+    ] = None,
+    border_color: Optional[str] = None,
+    border_width: Optional[int | float] = None,
+    style: Optional[dict[str, Any]] = None,
+) -> Component:
+    return Component(
+        "Container",
+        {
+            "id": id,
+            "width": width,
+            "height": height,
+            "padding": padding,
+            "margin": margin,
+            "color": color,
+            "borderRadius": border_radius,
+            "alignment": alignment,
+            "borderColor": border_color,
+            "borderWidth": border_width,
+            "style": style,
+        },
+        [child] if child is not None else None,
+    )
+
+
+def Stack(
+    *children: Component,
+    id: Optional[str] = None,
+    alignment: Optional[
+        Literal[
+            "topLeft",
+            "topCenter",
+            "topRight",
+            "centerLeft",
+            "center",
+            "centerRight",
+            "bottomLeft",
+            "bottomCenter",
+            "bottomRight",
+        ]
+    ] = None,
+) -> Component:
+    return Component("Stack", {"id": id, "alignment": alignment}, list(children))
+
+
+def AspectRatio(
+    child: Optional[Component] = None,
+    *,
+    aspect_ratio: int | float,
+    id: Optional[str] = None,
+) -> Component:
+    return Component(
+        "AspectRatio",
+        {"id": id, "aspectRatio": aspect_ratio},
+        [child] if child is not None else None,
+    )
+
+
+def FittedBox(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    fit: Optional[str] = None,
+    alignment: Optional[str] = None,
+) -> Component:
+    return Component(
+        "FittedBox",
+        {"id": id, "fit": fit, "alignment": alignment},
+        [child] if child is not None else None,
+    )
+
+
+def PageView(
+    *children: Component,
+    id: Optional[str] = None,
+    initial_page: Optional[int] = None,
+    scroll_direction: Optional[Literal["horizontal", "vertical"]] = None,
+    on_page_changed: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    component = Component(
+        "PageView",
+        {
+            "id": id,
+            "initialPage": initial_page,
+            "scrollDirection": scroll_direction,
+        },
+        list(children),
+    )
+    if on_page_changed:
+        component.on("pageChanged", on_page_changed)
+    return component
+
+
+def Center(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    width_factor: Optional[int | float] = None,
+    height_factor: Optional[int | float] = None,
+) -> Component:
+    return Component(
+        "Center",
+        {"id": id, "widthFactor": width_factor, "heightFactor": height_factor},
+        [child] if child is not None else None,
+    )
+
+
+def SafeArea(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    left: Optional[bool] = None,
+    top: Optional[bool] = None,
+    right: Optional[bool] = None,
+    bottom: Optional[bool] = None,
+    minimum: Optional[int | float] = None,
+) -> Component:
+    return Component(
+        "SafeArea",
+        {
+            "id": id,
+            "left": left,
+            "top": top,
+            "right": right,
+            "bottom": bottom,
+            "minimum": minimum,
+        },
+        [child] if child is not None else None,
+    )
+
+
+def ConstrainedBox(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    min_width: Optional[int | float] = None,
+    max_width: Optional[int | float] = None,
+    min_height: Optional[int | float] = None,
+    max_height: Optional[int | float] = None,
+) -> Component:
+    return Component(
+        "ConstrainedBox",
+        {
+            "id": id,
+            "minWidth": min_width,
+            "maxWidth": max_width,
+            "minHeight": min_height,
+            "maxHeight": max_height,
+        },
+        [child] if child is not None else None,
+    )
+
+
+def FractionallySizedBox(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    width_factor: Optional[int | float] = None,
+    height_factor: Optional[int | float] = None,
+    alignment: Optional[str] = None,
+) -> Component:
+    return Component(
+        "FractionallySizedBox",
+        {
+            "id": id,
+            "widthFactor": width_factor,
+            "heightFactor": height_factor,
+            "alignment": alignment,
+        },
+        [child] if child is not None else None,
+    )
+
+
+def LimitedBox(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    max_width: Optional[int | float] = None,
+    max_height: Optional[int | float] = None,
+) -> Component:
+    return Component(
+        "LimitedBox",
+        {"id": id, "maxWidth": max_width, "maxHeight": max_height},
+        [child] if child is not None else None,
+    )
+
+
+def SingleChildScrollView(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    scroll_direction: Optional[Literal["horizontal", "vertical"]] = None,
+    reverse: Optional[bool] = None,
+    padding: Optional[int | float] = None,
+    primary: Optional[bool] = None,
+) -> Component:
+    return Component(
+        "SingleChildScrollView",
+        {
+            "id": id,
+            "scrollDirection": scroll_direction,
+            "reverse": reverse,
+            "padding": padding,
+            "primary": primary,
+        },
+        [child] if child is not None else None,
+    )
+
+
+def ListView(
+    *children: Component,
+    id: Optional[str] = None,
+    scroll_direction: Optional[Literal["horizontal", "vertical"]] = None,
+    reverse: Optional[bool] = None,
+    padding: Optional[int | float] = None,
+    item_extent: Optional[int | float] = None,
+    shrink_wrap: Optional[bool] = None,
+) -> Component:
+    return Component(
+        "ListView",
+        {
+            "id": id,
+            "scrollDirection": scroll_direction,
+            "reverse": reverse,
+            "padding": padding,
+            "itemExtent": item_extent,
+            "shrinkWrap": shrink_wrap,
+        },
+        list(children),
+    )
+
+
+def GridView(
+    *children: Component,
+    cross_axis_count: int,
+    id: Optional[str] = None,
+    main_axis_spacing: Optional[int | float] = None,
+    cross_axis_spacing: Optional[int | float] = None,
+    padding: Optional[int | float] = None,
+    shrink_wrap: Optional[bool] = None,
+) -> Component:
+    return Component(
+        "GridView",
+        {
+            "id": id,
+            "crossAxisCount": cross_axis_count,
+            "mainAxisSpacing": main_axis_spacing,
+            "crossAxisSpacing": cross_axis_spacing,
+            "padding": padding,
+            "shrinkWrap": shrink_wrap,
+        },
+        list(children),
+    )
+
+
+def Visibility(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    visible: Optional[bool] = None,
+    maintain_state: Optional[bool] = None,
+    maintain_animation: Optional[bool] = None,
+    maintain_size: Optional[bool] = None,
+) -> Component:
+    return Component(
+        "Visibility",
+        {
+            "id": id,
+            "visible": visible,
+            "maintainState": maintain_state,
+            "maintainAnimation": maintain_animation,
+            "maintainSize": maintain_size,
+        },
+        [child] if child is not None else None,
+    )
+
+
 def Flex(
     *children: Component,
     id: Optional[str] = None,
@@ -1080,11 +1429,22 @@ def Scaffold(
 
 # -- Content ------------------------------------------------------------------
 
-def Card(child: Optional[Component] = None, *, id: Optional[str] = None, elevation=None, padding=None, border_radius=None) -> Component:
+def Card(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    elevation: Optional[int | float] = None,
+    padding: Optional[int | float] = None,
+    border_radius: Optional[int | float] = None,
+    color: Optional[str] = None,
+    margin: Optional[int | float] = None,
+    style: Optional[dict[str, Any]] = None,
+) -> Component:
     return Component(
         "Card",
         {"id": id, "elevation": elevation, "padding": padding,
-            "borderRadius": border_radius},
+            "borderRadius": border_radius, "color": color, "margin": margin,
+            "style": style},
         [child] if child is not None else None,
     )
 
@@ -1094,9 +1454,13 @@ def Text(
     *,
     id: Optional[str] = None,
     style: Optional[Literal["body", "caption",
-                            "title", "heading", "code"]] = None,
+                            "title", "heading", "code"] | dict[str, Any]] = None,
     muted: Optional[bool] = None,
     max_lines: Optional[int | float] = None,
+    color: Optional[str] = None,
+    font_size: Optional[int | float] = None,
+    font_weight: Optional[str] = None,
+    text_align: Optional[str] = None,
 ) -> Component:
     return Component(
         "Text",
@@ -1106,6 +1470,10 @@ def Text(
             "style": style,
             "muted": muted,
             "maxLines": max_lines,
+            "color": color,
+            "fontSize": font_size,
+            "fontWeight": font_weight,
+            "textAlign": text_align,
         },
     )
 
@@ -1115,8 +1483,19 @@ def Icon(
     *,
     id: Optional[str] = None,
     size: Optional[int | float] = None,
+    color: Optional[str] = None,
+    semantic_label: Optional[str] = None,
 ) -> Component:
-    return Component("Icon", {"id": id, "name": _icon(name), "size": size})
+    return Component(
+        "Icon",
+        {
+            "id": id,
+            "name": _icon(name),
+            "size": size,
+            "color": color,
+            "semanticLabel": semantic_label,
+        },
+    )
 
 
 def Image(
@@ -1260,8 +1639,309 @@ def Badge(
     tone: Optional[
         Literal["neutral", "info", "success", "warning", "danger"]
     ] = None,
+    style: Optional[dict[str, Any]] = None,
 ) -> Component:
-    return Component("Badge", {"id": id, "label": label, "tone": tone})
+    return Component("Badge", {"id": id, "label": label, "tone": tone, "style": style})
+
+
+def Divider(
+    *,
+    id: Optional[str] = None,
+    height: Optional[int | float] = None,
+    thickness: Optional[int | float] = None,
+    indent: Optional[int | float] = None,
+    end_indent: Optional[int | float] = None,
+    color: Optional[str] = None,
+) -> Component:
+    return Component(
+        "Divider",
+        {
+            "id": id,
+            "height": height,
+            "thickness": thickness,
+            "indent": indent,
+            "endIndent": end_indent,
+            "color": color,
+        },
+    )
+
+
+def VerticalDivider(
+    *,
+    id: Optional[str] = None,
+    width: Optional[int | float] = None,
+    thickness: Optional[int | float] = None,
+    indent: Optional[int | float] = None,
+    end_indent: Optional[int | float] = None,
+    color: Optional[str] = None,
+) -> Component:
+    return Component(
+        "VerticalDivider",
+        {
+            "id": id,
+            "width": width,
+            "thickness": thickness,
+            "indent": indent,
+            "endIndent": end_indent,
+            "color": color,
+        },
+    )
+
+
+def SelectableText(
+    value: str,
+    *,
+    id: Optional[str] = None,
+    style: Optional[dict[str, Any] | str] = None,
+    max_lines: Optional[int | float] = None,
+    on_tap: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    component = Component(
+        "SelectableText",
+        {"id": id, "value": value, "style": style, "maxLines": max_lines},
+    )
+    if on_tap:
+        component.on("tap", on_tap)
+    return component
+
+
+def ListTile(
+    *,
+    id: Optional[str] = None,
+    title: str,
+    subtitle: Optional[str] = None,
+    leading_icon: Optional[MaterialIcon | str] = None,
+    trailing_icon: Optional[MaterialIcon | str] = None,
+    dense: Optional[bool] = None,
+    enabled: Optional[bool] = None,
+    selected: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
+    on_tap: Optional[Callable[[dict[str, Any]], None]] = None,
+    on_long_press: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    component = Component(
+        "ListTile",
+        {
+            "id": id,
+            "title": title,
+            "subtitle": subtitle,
+            "leadingIcon": _icon(leading_icon),
+            "trailingIcon": _icon(trailing_icon),
+            "dense": dense,
+            "enabled": enabled,
+            "selected": selected,
+            "style": style,
+        },
+    )
+    if on_tap:
+        component.on("tap", on_tap)
+    if on_long_press:
+        component.on("longPress", on_long_press)
+    return component
+
+
+def CheckboxListTile(
+    *,
+    id: Optional[str] = None,
+    value: Optional[bool] = None,
+    title: str,
+    subtitle: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    selected: Optional[bool] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "CheckboxListTile",
+        {
+            "id": id,
+            "value": value,
+            "title": title,
+            "subtitle": subtitle,
+            "enabled": enabled,
+            "selected": selected,
+        },
+    )
+    if on_change:
+        component.on("change", on_change)
+    return component
+
+
+def SwitchListTile(
+    *,
+    id: Optional[str] = None,
+    value: Optional[bool] = None,
+    title: str,
+    subtitle: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    selected: Optional[bool] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "SwitchListTile",
+        {
+            "id": id,
+            "value": value,
+            "title": title,
+            "subtitle": subtitle,
+            "enabled": enabled,
+            "selected": selected,
+        },
+    )
+    if on_change:
+        component.on("change", on_change)
+    return component
+
+
+def RadioListTile(
+    *,
+    id: Optional[str] = None,
+    value: Any,
+    group_value: Any = None,
+    title: str,
+    subtitle: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "RadioListTile",
+        {
+            "id": id,
+            "value": value,
+            "groupValue": group_value,
+            "title": title,
+            "subtitle": subtitle,
+            "enabled": enabled,
+        },
+    )
+    if on_change:
+        component.on("change", on_change)
+    return component
+
+
+def ExpansionTile(
+    *children: Component,
+    id: Optional[str] = None,
+    title: str,
+    subtitle: Optional[str] = None,
+    initially_expanded: Optional[bool] = None,
+    enabled: Optional[bool] = None,
+    on_expansion_changed: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "ExpansionTile",
+        {
+            "id": id,
+            "title": title,
+            "subtitle": subtitle,
+            "initiallyExpanded": initially_expanded,
+            "enabled": enabled,
+        },
+        list(children),
+    )
+    if on_expansion_changed:
+        component.on("expansionChanged", on_expansion_changed)
+    return component
+
+
+def CircleAvatar(
+    child: Optional[Component] = None,
+    *,
+    id: Optional[str] = None,
+    radius: Optional[int | float] = None,
+    background_color: Optional[str] = None,
+    foreground_color: Optional[str] = None,
+    text: Optional[str] = None,
+) -> Component:
+    return Component(
+        "CircleAvatar",
+        {
+            "id": id,
+            "radius": radius,
+            "backgroundColor": background_color,
+            "foregroundColor": foreground_color,
+            "text": text,
+        },
+        [child] if child is not None else None,
+    )
+
+
+def Chip(
+    label: str,
+    *,
+    id: Optional[str] = None,
+    avatar_icon: Optional[MaterialIcon | str] = None,
+    delete_icon: Optional[MaterialIcon | str] = None,
+    enabled: Optional[bool] = None,
+    selected: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
+    on_deleted: Optional[Callable[[dict[str, Any]], None]] = None,
+    on_selected: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    component = Component(
+        "Chip",
+        {
+            "id": id,
+            "label": label,
+            "avatarIcon": _icon(avatar_icon),
+            "deleteIcon": _icon(delete_icon),
+            "enabled": enabled,
+            "selected": selected,
+            "style": style,
+        },
+    )
+    if on_deleted:
+        component.on("deleted", on_deleted)
+    if on_selected:
+        component.on("selected", on_selected)
+    return component
+
+
+def CircularProgressIndicator(
+    *,
+    id: Optional[str] = None,
+    value: Optional[int | float] = None,
+    stroke_width: Optional[int | float] = None,
+    color: Optional[str] = None,
+    background_color: Optional[str] = None,
+) -> Component:
+    return Component(
+        "CircularProgressIndicator",
+        {
+            "id": id,
+            "value": value,
+            "strokeWidth": stroke_width,
+            "color": color,
+            "backgroundColor": background_color,
+        },
+    )
+
+
+def LinearProgressIndicator(
+    *,
+    id: Optional[str] = None,
+    value: Optional[int | float] = None,
+    min_height: Optional[int | float] = None,
+    color: Optional[str] = None,
+    background_color: Optional[str] = None,
+) -> Component:
+    return Component(
+        "LinearProgressIndicator",
+        {
+            "id": id,
+            "value": value,
+            "minHeight": min_height,
+            "color": color,
+            "backgroundColor": background_color,
+        },
+    )
 
 
 # -- Input --------------------------------------------------------------------
@@ -1275,6 +1955,13 @@ def TextField(
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
     multiline: Optional[bool] = None,
+    obscure_text: Optional[bool] = None,
+    max_lines: Optional[int | float] = None,
+    min_lines: Optional[int | float] = None,
+    keyboard_type: Optional[str] = None,
+    style: Optional[dict[str, Any]] = None,
+    filled: Optional[bool] = None,
+    fill_color: Optional[str] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
     on_submit: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
@@ -1289,6 +1976,13 @@ def TextField(
             "label": label,
             "enabled": enabled,
             "multiline": multiline,
+            "obscureText": obscure_text,
+            "maxLines": max_lines,
+            "minLines": min_lines,
+            "keyboardType": keyboard_type,
+            "style": style,
+            "filled": filled,
+            "fillColor": fill_color,
         },
     )
     if on_change:
@@ -1307,6 +2001,7 @@ def NumberField(
     step: Optional[int | float] = None,
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
     on_submit: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
@@ -1322,6 +2017,7 @@ def NumberField(
             "step": step,
             "label": label,
             "enabled": enabled,
+            "style": style,
         },
     )
     if on_change:
@@ -1338,6 +2034,7 @@ def Select(
     value: Optional[str] = None,
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     if not id:
@@ -1350,6 +2047,7 @@ def Select(
             "value": value,
             "label": label,
             "enabled": enabled,
+            "style": style,
         },
     )
     if on_change:
@@ -1363,13 +2061,15 @@ def Checkbox(
     value: Optional[bool] = None,
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     if not id:
         id = token_hex(16)
     component = Component(
         "Checkbox",
-        {"id": id, "value": value, "label": label, "enabled": enabled},
+        {"id": id, "value": value, "label": label,
+            "enabled": enabled, "style": style},
     )
     if on_change:
         component.on("change", on_change)
@@ -1382,13 +2082,15 @@ def Switch(
     value: Optional[bool] = None,
     label: Optional[str] = None,
     enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     if not id:
         id = token_hex(16)
     component = Component(
         "Switch",
-        {"id": id, "value": value, "label": label, "enabled": enabled},
+        {"id": id, "value": value, "label": label,
+            "enabled": enabled, "style": style},
     )
     if on_change:
         component.on("change", on_change)
@@ -1403,6 +2105,7 @@ def Slider(
     max: Optional[int | float] = None,
     step: Optional[int | float] = None,
     enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
     on_change: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     if not id:
@@ -1416,6 +2119,97 @@ def Slider(
             "max": max,
             "step": step,
             "enabled": enabled,
+            "style": style,
+        },
+    )
+    if on_change:
+        component.on("change", on_change)
+    return component
+
+
+def Radio(
+    *,
+    id: Optional[str] = None,
+    value: Any,
+    group_value: Any = None,
+    label: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "Radio",
+        {
+            "id": id,
+            "value": value,
+            "groupValue": group_value,
+            "label": label,
+            "enabled": enabled,
+            "style": style,
+        },
+    )
+    if on_change:
+        component.on("change", on_change)
+    return component
+
+
+def RangeSlider(
+    *,
+    id: Optional[str] = None,
+    start: Optional[int | float] = None,
+    end: Optional[int | float] = None,
+    min: Optional[int | float] = None,
+    max: Optional[int | float] = None,
+    step: Optional[int | float] = None,
+    enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "RangeSlider",
+        {
+            "id": id,
+            "start": start,
+            "end": end,
+            "min": min,
+            "max": max,
+            "step": step,
+            "enabled": enabled,
+            "style": style,
+        },
+    )
+    if on_change:
+        component.on("change", on_change)
+    return component
+
+
+def SegmentedButton(
+    *,
+    id: Optional[str] = None,
+    segments: list[dict[str, Any]],
+    selected: Optional[list[str]] = None,
+    multi_selection_enabled: Optional[bool] = None,
+    empty_selection_allowed: Optional[bool] = None,
+    enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "SegmentedButton",
+        {
+            "id": id,
+            "segments": segments,
+            "selected": selected,
+            "multiSelectionEnabled": multi_selection_enabled,
+            "emptySelectionAllowed": empty_selection_allowed,
+            "enabled": enabled,
+            "style": style,
         },
     )
     if on_change:
@@ -1589,6 +2383,10 @@ def Button(
     variant: Optional[Literal["primary",
                               "secondary", "ghost", "danger"]] = None,
     enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
+    width: Optional[int | float] = None,
+    height: Optional[int | float] = None,
+    tooltip: Optional[str] = None,
     on_press: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     if not id:
@@ -1601,11 +2399,39 @@ def Button(
             "icon": _icon(icon),
             "variant": variant,
             "enabled": enabled,
+            "style": style,
+            "width": width,
+            "height": height,
+            "tooltip": tooltip,
         },
     )
     if on_press:
         component.on("press", on_press)
     return component
+
+
+def TextButton(**kwargs: Any) -> Component:
+    """Material text button with the same parameters as :func:`Button`."""
+    kwargs["variant"] = "ghost"
+    return Button(**kwargs)
+
+
+def OutlinedButton(**kwargs: Any) -> Component:
+    """Material outlined button with the same parameters as :func:`Button`."""
+    kwargs["variant"] = "secondary"
+    return Button(**kwargs)
+
+
+def FilledButton(**kwargs: Any) -> Component:
+    """Material filled button with the same parameters as :func:`Button`."""
+    kwargs["variant"] = "primary"
+    return Button(**kwargs)
+
+
+def ElevatedButton(**kwargs: Any) -> Component:
+    """Material elevated button with the same parameters as :func:`Button`."""
+    kwargs["variant"] = "primary"
+    return Button(**kwargs)
 
 
 def IconButton(
@@ -1614,6 +2440,8 @@ def IconButton(
     icon: MaterialIcon | str,
     tooltip: Optional[str] = None,
     enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
+    size: Optional[int | float] = None,
     on_press: Optional[Callable[[dict[str, Any]], None]] = None,
 ) -> Component:
     if not id:
@@ -1621,11 +2449,138 @@ def IconButton(
     component = Component(
         "IconButton",
         {"id": id, "icon": _icon(
-            icon), "tooltip": tooltip, "enabled": enabled},
+            icon), "tooltip": tooltip, "enabled": enabled, "style": style,
+            "size": size},
     )
     if on_press:
         component.on("press", on_press)
     return component
+
+
+def FloatingActionButton(
+    *,
+    id: Optional[str] = None,
+    label: Optional[str] = None,
+    icon: Optional[MaterialIcon | str] = None,
+    tooltip: Optional[str] = None,
+    extended: Optional[bool] = None,
+    small: Optional[bool] = None,
+    mini: Optional[bool] = None,
+    enabled: Optional[bool] = None,
+    style: Optional[dict[str, Any]] = None,
+    on_press: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "FloatingActionButton",
+        {
+            "id": id,
+            "label": label,
+            "icon": _icon(icon),
+            "tooltip": tooltip,
+            "extended": extended,
+            "small": small,
+            "mini": mini,
+            "enabled": enabled,
+            "style": style,
+        },
+    )
+    if on_press:
+        component.on("press", on_press)
+    return component
+
+
+def NavigationBar(
+    *,
+    id: Optional[str] = None,
+    destinations: list[dict[str, Any]],
+    selected_index: Optional[int] = None,
+    label_behavior: Optional[str] = None,
+    style: Optional[dict[str, Any]] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "NavigationBar",
+        {
+            "id": id,
+            "destinations": destinations,
+            "selectedIndex": selected_index,
+            "labelBehavior": label_behavior,
+            "style": style,
+        },
+    )
+    if on_change:
+        component.on("change", on_change)
+    return component
+
+
+def NavigationRail(
+    *,
+    id: Optional[str] = None,
+    destinations: list[dict[str, Any]],
+    selected_index: Optional[int] = None,
+    extended: Optional[bool] = None,
+    label_type: Optional[str] = None,
+    style: Optional[dict[str, Any]] = None,
+    on_change: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "NavigationRail",
+        {
+            "id": id,
+            "destinations": destinations,
+            "selectedIndex": selected_index,
+            "extended": extended,
+            "labelType": label_type,
+            "style": style,
+        },
+    )
+    if on_change:
+        component.on("change", on_change)
+    return component
+
+
+def BottomNavigationBar(
+    *,
+    id: Optional[str] = None,
+    items: list[dict[str, Any]],
+    current_index: Optional[int] = None,
+    type: Optional[str] = None,
+    on_tap: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    if not id:
+        id = token_hex(16)
+    component = Component(
+        "BottomNavigationBar",
+        {"id": id, "items": items, "currentIndex": current_index, "type": type},
+    )
+    if on_tap:
+        component.on("tap", on_tap)
+    return component
+
+
+def Drawer(
+    *children: Component,
+    id: Optional[str] = None,
+    width: Optional[int | float] = None,
+    elevation: Optional[int | float] = None,
+    background_color: Optional[str] = None,
+) -> Component:
+    return Component(
+        "Drawer",
+        {
+            "id": id,
+            "width": width,
+            "elevation": elevation,
+            "backgroundColor": background_color,
+        },
+        list(children),
+    )
 
 
 def Menu(
@@ -1784,6 +2739,46 @@ def Dialog(
     )
     if on_close:
         component.on("close", on_close)
+    return component
+
+
+def AlertDialog(
+    *children: Component,
+    id: Optional[str] = None,
+    title: Optional[str] = None,
+    open: Optional[bool] = None,
+    on_close: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    component = Dialog(
+        *children,
+        id=id,
+        title=title,
+        open=open,
+        on_close=on_close,
+    )
+    component["type"] = "AlertDialog"
+    return component
+
+
+def SnackBar(
+    message: str,
+    *,
+    id: Optional[str] = None,
+    action_label: Optional[str] = None,
+    duration_ms: Optional[int] = None,
+    on_action: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> Component:
+    component = Component(
+        "SnackBar",
+        {
+            "id": id,
+            "message": message,
+            "actionLabel": action_label,
+            "durationMs": duration_ms,
+        },
+    )
+    if on_action:
+        component.on("action", on_action)
     return component
 
 

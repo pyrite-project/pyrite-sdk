@@ -5,12 +5,15 @@ import unittest
 from pyrite_sdk.api.components import (
     COMPONENT_SCHEMA_VERSION,
     AppBar,
+    Align,
+    AspectRatio,
     Badge,
     Button,
     Canvas,
     Checkbox,
     Column,
     Component,
+    Container,
     ContextMenu,
     DataTable,
     Expanded,
@@ -34,6 +37,9 @@ from pyrite_sdk.api.components import (
     Row,
     Scaffold,
     Select,
+    SizedBox,
+    Spacer,
+    Stack,
     Tab,
     Tabs,
     Text,
@@ -129,6 +135,47 @@ class ComponentShapeTest(unittest.TestCase):
         node = Expanded(Text("a"), id="expanded", flex=2)
         self.assertEqual(node["type"], "Expanded")
         self.assertEqual(node["props"], {"id": "expanded", "flex": 2})
+        self.assertEqual(node["children"][0]["type"], "Text")
+
+    def test_common_layout_component_shapes(self):
+        sized_box = SizedBox(Text("a"), width=24, height=12)
+        spacer = Spacer(flex=2)
+        aligned = Align(Text("a"), alignment="bottomRight", width_factor=2)
+        container = Container(
+            Text("a"),
+            width=48,
+            height=24,
+            padding=4,
+            margin=2,
+            color="#112233",
+            border_radius=6,
+            alignment="center",
+        )
+        stack = Stack(Text("a"), alignment="topLeft")
+
+        self.assertEqual(sized_box["props"], {"width": 24, "height": 12})
+        self.assertEqual(spacer["props"], {"flex": 2})
+        self.assertEqual(
+            aligned["props"], {"alignment": "bottomRight", "widthFactor": 2}
+        )
+        self.assertEqual(
+            container["props"],
+            {
+                "width": 48,
+                "height": 24,
+                "padding": 4,
+                "margin": 2,
+                "color": "#112233",
+                "borderRadius": 6,
+                "alignment": "center",
+            },
+        )
+        self.assertEqual(stack["props"], {"alignment": "topLeft"})
+
+    def test_aspect_ratio_shape(self):
+        node = AspectRatio(Text("a"), id="preview", aspect_ratio=1.5)
+        self.assertEqual(node["type"], "AspectRatio")
+        self.assertEqual(node["props"], {"id": "preview", "aspectRatio": 1.5})
         self.assertEqual(node["children"][0]["type"], "Text")
 
     def test_app_bar_scaffold_and_canvas_match_the_native_wire_shape(self):
