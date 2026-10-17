@@ -6,7 +6,7 @@ from .context import PluginContext
 from ..api.file import *
 from ..api.editor import Editor
 from ..api.persistence import Persistence
-from ..api.data import Theme, I18n, Stubs
+from ..api.data import Theme, I18n, Stubs, Lsp
 from ..api.settings import Settings
 from ..api.serial import Serial
 from ..api.path import Path as SdkPath
@@ -58,6 +58,7 @@ class UiPlugin(BasePlugin):
         self.theme = Theme(self.bridge)
         self.i18n = I18n(self.bridge)
         self.stubs = Stubs(self.bridge)
+        self.lsp = Lsp(self.bridge)
         self.serial = Serial(self.bridge)
         self.documents = EditorDocuments(self.bridge, self.events)
         self.runtime = Runtime(self.bridge, self.events)
@@ -78,6 +79,7 @@ class ServicePlugin(BasePlugin):
         self.theme = Theme(self.bridge)
         self.i18n = I18n(self.bridge)
         self.stubs = Stubs(self.bridge)
+        self.lsp = Lsp(self.bridge)
         self.documents = EditorDocuments(self.bridge, self.events)
         self.runtime = Runtime(self.bridge, self.events)
         self.serial = Serial(self.bridge)
@@ -93,6 +95,7 @@ class DataPlugin(BasePlugin):
         self.theme = Theme(self.bridge)
         self.i18n = I18n(self.bridge)
         self.stubs = Stubs(self.bridge)
+        self.lsp = Lsp(self.bridge)
 
     async def on_start(self) -> None:
         result = self.on_contribute()
