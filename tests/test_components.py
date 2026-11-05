@@ -65,6 +65,7 @@ class FakeBridge:
 
     def push_wait_response(self, envelope, callback=None, client=None):
         self.calls.append((envelope, callback, client))
+        return True
 
     def last(self):
         envelope, _, _ = self.calls[-1]
@@ -343,7 +344,9 @@ class ComponentEventDispatchTest(unittest.TestCase):
             [Button(id="go", label="Go", on_press=lambda payload: None)]
         )
         nodes = self.bridge.last().payload["nodes"]
-        self.assertEqual(nodes[0]["events"], {"press": True})
+        # A bare component root is wrapped so patches can address it by id.
+        self.assertEqual(nodes[0]["id"], "go")
+        self.assertEqual(nodes[0]["component"]["events"], {"press": True})
         json.dumps(nodes)
 
     def test_event_frame_invokes_the_handler(self):
@@ -740,14 +743,20 @@ class ComponentControllerTest(unittest.TestCase):
                 [{"op": "text", "text": "x" * (2 * 1024 * 1024)}]
             )
 
-    def test_controller_rejects_unbound_or_unidentified_components(self):
+    def test_controller_rejects_unbound_components_and_assigns_ids(self):
         with self.assertRaisesRegex(RuntimeError, "not bound"):
             Component("TextField", {"id": "name"}).controller.clear()
 
+        # A stateful component without an explicit id gets a stable structural
+        # id during snapshot, so its controller and host state still work.
         component = Component("TextField")
         self.model.snapshot([component])
-        with self.assertRaisesRegex(ValueError, "requires an id"):
-            component.controller.clear()
+        self.assertIsNotNone(component.id)
+        self.assertTrue(component.id.startswith("__pyrite_auto__:"))
+        component.controller.clear()
+        envelope, _, _ = self.bridge.calls[-1]
+        self.assertEqual(envelope.type, "sdk.view.component.invoke")
+        self.assertEqual(envelope.payload["componentId"], component.id)
 
     def test_component_nested_in_a_model_wrapper_is_bound_and_serialized(self):
         component = TextField(id="search", value="before")

@@ -29,6 +29,7 @@ class FakeBridge:
 
     def push_wait_response(self, envelope, callback=None, client=None):
         self.calls.append(envelope)
+        return True
 
 
 class ComponentFixtureTest(unittest.TestCase):
