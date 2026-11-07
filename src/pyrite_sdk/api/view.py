@@ -750,6 +750,7 @@ class ViewModel:
         """
         if self._closed or not self._pending or self._in_flight is not None:
             return False
+        sent_revision = self.revision + 1
         candidates = self._pending[:MAX_PATCH_OPS]
         while True:
             # Apply on a working copy first: an op that the host would reject
@@ -760,7 +761,7 @@ class ViewModel:
             payload = {
                 **self._keys(),
                 "baseRevision": self.revision,
-                "revision": self.revision + 1,
+                "revision": sent_revision,
                 "ops": [op.to_json() for op in prepared],
             }
             encoded = len(
@@ -774,12 +775,19 @@ class ViewModel:
                 )
             candidates = candidates[: max(1, len(candidates) // 2)]
 
+        # Bind the response to the revision that was actually sent. The host
+        # sends ide.view.ack before the request response, and ack() flushes a
+        # newer patch immediately, so by the time this response arrives
+        # _in_flight may already refer to the next patch. Without the binding
+        # the stale response would release and acknowledge that newer patch.
         pushed = self._bridge.push_wait_response(
             request(
                 "sdk.view.patch",
                 payload=payload,
             ),
-            callback=self._on_patch_response,
+            callback=lambda data=None, error=None, **_: self._on_patch_response(
+                data, error, sent_revision=sent_revision
+            ),
         )
         if not pushed:
             # Nothing was delivered. Keep the pending ops for the next attempt;
@@ -794,7 +802,7 @@ class ViewModel:
         self._handlers = collect_handlers(self._nodes)
         self._transient_handlers.clear()
         self._pending = self._pending[len(candidates):]
-        self._in_flight = self.revision + 1
+        self._in_flight = sent_revision
         return True
 
     def _prepare_insert_data(self, data: Any, op_id: str) -> dict[str, Any]:
@@ -881,18 +889,30 @@ class ViewModel:
                     raise ViewProtocolError(
                         f"insert {op.id} negative index"
                     )
-                shadow.append(
-                    {
-                        **(op.data if isinstance(op.data, dict) else {}),
-                        "id": op.id,
-                    }
-                )
+                # Mirror the wire shape pass 2 builds, including the component
+                # wrapper and the insert-address id rewrite, so later ops in
+                # this batch resolve the same ids the host will see.
+                data = self._prepare_insert_data(op.data, op.id)
+                node = {**data, "id": op.id}
+                if op.index is None or op.index >= len(shadow):
+                    shadow.append(node)
+                else:
+                    shadow.insert(op.index, node)
                 continue
-            index, _ = _find_node(shadow, op.id)
+            index, address = _find_node(shadow, op.id)
             if index == -1:
                 raise ViewProtocolError(f"{op.op} of missing id {op.id}")
-            if op.op == "update" and op.data is None:
-                raise ViewProtocolError(f"update {op.id} missing data")
+            if op.op == "update":
+                if op.data is None:
+                    raise ViewProtocolError(f"update {op.id} missing data")
+                # Apply the update to the shadow exactly as pass 2 will apply
+                # it. Otherwise a later op that still addresses the old
+                # component id would validate here but fail (or, worse, hit
+                # the wrong node) once the id has actually changed.
+                old = shadow[index]
+                data = self._prepare_update_data(old, op.data)
+                shadow[index] = {**old, **data, "id": address}
+                continue
             if op.op == "move":
                 if (
                     op.index is None
@@ -912,6 +932,11 @@ class ViewModel:
         prepared: list[PatchOp] = []
         for op in ops:
             index, address = _find_node(working, op.id)
+            if op.op != "insert" and index == -1:
+                # Pass 1 mirrors every transformation, so this would mean the
+                # shadow and the working copy diverged. Never fall through to
+                # working[-1], which would silently modify the last node.
+                raise ViewProtocolError(f"{op.op} of missing id {op.id}")
             if op.op == "insert":
                 data = self._prepare_insert_data(op.data, op.id)
                 node = {**data, "id": op.id}
@@ -983,8 +1008,19 @@ class ViewModel:
     # -- Host responses -----------------------------------------------------
 
     def _on_patch_response(
-        self, data: Any = None, error: Any = None, **_: Any
+        self,
+        data: Any = None,
+        error: Any = None,
+        *,
+        sent_revision: Optional[int] = None,
+        **_: Any,
     ) -> None:
+        # The response may arrive after an ack/nack for the same revision
+        # already released _in_flight (and a newer patch took its place).
+        # Responses are only authoritative for the revision that was sent;
+        # acting on a stale one would acknowledge the newer patch early.
+        if sent_revision is not None and self._in_flight != sent_revision:
+            return
         if error is not None:
             if getattr(error, "code", None) == "delivery_paused":
                 # Keep the locally updated model. The IDE sends an explicit

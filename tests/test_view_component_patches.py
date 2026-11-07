@@ -195,6 +195,57 @@ class ComponentPatchTest(unittest.TestCase):
         self.assertEqual(self.bridge.patches(), [])
         self.assertFalse(self.model.has_in_flight)
 
+    def test_update_renaming_a_component_rejects_later_ops_in_the_batch(self):
+        self.model.snapshot(
+            [
+                {
+                    "id": "wrapper",
+                    "component": {
+                        "type": "Column",
+                        "props": {"id": "inner"},
+                        "children": [
+                            {
+                                "type": "Text",
+                                "props": {"id": "t", "value": "one"},
+                            }
+                        ],
+                    },
+                }
+            ]
+        )
+        self.bridge.calls.clear()
+
+        with self.assertRaisesRegex(ViewProtocolError, "missing id inner"):
+            with self.model.batch():
+                self.model.update(
+                    "inner",
+                    {
+                        "type": "Text",
+                        "props": {"id": "renamed", "value": "two"},
+                    },
+                )
+                self.model.update("inner", {"props": {"value": "three"}})
+
+        self.assertEqual(self.bridge.calls, [])
+        root = self.model.nodes[0]
+        self.assertEqual(root["id"], "wrapper")
+        self.assertEqual(root["component"]["props"]["id"], "inner")
+
+    def test_insert_rewrites_auto_ids_before_later_ops_in_the_batch(self):
+        self.model.snapshot([{"id": "a"}])
+        self.bridge.calls.clear()
+        field = TextField(value="one")
+        auto_id = field["props"]["id"]
+
+        with self.assertRaisesRegex(
+            ViewProtocolError, f"missing id {auto_id}"
+        ):
+            with self.model.batch():
+                self.model.insert("field", field)
+                self.model.update(auto_id, {"props": {"value": "two"}})
+
+        self.assertEqual(self.bridge.calls, [])
+
     def test_updated_component_is_rebound_with_new_handlers(self):
         received = []
         self.model.update("root", tree("two", received.append))
@@ -261,6 +312,30 @@ class ResyncRecoveryTest(unittest.TestCase):
         self.assertEqual(self.model.revision, 2)
         self.assertEqual(len(self.bridge.patches()), 2)
         self.assertEqual(value_of(self.model), "three")
+
+    def test_response_after_ack_does_not_release_the_next_patch(self):
+        self.model.update("root", tree("two"))
+        first_response = self.bridge.last()[1]
+        self.model.update("root", tree("three"))
+
+        # The host sends ide.view.ack before the request response. The ack
+        # releases revision 2 and immediately flushes revision 3.
+        self.model.ack(2)
+        self.assertEqual(self.model.revision, 2)
+        self.assertTrue(self.model.has_in_flight)
+        self.assertEqual(self.bridge.patches()[-1].payload["revision"], 3)
+
+        # The response for revision 2 arrives late; it must not acknowledge
+        # (or release) the newly in-flight revision 3.
+        first_response(data={"revision": 2})
+        self.assertEqual(self.model.revision, 2)
+        self.assertTrue(self.model.has_in_flight)
+        self.assertEqual(len(self.bridge.patches()), 2)
+
+        # The real response for revision 3 still releases it.
+        self.bridge.last()[1](data={"revision": 3})
+        self.assertFalse(self.model.has_in_flight)
+        self.assertEqual(self.model.revision, 3)
 
 
 class BridgeFailureTest(unittest.TestCase):
