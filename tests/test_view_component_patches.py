@@ -89,6 +89,27 @@ class ComponentRootShapeTest(unittest.TestCase):
         second = self.bridge.last()[0].payload["nodes"][0]["component"]
         self.assertEqual(text_field_id(second), first_id)
 
+    def test_explicit_id_anchors_descendant_ids_across_sibling_edits(self):
+        def build(extra=False):
+            children = [Text("before")]
+            if extra:
+                children.append(Text("inserted"))
+            children.append(Column(TextField(value="v"), id="editor"))
+            return Column(*children, id="root")
+
+        self.model.snapshot([build()])
+        first = self.bridge.last()[0].payload["nodes"][0]["component"]
+        first_field_id = first["children"][1]["children"][0]["props"]["id"]
+        self.assertTrue(first_field_id.startswith(AUTO_ID_PREFIX))
+
+        # Inserting a sibling before the explicitly addressed subtree must not
+        # shift the auto ids of its descendants.
+        self.model.snapshot([build(extra=True)])
+        second = self.bridge.last()[0].payload["nodes"][0]["component"]
+        editor = second["children"][2]
+        self.assertEqual(editor["props"]["id"], "editor")
+        self.assertEqual(editor["children"][0]["props"]["id"], first_field_id)
+
     def test_data_item_auto_ids_are_stable_across_rebuilds(self):
         def build():
             return Column(
@@ -245,6 +266,41 @@ class ComponentPatchTest(unittest.TestCase):
                 self.model.update(auto_id, {"props": {"value": "two"}})
 
         self.assertEqual(self.bridge.calls, [])
+
+    def test_move_then_inner_op_keeps_the_component_payload_in_the_shadow(self):
+        self.model.snapshot(
+            [
+                {
+                    "id": "wrapper",
+                    "component": {
+                        "type": "Column",
+                        "props": {"id": "inner"},
+                        "children": [
+                            {
+                                "type": "Text",
+                                "props": {"id": "t", "value": "one"},
+                            }
+                        ],
+                    },
+                }
+            ]
+        )
+        self.bridge.calls.clear()
+
+        # The move shadow must keep the moved node itself. Replacing it with
+        # its address would drop the inner component, so the follow-up op by
+        # props.id would be rejected as a missing id even though pass 2 can
+        # still resolve it.
+        with self.model.batch():
+            self.model.move("wrapper", 0)
+            self.model.update("inner", {"props": {"gap": 4}})
+
+        ops = self.bridge.last()[0].payload["ops"]
+        self.assertEqual([op["op"] for op in ops], ["move", "update"])
+        self.assertEqual(ops[1]["id"], "wrapper")
+        self.assertEqual(
+            self.model.nodes[0]["component"]["props"]["gap"], 4
+        )
 
     def test_updated_component_is_rebound_with_new_handlers(self):
         received = []

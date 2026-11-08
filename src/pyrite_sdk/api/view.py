@@ -60,6 +60,11 @@ class ViewProtocolError(Exception):
 # auto-generated component id a deterministic structural value. Rebuilding the
 # same tree therefore produces the same ids, and the host keeps the widget state
 # (text controllers, expansion, selection) keyed by those ids.
+#
+# Auto ids are positional: inserting or removing a sibling before a component
+# shifts the ids of later auto-id siblings. Components in dynamic or reorderable
+# children should set ``props.id`` explicitly. An explicit id anchors its whole
+# subtree, so its descendants also keep their ids across sibling edits.
 _COMPONENT_KEYS = frozenset({"type", "props", "children", "events"})
 
 
@@ -108,7 +113,13 @@ def _stabilize_component(
     path: str,
     forced_id: Optional[str] = None,
 ) -> str:
-    """Rewrites auto ids in one component subtree; returns its root id."""
+    """Rewrites auto ids in one component subtree; returns its root id.
+
+    An explicit ``props.id`` is kept and anchors the subtree path, so its
+    descendants keep their ids when siblings are inserted, removed, or
+    reordered. Without an explicit id the auto id is positional and only
+    survives a structurally identical rebuild.
+    """
     props = node.get("props")
     if not isinstance(props, dict):
         props = {}
@@ -118,14 +129,16 @@ def _stabilize_component(
         props["id"] = forced_id
     elif not isinstance(current, str) or not current or _is_auto_id(current):
         props["id"] = _stable_auto_id(path)
+    resolved = str(props["id"])
+    anchor = path if _is_auto_id(resolved) else resolved
     for key, child in list(props.items()):
         if key != "id":
-            _stabilize_value(child, f"{path}/props/{key}")
+            _stabilize_value(child, f"{anchor}/props/{key}")
     children = node.get("children")
     if isinstance(children, list):
         for index, child in enumerate(children):
-            _stabilize_value(child, f"{path}/children/{index}")
-    return str(props["id"])
+            _stabilize_value(child, f"{anchor}/children/{index}")
+    return resolved
 
 
 def _stabilize_value(value: Any, path: str) -> None:
@@ -922,8 +935,11 @@ class ViewModel:
                     raise ViewProtocolError(
                         f"move {op.id} index out of range"
                     )
-                shadow.pop(index)
-                shadow.insert(op.index, {"id": op.id})
+                # Keep the node itself, not just its address: a later op in
+                # this batch may address the moved node by its inner component
+                # id, which only resolves if the component payload survives.
+                node = shadow.pop(index)
+                shadow.insert(op.index, node)
             elif op.op == "remove":
                 shadow.pop(index)
 
