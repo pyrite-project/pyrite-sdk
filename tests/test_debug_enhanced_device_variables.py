@@ -18,6 +18,7 @@ class FakeBridge:
 
     def push_wait_response(self, envelope, callback=None, client=None):
         self.calls.append((envelope, callback, client))
+        return True
 
 
 class FakeSubscription:

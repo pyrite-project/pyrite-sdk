@@ -17,6 +17,7 @@ class FakeBridge:
 
     def push_wait_response(self, envelope, callback=None, client=None):
         self.calls.append((envelope, callback, client))
+        return True
 
     def types(self):
         return [envelope.type for envelope, _, _ in self.calls]
