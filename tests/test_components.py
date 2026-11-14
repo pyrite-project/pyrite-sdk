@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import json
 import unittest
 
@@ -362,6 +363,54 @@ class ComponentEventDispatchTest(unittest.TestCase):
             },
         )
         self.assertEqual(received, [{"clicks": 1}])
+
+    def test_dispatch_event_awaits_an_async_handler(self):
+        received = []
+
+        async def on_press(payload):
+            await asyncio.sleep(0)
+            received.append(payload)
+
+        self.model.snapshot([Button(id="go", label="Go", on_press=on_press)])
+        pending = self.model.dispatch_event("go", "press", {"clicks": 1})
+
+        self.assertTrue(inspect.isawaitable(pending))
+        self.assertEqual(received, [])
+        self.assertTrue(asyncio.run(pending))
+        self.assertEqual(received, [{"clicks": 1}])
+
+    def test_event_frame_awaits_an_async_handler(self):
+        received = []
+
+        async def on_press(payload):
+            await asyncio.sleep(0)
+            received.append(payload)
+
+        self.model.snapshot([Button(id="go", label="Go", on_press=on_press)])
+        pending = self.views.handle_frame(
+            "ide.view.event",
+            {
+                "instance": {"instanceId": "i1"},
+                "componentId": "go",
+                "event": "press",
+                "payload": {"clicks": 2},
+            },
+        )
+
+        self.assertTrue(inspect.isawaitable(pending))
+        asyncio.run(pending)
+        self.assertEqual(received, [{"clicks": 2}])
+
+    def test_async_handler_error_surfaces_to_the_caller(self):
+        async def on_press(payload):
+            raise RuntimeError("async handler boom")
+
+        self.model.snapshot([Button(id="go", label="Go", on_press=on_press)])
+        pending = self.model.dispatch_event("go", "press", {})
+
+        self.assertTrue(inspect.isawaitable(pending))
+        with self.assertRaisesRegex(RuntimeError, "async handler boom"):
+            asyncio.run(pending)
 
     def test_dynamic_context_menu_receives_original_node_and_routes_selection(self):
         node = TreeNode(id="node:run", label="run", icon=Icons.functions)

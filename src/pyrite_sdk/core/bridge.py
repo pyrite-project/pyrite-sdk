@@ -850,7 +850,11 @@ class Bridge:
                             views = getattr(self.plugin, "views", None)
                             if views is not None:
                                 try:
-                                    views.handle_frame(env.type, env.payload)
+                                    pending = views.handle_frame(
+                                        env.type, env.payload
+                                    )
+                                    if inspect.isawaitable(pending):
+                                        await pending
                                 except Exception as error:
                                     self.report_error(
                                         str(error),

@@ -1,10 +1,12 @@
 import asyncio
 import unittest
+import warnings
 from types import SimpleNamespace
 
 from pyrite_sdk.api.configuration import Configuration
 from pyrite_sdk.api.environment import Environment
 from pyrite_sdk.api.events import PluginEventBus
+from pyrite_sdk.api.view import Views
 from pyrite_sdk.core.bridge import Bridge
 from pyrite_sdk.models.schema import Envelope
 from tests.fakes import ClientTransport, FakeClient
@@ -159,6 +161,114 @@ class BridgeEnvironmentChangeDispatchTest(unittest.IsolatedAsyncioTestCase):
             "environment handler boom", report.payload["traceback"]
         )
         self.assertEqual(report.payload["source"], "ide.env.changed")
+
+
+class BridgeViewEventDispatchTest(unittest.IsolatedAsyncioTestCase):
+    def _bridge(self):
+        plugin = SimpleNamespace(pages={})
+        bridge = Bridge(plugin, transport=ClientTransport())
+        plugin.views = Views(bridge)
+        bridge._handshake_state = "ready"
+        bridge.asyncio_loop = asyncio.get_running_loop()
+        bridge.message_queue = asyncio.Queue(maxsize=16)
+        return bridge, plugin
+
+    def _frames(self, bridge, *view_events):
+        return [
+            Envelope(
+                type="ide.view.event",
+                plugin_id=bridge.plugin_id,
+                session_id=bridge.session_id,
+                generation=bridge.generation,
+                sequence=index,
+                payload=payload,
+            ).model_dump_json(by_alias=True)
+            for index, payload in enumerate(view_events, start=1)
+        ]
+
+    @staticmethod
+    def _event(event, number):
+        return {
+            "instance": {"instanceId": "i1"},
+            "componentId": "root",
+            "event": event,
+            "payload": {"n": number},
+        }
+
+    async def test_async_handler_is_awaited_before_the_next_frame(self):
+        bridge, plugin = self._bridge()
+        view = plugin.views.create("panel", instance_id="i1")
+        received = []
+
+        async def first(payload):
+            await asyncio.sleep(0)
+            received.append(("first", payload))
+
+        def second(payload):
+            received.append(("second", payload))
+
+        view.on_event("root", "async", first)
+        view.on_event("root", "sync", second)
+        client = FakeClient(
+            self._frames(
+                bridge,
+                self._event("async", 1),
+                self._event("sync", 2),
+            )
+        )
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            await bridge.handler(client)
+
+        self.assertEqual(
+            received,
+            [("first", {"n": 1}), ("second", {"n": 2})],
+        )
+        self.assertFalse(
+            [
+                warning
+                for warning in caught
+                if issubclass(warning.category, RuntimeWarning)
+                and "never awaited" in str(warning.message)
+            ]
+        )
+
+    async def test_async_handler_error_is_reported_and_later_frames_run(self):
+        bridge, plugin = self._bridge()
+        view = plugin.views.create("panel", instance_id="i1")
+        received = []
+
+        async def boom(payload):
+            await asyncio.sleep(0)
+            raise RuntimeError("async handler boom")
+
+        def later(payload):
+            received.append(payload)
+
+        view.on_event("root", "async", boom)
+        view.on_event("root", "later", later)
+        client = FakeClient(
+            self._frames(
+                bridge,
+                self._event("async", 1),
+                self._event("later", 2),
+            )
+        )
+
+        await bridge.handler(client)
+        await _wait_until(lambda: bridge.message_queue.qsize() >= 1)
+
+        self.assertEqual(received, [{"n": 2}])
+        reports = []
+        while not bridge.message_queue.empty():
+            _, envelope = bridge.message_queue.get_nowait()
+            if envelope.type == "sdk.runtime.report_error":
+                reports.append(envelope)
+        self.assertEqual(len(reports), 1)
+        self.assertEqual(reports[0].payload["source"], "ide.view.event")
+        self.assertIn("async handler boom", reports[0].payload["message"])
+        self.assertIn("async handler boom", reports[0].payload["traceback"])
 
 
 if __name__ == "__main__":
