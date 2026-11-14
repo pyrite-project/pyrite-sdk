@@ -5,6 +5,7 @@ import json
 from contextlib import contextmanager
 from typing import (
     Any,
+    Awaitable,
     Callable,
     Iterable,
     Iterator,
@@ -261,6 +262,12 @@ def _find_node(
     return -1, target
 
 
+async def _await_event_handler(result: Awaitable[Any]) -> bool:
+    """Awaits an asynchronous component event handler and reports it ran."""
+    await result
+    return True
+
+
 class PatchOp:
     """One operation in a patch transaction."""
 
@@ -485,8 +492,14 @@ class ViewModel:
         component_id: str,
         event: str,
         payload: Optional[dict[str, Any]] = None,
-    ) -> bool:
-        """Invokes the handler for a component event; True when one ran."""
+    ) -> bool | Awaitable[bool]:
+        """Invokes the handler for a component event; True when one ran.
+
+        Synchronous handlers run inline. An asynchronous handler is returned as
+        an awaitable that must be awaited by the caller; awaiting it runs the
+        handler and resolves to True. Exceptions raised by either kind of
+        handler propagate to the caller.
+        """
         handler = self._explicit_handlers.get(
             (component_id, event),
             self._handlers.get(
@@ -496,7 +509,9 @@ class ViewModel:
         )
         if handler is None:
             return False
-        handler(payload or {})
+        result = handler(payload or {})
+        if inspect.isawaitable(result):
+            return _await_event_handler(result)
         return True
 
     async def request_context_menu(
@@ -1551,8 +1566,15 @@ class Views:
         ]
         return matches[0] if len(matches) == 1 else None
 
-    def handle_frame(self, type: str, payload: dict[str, Any]) -> None:
-        """Routes an inbound ``ide.view.*`` control frame to its model."""
+    def handle_frame(
+        self, type: str, payload: dict[str, Any]
+    ) -> bool | Awaitable[bool] | None:
+        """Routes an inbound ``ide.view.*`` control frame to its model.
+
+        Returns an awaitable when an ``ide.view.event`` frame started an
+        asynchronous handler; the caller must await it to run the handler and
+        surface its exceptions.
+        """
         instance = payload.get("instance") or {}
         instance_id = instance.get("instanceId") or payload.get("instanceId")
         view_id = instance.get("viewId") or payload.get("viewId")
@@ -1562,7 +1584,7 @@ class Views:
             else self.get(str(instance_id))
         )
         if model is None:
-            return
+            return None
         if type == "ide.view.ack":
             revision = payload.get("revision")
             if isinstance(revision, int):
@@ -1583,11 +1605,12 @@ class Views:
             component_id = payload.get("componentId")
             event = payload.get("event")
             if component_id and event:
-                model.dispatch_event(
+                return model.dispatch_event(
                     str(component_id), str(event), payload.get("payload") or {}
                 )
         elif type == "ide.view.visibility.changed":
             model.visibility_sync(bool(payload.get("visible", False)))
+        return None
 
     async def handle_context_menu_request(
         self, payload: dict[str, Any]
