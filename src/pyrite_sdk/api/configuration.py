@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Awaitable, Callable, Mapping, Optional, TYPE_CHECKING
+from collections.abc import Mapping
+from typing import Any, Awaitable, Callable, Optional, TYPE_CHECKING
 
 from ..models.schema import request
 
@@ -65,19 +66,35 @@ class Configuration:
     ) -> "Subscription":
         plugin_id = getattr(getattr(self._bridge, "context", None), "id", None)
 
-        def _wrapped(events: list[Mapping[str, Any]]) -> Optional[Awaitable[None]]:
-            for event in events:
-                if configuration_id is not None and event.get("id") != configuration_id:
-                    continue
-                if plugin_id is not None and event.get("pluginId") not in (
-                    None,
-                    plugin_id,
-                ):
-                    continue
-                result = handler(event)
-                if inspect.isawaitable(result):
-                    return result
-            return None
+        def _wrapped(
+            event: Mapping[str, Any] | list[Mapping[str, Any]],
+        ) -> Optional[Awaitable[None]]:
+            # The event bus delivers one event per handler call; accept a list
+            # as well so callers that dispatch batches still work.
+            events = [event] if isinstance(event, Mapping) else list(event)
+            results = [
+                handler(item)
+                for item in events
+                if (
+                    configuration_id is None
+                    or item.get("id") == configuration_id
+                )
+                and (
+                    plugin_id is None
+                    or item.get("pluginId") in (None, plugin_id)
+                )
+            ]
+            pending = [result for result in results if inspect.isawaitable(result)]
+            if not pending:
+                return None
+            if len(pending) == 1:
+                return pending[0]
+
+            async def _await_handlers() -> None:
+                for result in pending:
+                    await result
+
+            return _await_handlers()
 
         filter_payload: dict[str, Any] = {}
         if plugin_id is not None:
