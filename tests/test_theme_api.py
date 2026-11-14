@@ -74,9 +74,42 @@ class ThemeApiTest(unittest.TestCase):
             callback,
         )
 
+    def test_theme_register_runtime_keeps_original_payload_shape(self) -> None:
+        callback = lambda **_: None
+        self.theme.register_runtime("nord", {"color.primary": "#5e81ac"}, callback)
+        self.assert_last_request(
+            "sdk.theme.register_runtime",
+            {"name": "nord", "data": {"color.primary": "#5e81ac"}},
+            callback,
+        )
+
     def test_theme_rejects_non_sixteen_ansi_colors(self) -> None:
         with self.assertRaises(ValueError):
             self.theme.contribute("broken", {}, terminal_ansi=["#000000"])
+
+    def test_theme_rejects_fifteen_ansi_colors(self) -> None:
+        ansi = [f"#{index:06x}" for index in range(15)]
+        with self.assertRaises(ValueError):
+            self.theme.contribute("broken", {}, terminal_ansi=ansi)
+
+    def test_theme_rejects_seventeen_ansi_colors(self) -> None:
+        ansi = [f"#{index:06x}" for index in range(17)]
+        with self.assertRaises(ValueError):
+            self.theme.contribute("broken", {}, terminal_ansi=ansi)
+
+    def test_theme_rejects_invalid_ansi_color(self) -> None:
+        ansi = [f"#{index:06x}" for index in range(16)]
+        ansi[7] = "not-a-color"
+        with self.assertRaises(ValueError):
+            self.theme.contribute("broken", {}, terminal_ansi=ansi)
+
+    def test_theme_rejects_non_list_ansi_colors(self) -> None:
+        with self.assertRaises(ValueError):
+            self.theme.contribute("broken", {}, terminal_ansi="#000000")
+
+    def test_theme_rejects_invalid_terminal_background(self) -> None:
+        with self.assertRaises(ValueError):
+            self.theme.contribute("broken", {}, terminal_background="#12345")
 
     def test_theme_rejects_non_mapping_when_terminal_fields_are_used(self) -> None:
         with self.assertRaises(TypeError):
@@ -85,6 +118,11 @@ class ThemeApiTest(unittest.TestCase):
                 [],
                 terminal_background="#000000",
             )
+
+    def test_theme_does_not_mutate_input_data(self) -> None:
+        data = {"color.primary": "#5e81ac"}
+        self.theme.contribute("nord", data, terminal_foreground="#eceff4")
+        self.assertEqual(data, {"color.primary": "#5e81ac"})
 
 
 if __name__ == "__main__":
