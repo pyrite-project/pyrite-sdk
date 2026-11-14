@@ -321,6 +321,10 @@ class ViewModel:
         # (component_id, event) -> handler, rebuilt from the component tree on
         # every snapshot/patch so a removed component's handler goes with it.
         self._handlers: dict[tuple[str, str], Callable[..., Any]] = {}
+        # Handlers of the context menu currently open in the host. A menu is
+        # not part of the component tree, so its handlers cannot be rebuilt
+        # from _nodes; they live until the next menu request replaces them or
+        # the view is resynchronized/closed.
         self._transient_handlers: dict[
             tuple[str, str], Callable[..., Any]
         ] = {}
@@ -381,6 +385,7 @@ class ViewModel:
     def close(self, callback: Optional[Callable[..., Any]] = None) -> None:
         self._closed = True
         self._pending.clear()
+        self._transient_handlers.clear()
         self._in_flight = None
         self._bridge.push_wait_response(
             request("sdk.view.close", payload=self._keys()), callback=callback
@@ -500,6 +505,11 @@ class ViewModel:
         payload: Optional[dict[str, Any]] = None,
     ) -> Optional[dict[str, Any]]:
         """Invokes a row menu provider and returns its ContextMenu wire node."""
+        # The host closes the previous popup before it asks for a new menu, so
+        # every request starts a new menu lifecycle. Replace the previous
+        # menu's handlers at the start so a provider that returns nothing (or
+        # raises) cannot leave stale clicks routed to a closed menu.
+        self._transient_handlers = {}
         handler = self._explicit_handlers.get(
             (component_id, "contextMenuRequest"),
             self._handlers.get((component_id, "contextMenuRequest")),
@@ -513,7 +523,7 @@ class ViewModel:
             return None
         if not isinstance(menu, Component) or menu.get("type") != "ContextMenu":
             raise TypeError("on_context_menu must return a ContextMenu component")
-        self._transient_handlers.update(collect_handlers(menu))
+        self._transient_handlers = collect_handlers(menu)
         return menu.to_json()
 
     def on_event(
@@ -735,7 +745,6 @@ class ViewModel:
             for node in self._nodes:
                 _bind_component_value(node, self)
             self._handlers = collect_handlers(self._nodes)
-            self._transient_handlers.clear()
             self._needs_snapshot = True
             return
         self._pending.append(op)
@@ -765,28 +774,39 @@ class ViewModel:
             return False
         sent_revision = self.revision + 1
         candidates = self._pending[:MAX_PATCH_OPS]
-        while True:
-            # Apply on a working copy first: an op that the host would reject
-            # must raise before anything is sent or committed locally.
-            prepared, working = self._apply_transaction(
-                candidates, self._nodes
-            )
-            payload = {
-                **self._keys(),
-                "baseRevision": self.revision,
-                "revision": sent_revision,
-                "ops": [op.to_json() for op in prepared],
-            }
-            encoded = len(
-                json.dumps(payload, separators=(",", ":")).encode("utf-8")
-            )
-            if encoded <= MAX_VIEW_PAYLOAD_BYTES:
-                break
-            if len(candidates) == 1:
-                raise ViewProtocolError(
-                    f"patch operation exceeds {MAX_VIEW_PAYLOAD_BYTES} bytes"
+        try:
+            while True:
+                # Apply on a working copy first: an op that the host would
+                # reject must raise before anything is sent or committed
+                # locally.
+                prepared, working = self._apply_transaction(
+                    candidates, self._nodes
                 )
-            candidates = candidates[: max(1, len(candidates) // 2)]
+                payload = {
+                    **self._keys(),
+                    "baseRevision": self.revision,
+                    "revision": sent_revision,
+                    "ops": [op.to_json() for op in prepared],
+                }
+                encoded = len(
+                    json.dumps(payload, separators=(",", ":")).encode("utf-8")
+                )
+                if encoded <= MAX_VIEW_PAYLOAD_BYTES:
+                    break
+                if len(candidates) == 1:
+                    raise ViewProtocolError(
+                        f"patch operation exceeds {MAX_VIEW_PAYLOAD_BYTES} bytes"
+                    )
+                candidates = candidates[: max(1, len(candidates) // 2)]
+        except ViewProtocolError as error:
+            # The batch is rejected as a unit, so it never reached the host.
+            # Remove it from the queue: keeping an op that failed validation
+            # would make every later flush raise the same error and freeze the
+            # view. Report it too, because callers on asynchronous paths (an
+            # ack releasing the queue) cannot catch the exception themselves.
+            self._pending = self._pending[len(candidates):]
+            self._report_sync_error(error)
+            raise
 
         # Bind the response to the revision that was actually sent. The host
         # sends ide.view.ack before the request response, and ack() flushes a
@@ -812,8 +832,9 @@ class ViewModel:
         for node in self._nodes:
             _bind_component_value(node, self)
         # Node set changed, so refresh the handler table from the new model.
+        # Transient context-menu handlers are not part of _nodes and stay live
+        # until the menu is superseded, the view resyncs, or it closes.
         self._handlers = collect_handlers(self._nodes)
-        self._transient_handlers.clear()
         self._pending = self._pending[len(candidates):]
         self._in_flight = sent_revision
         return True
@@ -1156,6 +1177,7 @@ class ViewInstance(ViewModel):
             return
         self._closed = True
         self._pending.clear()
+        self._transient_handlers.clear()
         self._in_flight = None
         self._bridge.push_wait_response(
             request("sdk.tab.close", payload={"tab_id": self.tab_id}),
