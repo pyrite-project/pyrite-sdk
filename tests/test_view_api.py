@@ -293,6 +293,67 @@ class ViewsTest(unittest.TestCase):
         self.assertEqual(received["instance"].tab_id, "plugin://demo/outline#tab:1")
         self.assertIsNone(received["error"])
 
+    def test_open_editor_targets_the_editor_pane(self):
+        self.views.open("outline", placement="editor")
+        create, _ = self.bridge.last()
+        self.assertEqual(create.type, "sdk.tab.create_view")
+        self.assertEqual(create.payload["pane"], "editor")
+        self.assertFalse(create.payload["expansion"])
+
+    def test_open_console_targets_the_console_pane(self):
+        self.views.open("outline", placement="console")
+        create, _ = self.bridge.last()
+        self.assertEqual(create.type, "sdk.tab.create_view")
+        self.assertEqual(create.payload["pane"], "console")
+        self.assertFalse(create.payload["expansion"])
+
+    def test_open_focused_targets_the_focused_pane(self):
+        self.views.open("outline", placement="focused")
+        create, _ = self.bridge.last()
+        self.assertEqual(create.type, "sdk.tab.create_view")
+        self.assertEqual(create.payload["pane"], "focused")
+
+    def test_open_expansion_targets_the_editor_pane(self):
+        # The expansion panel was a second editor strip; current hosts have no
+        # such pane, so the deprecated placement opens in the editor area. The
+        # legacy flag stays for hosts that predate the `pane` selector.
+        self.views.open("outline", placement="expansion")
+        create, _ = self.bridge.last()
+        self.assertEqual(create.type, "sdk.tab.create_view")
+        self.assertEqual(create.payload["pane"], "editor")
+        self.assertTrue(create.payload["expansion"])
+
+    def test_host_reported_placement_wins(self):
+        received = {}
+        self.views.open(
+            "outline",
+            placement="editor",
+            callback=lambda instance=None, error=None: received.update(
+                instance=instance,
+                error=error,
+            ),
+        )
+        create, create_callback = self.bridge.last()
+        create_callback(
+            data={
+                "viewId": "outline",
+                "instanceId": "tab:1",
+                "placement": "console",
+            }
+        )
+        _, open_callback = self.bridge.last()
+        open_callback(data={"instance": {"viewId": "outline"}})
+        self.assertEqual(received["instance"].placement, "console")
+        self.assertIsNone(received["error"])
+
+    def test_missing_host_placement_keeps_the_requested_placement(self):
+        instance = ViewInstance.from_host_response(
+            self.bridge,
+            {"viewId": "outline", "instanceId": "tab:1"},
+            placement="editor",
+        )
+        self.assertEqual(instance.placement, "editor")
+
     def test_tab_view_instance_focus_and_close_use_tab_id(self):
         instance = self.views.create(
             "outline",

@@ -1114,7 +1114,21 @@ class ViewModel:
         self.snapshot(nodes, revision=self.revision + 1)
 
 
-ViewPlacement = Literal["sidebar", "editor", "expansion"]
+ViewPlacement = Literal["sidebar", "focused", "editor", "console", "expansion"]
+
+_VIEW_PLACEMENTS: frozenset[str] = frozenset(
+    {"sidebar", "focused", "editor", "console", "expansion"}
+)
+
+# The host's `pane` selector. `expansion` named the old expansion panel, a
+# second editor strip; current hosts have no such pane, so the deprecated
+# placement resolves to the editor area.
+_PANE_BY_PLACEMENT: dict[str, str] = {
+    "focused": "focused",
+    "editor": "editor",
+    "console": "console",
+    "expansion": "editor",
+}
 
 
 class ViewInstance(ViewModel):
@@ -1148,11 +1162,21 @@ class ViewInstance(ViewModel):
         *,
         placement: ViewPlacement,
     ) -> "ViewInstance":
+        # The host reports where the view actually landed, which can differ
+        # from the requested placement (e.g. `focused` resolving to the
+        # console). Hosts that predate pane routing omit the field; keep the
+        # requested placement for those.
+        reported = data.get("placement")
+        actual = (
+            reported
+            if isinstance(reported, str) and reported in _VIEW_PLACEMENTS
+            else placement
+        )
         return cls(
             bridge,
             str(data.get("viewId", "")),
             str(data.get("instanceId", "")),
-            placement=placement,
+            placement=actual,
             tab_id=data.get("tabId"),
             session_id=data.get("sessionId"),
         )
@@ -1237,11 +1261,16 @@ class Views:
         """Opens a contributed view in a host placement.
 
         Sidebar views have a deterministic instance id and are returned
-        immediately. Editor and expansion placements require a host-allocated
-        instance id, so the resulting ``ViewInstance`` is delivered through
+        immediately. Other placements require a host-allocated instance id, so
+        the resulting ``ViewInstance`` is delivered through
         ``callback(instance=..., error=...)``.
+
+        ``placement`` selects the host pane: ``editor`` for the editor area,
+        ``console`` for the docked console, and ``focused`` for whichever pane
+        the user last worked in. ``expansion`` is deprecated and opens in the
+        editor area, where the old expansion panel lived.
         """
-        if placement not in ("sidebar", "editor", "expansion"):
+        if placement not in _VIEW_PLACEMENTS:
             raise ValueError(f"Unsupported view placement: {placement}")
 
         if placement == "sidebar":
@@ -1260,6 +1289,9 @@ class Views:
 
         payload: dict[str, Any] = {
             "viewId": view_id,
+            "pane": _PANE_BY_PLACEMENT[placement],
+            # Older hosts only know the expansion flag; current hosts ignore
+            # it and read `pane` instead.
             "expansion": placement == "expansion",
         }
         if title is not None:
