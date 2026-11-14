@@ -1,3 +1,4 @@
+import py_compile
 import tempfile
 import unittest
 from pathlib import Path
@@ -28,6 +29,33 @@ class PackagerCliTest(unittest.TestCase):
                 self.assertEqual(manifest.manifest_version, 2)
                 self.assertEqual(manifest.type, plugin_type)
                 self.assertEqual(manifest.permissions, permissions)
+
+    def test_create_generates_compilable_class_name_for_dotted_plugin_id(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            result = CliRunner().invoke(
+                app,
+                ["create", "ui", "com.example.foo", temp],
+            )
+
+            self.assertEqual(result.exit_code, 0, result.output)
+            generated = Path(temp) / "src" / "__main__.py"
+            self.assertIn(
+                "class ComExampleFooPlugin(UiPlugin):",
+                generated.read_text(encoding="utf-8"),
+            )
+            py_compile.compile(str(generated), doraise=True)
+
+    def test_create_rejects_plugin_id_without_a_usable_class_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            result = CliRunner().invoke(
+                app,
+                ["create", "ui", "!!!", temp],
+            )
+
+            self.assertNotEqual(result.exit_code, 0, result.output)
+            self.assertFalse((Path(temp) / "src").exists())
 
     def test_create_refuses_to_overwrite_existing_template_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
