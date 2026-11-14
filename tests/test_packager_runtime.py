@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 import zipfile
 from io import StringIO
@@ -15,6 +16,7 @@ from rich.console import Console
 
 from pyrite_sdk.models.manifest import PluginManifestErrorCode, load_file
 from tools.main import ARCH_MAP, PLATFORMS
+from tools.package_artifacts import run_exec
 from tools.package_command import (
     PackageCommand,
     app_environment_var,
@@ -60,6 +62,32 @@ def _manifest_v2(
 
 
 class PackagerRuntimeTest(unittest.TestCase):
+    def test_run_exec_drains_stderr_while_the_child_is_running(self) -> None:
+        child_code = (
+            "import sys\n"
+            "sys.stderr.write('e' * (128 * 1024))\n"
+            "sys.stderr.flush()\n"
+            "sys.stdout.write('done\\n')\n"
+        )
+        logged: list[str] = []
+        result: dict[str, int] = {}
+
+        def invoke() -> None:
+            result["code"] = run_exec(
+                sys.executable,
+                ["-c", child_code],
+                Console(file=StringIO(), force_terminal=False),
+                logged.append,
+            )
+
+        worker = threading.Thread(target=invoke, daemon=True)
+        worker.start()
+        worker.join(timeout=10)
+
+        self.assertFalse(worker.is_alive(), "run_exec blocked on the stderr pipe")
+        self.assertEqual(result["code"], 0)
+        self.assertIn("done", logged)
+
     def test_archive_destination_appends_named_architecture(self) -> None:
         destination = Path("out/foo.bundle.pyrix")
         self.assertEqual(
