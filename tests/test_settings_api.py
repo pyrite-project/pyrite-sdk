@@ -92,5 +92,75 @@ class ThemeSettingsApiTest(unittest.TestCase):
         self.assertIsInstance(settings.theme, ThemeSettings)
 
 
+class FakeSettingsHostBridge:
+    """Stand-in for the host settings registry, including its name lookup."""
+
+    def __init__(self) -> None:
+        self.settings = {"lsp.show_inlay_hints": True}
+        self.calls = []
+        self.errors = []
+
+    def push_wait_response(self, envelope, callback=None, client=None):
+        self.calls.append((envelope, callback, client))
+        name = envelope.payload.get("name")
+        if name not in self.settings:
+            error = LookupError(f"未知设置: {name}")
+            self.errors.append(error)
+            if callback is not None:
+                callback(error=error)
+            return
+        if envelope.type == "sdk.settings.get":
+            if callback is not None:
+                callback(name=name, value=self.settings[name])
+            return
+        if envelope.type == "sdk.settings.set":
+            self.settings[name] = envelope.payload.get("value")
+            if callback is not None:
+                callback(True)
+
+
+class LspInlayHintSettingsApiTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.bridge = FakeSettingsHostBridge()
+        self.settings = Settings(self.bridge).lsp
+
+    def assert_last_request(self, type_, payload) -> None:
+        envelope, _, client = self.bridge.calls[-1]
+        self.assertEqual(envelope.type, type_)
+        self.assertEqual(envelope.payload, payload)
+        self.assertIsNone(client)
+
+    def test_get_inlay_hint_reads_host_setting(self) -> None:
+        results = []
+        self.settings.get_inlay_hint(
+            callback=lambda **kwargs: results.append(kwargs),
+        )
+
+        self.assertEqual(self.bridge.errors, [])
+        self.assert_last_request(
+            "sdk.settings.get",
+            {"name": "lsp.show_inlay_hints"},
+        )
+        self.assertEqual(
+            results,
+            [{"name": "lsp.show_inlay_hints", "value": True}],
+        )
+
+    def test_set_inlay_hint_writes_host_setting(self) -> None:
+        results = []
+        self.settings.set_inlay_hint(
+            False,
+            callback=lambda value=None, **_: results.append(value),
+        )
+
+        self.assertEqual(self.bridge.errors, [])
+        self.assert_last_request(
+            "sdk.settings.set",
+            {"name": "lsp.show_inlay_hints", "value": False},
+        )
+        self.assertEqual(results, [True])
+        self.assertFalse(self.bridge.settings["lsp.show_inlay_hints"])
+
+
 if __name__ == "__main__":
     unittest.main()
