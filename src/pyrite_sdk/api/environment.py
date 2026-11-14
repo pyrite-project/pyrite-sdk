@@ -39,7 +39,9 @@ class Environment:
         """Query the current environment snapshot.
 
         Returns immediately when called without a callback; invokes the callback
-        when called with one. The snapshot contains:
+        with the snapshot when called with one. If the host rejects the query,
+        the callback is not invoked and the cached snapshot is left unchanged.
+        The snapshot contains:
         {
             'os': str,
             'isDesktopPlatform': bool,
@@ -51,10 +53,25 @@ class Environment:
         }
         """
 
-        def _on_response(payload: dict[str, Any]) -> None:
-            self._snapshot = payload
+        def _on_response(
+            payload: Optional[dict[str, Any]] = None,
+            *,
+            data: Optional[dict[str, Any]] = None,
+            error: Any = None,
+            **_: Any,
+        ) -> None:
+            # Bridge fans a dict payload out as keyword arguments, and the host
+            # answers `sdk.env.get` with {"data": snapshot}. Accept the
+            # snapshot as that keyword, and still accept it positionally for
+            # other bridge paths.
+            if error is not None:
+                return
+            snapshot = data if isinstance(data, dict) else payload
+            if not isinstance(snapshot, dict):
+                return
+            self._snapshot = snapshot
             if callback:
-                callback(payload)
+                callback(snapshot)
 
         self._bridge.push_wait_response(
             request("sdk.env.get", payload={}),
