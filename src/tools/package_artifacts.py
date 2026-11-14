@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import urllib.request
 import zipfile
 from collections.abc import Callable
@@ -300,9 +301,26 @@ def run_exec(
         env=env,
     )
     assert process.stdout is not None
-    for line in process.stdout:
+    assert process.stderr is not None
+    stdout_stream = process.stdout
+    stderr_stream = process.stderr
+    stderr_chunks: list[str] = []
+
+    def drain_stderr() -> None:
+        for line in stderr_stream:
+            stderr_chunks.append(line)
+
+    stderr_thread = threading.Thread(
+        target=drain_stderr,
+        name="pyrite-stderr-drain",
+        daemon=True,
+    )
+    stderr_thread.start()
+    for line in stdout_stream:
         verbose_log(line.strip())
-    _, stderr_text = process.communicate()
+    stderr_thread.join()
+    process.wait()
+    stderr_text = "".join(stderr_chunks)
     if process.returncode != 0:
         console.print(f"[red]{stderr_text}[/red]")
         sys.exit(1)
