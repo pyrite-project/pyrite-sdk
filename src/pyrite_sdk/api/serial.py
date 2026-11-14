@@ -1,11 +1,36 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Optional, Sequence, TYPE_CHECKING
+from collections.abc import Sequence
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from ..models.schema import request
 
 if TYPE_CHECKING:
     from ..core.bridge import Bridge
+
+
+def _serial_payload(
+    data: str | bytes | bytearray | memoryview | Sequence[int],
+) -> str | list[int]:
+    if isinstance(data, str):
+        return data
+    if isinstance(data, (bytes, bytearray, memoryview)):
+        return list(bytes(data))
+    if isinstance(data, Sequence):
+        values = list(data)
+        if any(
+            not isinstance(value, int) or not 0 <= value <= 255
+            for value in values
+        ):
+            raise TypeError(
+                "serial.send data sequence must contain only integers "
+                "between 0 and 255"
+            )
+        return values
+    raise TypeError(
+        "serial.send data must be str, bytes-like, or a sequence of "
+        f"integers between 0 and 255, got {type(data).__name__}"
+    )
 
 
 class Serial:
@@ -40,13 +65,10 @@ class Serial:
 
     def send(
         self,
-        data: str | bytes | Sequence[int],
+        data: str | bytes | bytearray | memoryview | Sequence[int],
         callback: Optional[Callable[..., Any]] = None,
     ) -> None:
-        if isinstance(data, bytes):
-            payload_data = list(data)
-        else:
-            payload_data = data
+        payload_data = _serial_payload(data)
         self._bridge.push_wait_response(
             request("sdk.serial.send", payload={"data": payload_data}),
             callback=callback,
