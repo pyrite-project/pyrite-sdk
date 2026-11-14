@@ -861,7 +861,14 @@ class Bridge:
                         case "ide.env.changed":
                             environment = getattr(self.plugin, "env", None)
                             if environment is not None:
-                                environment._handle_change(env.payload or {})
+                                try:
+                                    environment._handle_change(env.payload or {})
+                                except Exception as error:
+                                    self.report_error(
+                                        str(error),
+                                        traceback_text=traceback.format_exc(),
+                                        source=env.type,
+                                    )
 
                 if env.reply_to and env.reply_to in self.callbacks:
                     data = env.payload or env.data or {}

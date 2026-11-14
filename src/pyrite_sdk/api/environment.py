@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import traceback
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from ..models.schema import request
@@ -90,10 +91,28 @@ class Environment:
         self._change_handlers.append(handler)
 
     def _handle_change(self, snapshot: dict[str, Any]) -> None:
-        """Internal: dispatch ide.env.changed to subscribers."""
+        """Internal: dispatch ide.env.changed to subscribers.
+
+        A raising handler is logged and reported, and never prevents the
+        remaining handlers from observing the change.
+        """
         self._snapshot = snapshot
         for handler in self._change_handlers:
-            handler(snapshot)
+            try:
+                handler(snapshot)
+            except Exception:
+                details = traceback.format_exc()
+                message = "Environment change handler raised"
+                log = getattr(self._bridge, "_log_internal", None)
+                if callable(log):
+                    log(f"{message}:\n{details}")
+                report = getattr(self._bridge, "report_error", None)
+                if callable(report):
+                    report(
+                        message,
+                        traceback_text=details,
+                        source="ide.env.changed",
+                    )
 
     @property
     def os(self) -> Optional[str]:
