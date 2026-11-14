@@ -6,6 +6,10 @@ if TYPE_CHECKING:
     from ...core.bridge import Bridge
 
 
+# Name registered by the host settings registry; get and set must share it.
+_INLAY_HINT_SETTING_NAME = "lsp.show_inlay_hints"
+
+
 class ThemeSettings:
     """Appearance and style settings."""
 
@@ -351,8 +355,8 @@ class LspSettings:
     def set_document_highlight(self, value: bool, callback: Optional[Callable[..., Any]] = None) -> None: self._set("lsp.document_highlight", value, callback)
     def get_code_folding(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("lsp.code_folding", callback)
     def set_code_folding(self, value: bool, callback: Optional[Callable[..., Any]] = None) -> None: self._set("lsp.code_folding", value, callback)
-    def get_inlay_hint(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("lsp.inlay_hint", callback)
-    def set_inlay_hint(self, value: bool, callback: Optional[Callable[..., Any]] = None) -> None: self._set("lsp.inlay_hint", value, callback)
+    def get_inlay_hint(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get(_INLAY_HINT_SETTING_NAME, callback)
+    def set_inlay_hint(self, value: bool, callback: Optional[Callable[..., Any]] = None) -> None: self._set(_INLAY_HINT_SETTING_NAME, value, callback)
     def get_go_to_definition(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("lsp.go_to_definition", callback)
     def set_go_to_definition(self, value: bool, callback: Optional[Callable[..., Any]] = None) -> None: self._set("lsp.go_to_definition", value, callback)
     def get_rename(self, callback: Optional[Callable[..., Any]] = None) -> None: self._get("lsp.rename", callback)
