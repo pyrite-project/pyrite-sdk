@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import io
 import os
 import sys
 import threading
@@ -39,6 +40,59 @@ MAX_LOG_BATCH_BYTES = 64 * 1024
 OUTBOUND_DRAIN_BATCH_SIZE = 32
 
 
+class _BridgeOutputBuffer:
+    """Binary facade for a redirected text stream.
+
+    Writes are decoded with the router's text encoding and forwarded through
+    the router, so byte-oriented output is still captured by the bridge.
+    """
+
+    def __init__(self, router: BridgeOutputRouter) -> None:
+        self._router = router
+
+    @property
+    def closed(self) -> bool:
+        return self._router.closed
+
+    @property
+    def encoding(self) -> Optional[str]:
+        return self._router.encoding
+
+    @property
+    def errors(self) -> Optional[str]:
+        return self._router.errors
+
+    def writable(self) -> bool:
+        return self._router.writable()
+
+    def isatty(self) -> bool:
+        return self._router.isatty()
+
+    def fileno(self) -> int:
+        return self._router.fileno()
+
+    def write(self, data: Any) -> int:
+        if isinstance(data, str):
+            raise TypeError("a bytes-like object is required, not 'str'")
+        try:
+            raw = bytes(memoryview(data))
+        except TypeError:
+            raise TypeError(
+                f"a bytes-like object is required, not '{type(data).__name__}'"
+            ) from None
+        encoding = self._router.encoding or "utf-8"
+        errors = self._router.errors or "replace"
+        self._router.write(raw.decode(encoding, errors))
+        return len(raw)
+
+    def flush(self) -> None:
+        self._router.flush()
+
+    def close(self) -> None:
+        # The buffer borrows the host stream and must not close it.
+        self.flush()
+
+
 class BridgeOutputRouter:
     _stdout: Optional["BridgeOutputRouter"] = None
     _stderr: Optional["BridgeOutputRouter"] = None
@@ -49,6 +103,7 @@ class BridgeOutputRouter:
     def __init__(self, stream_name: str, original: Any) -> None:
         self.stream_name: str = stream_name
         self.original: Any = original
+        self.buffer: _BridgeOutputBuffer = _BridgeOutputBuffer(self)
         self._buffers: dict[int, str] = {}
 
     @classmethod
@@ -61,6 +116,20 @@ class BridgeOutputRouter:
                 cls._stderr = BridgeOutputRouter("stderr", sys.stderr)
                 sys.stderr = cls._stderr
             cls._patch_threading()
+
+    @classmethod
+    def uninstall(cls) -> None:
+        with cls._route_lock:
+            for attribute, stream_name in (
+                ("_stdout", "stdout"),
+                ("_stderr", "stderr"),
+            ):
+                router = getattr(cls, attribute)
+                if router is None:
+                    continue
+                if getattr(sys, stream_name) is router:
+                    setattr(sys, stream_name, router.original)
+                setattr(cls, attribute, None)
 
     @classmethod
     def register_current_thread(cls, bridge: "Bridge") -> None:
@@ -176,6 +245,42 @@ class BridgeOutputRouter:
     @property
     def encoding(self) -> Optional[str]:
         return getattr(self.original, "encoding", None)
+
+    @property
+    def errors(self) -> Optional[str]:
+        return getattr(self.original, "errors", None)
+
+    @property
+    def newlines(self) -> Any:
+        return getattr(self.original, "newlines", None)
+
+    @property
+    def closed(self) -> bool:
+        return bool(getattr(self.original, "closed", False))
+
+    def writable(self) -> bool:
+        writable = getattr(self.original, "writable", None)
+        return bool(writable()) if callable(writable) else True
+
+    def readable(self) -> bool:
+        return False
+
+    def seekable(self) -> bool:
+        return False
+
+    def fileno(self) -> int:
+        fileno = getattr(self.original, "fileno", None)
+        if not callable(fileno):
+            raise io.UnsupportedOperation("fileno")
+        return fileno()
+
+    def writelines(self, lines: Any) -> None:
+        for line in lines:
+            self.write(line)
+
+    def close(self) -> None:
+        # The router borrows the host stream and must not close it.
+        self.flush()
 
 
 class Bridge:
