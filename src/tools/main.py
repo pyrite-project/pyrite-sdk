@@ -105,6 +105,12 @@ def _interactive_mode() -> dict:
         params["arch"] = interactive_multiselect(
             available_archs, "请选择目标架构 (默认全选):", default_all=True
         )
+    else:
+        params["arch"] = []
+        _console.print(
+            "\n[bold]Step 3:[/bold] 目标架构\n"
+            "  all 将按各平台支持的默认架构分别打包。"
+        )
 
     # Step 4: requirements
     _console.print(f"\n[bold]Step 4:[/bold] Python 依赖包")
@@ -172,7 +178,8 @@ def _interactive_mode() -> dict:
 
     summary.add_row("源目录", str(params["source_dir"]))
     summary.add_row("平台", str(params["platform"]))
-    summary.add_row("架构", ", ".join(params["arch"]) if params["arch"] else "默认")
+    archs = params.get("arch") or []
+    summary.add_row("架构", ", ".join(archs) if archs else "默认")
     dependency_summary = [
         *([f"-r {params['requirements_file']}"] if params["requirements_file"] else []),
         *params["requirements"],

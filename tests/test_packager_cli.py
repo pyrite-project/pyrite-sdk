@@ -1,13 +1,15 @@
 import py_compile
 import tempfile
 import unittest
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
 from pyrite_sdk.models.manifest import PluginType, load_file
+from rich.console import Console
 from typer.testing import CliRunner
 
-from tools.main import app, _build_requirements
+from tools.main import _build_requirements, _interactive_mode, app
 
 
 class PackagerCliTest(unittest.TestCase):
@@ -145,6 +147,46 @@ class PackagerCliTest(unittest.TestCase):
             [call.kwargs["platform"] for call in calls],
             ["Android", "Darwin", "Windows", "Linux"],
         )
+
+
+    def test_interactive_packaging_handles_the_all_platform_choice(self) -> None:
+        output = StringIO()
+        prompts = iter(
+            [
+                "src",
+                "src/requirements.txt",
+                "",
+                "",
+                "uv",
+                "build/app.pyrix",
+            ]
+        )
+        confirmations = iter([False, False, False, False, True])
+        with (
+            patch(
+                "tools.main._console",
+                Console(file=output, force_terminal=False),
+            ),
+            patch("tools.main.interactive_select", return_value="all"),
+            patch(
+                "tools.main.interactive_multiselect",
+            ) as multiselect,
+            patch(
+                "tools.main.Prompt.ask",
+                side_effect=lambda *args, **kwargs: next(prompts),
+            ),
+            patch(
+                "tools.main.Confirm.ask",
+                side_effect=lambda *args, **kwargs: next(confirmations),
+            ),
+        ):
+            params = _interactive_mode()
+
+        self.assertEqual(params["platform"], "all")
+        self.assertEqual(params["arch"], [])
+        multiselect.assert_not_called()
+        self.assertIn("all", output.getvalue())
+        self.assertIn("默认", output.getvalue())
 
 
 if __name__ == "__main__":
