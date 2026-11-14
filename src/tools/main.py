@@ -1,3 +1,5 @@
+import keyword
+import re
 import shutil
 from pathlib import Path
 import sys
@@ -32,12 +34,22 @@ __version__ = "1.1.0"
 
 def to_kebab(s: str) -> str:
     """PascalCase → kebab-case"""
-    import re
     return re.sub(r'([a-z])([A-Z])', r'\1-\2', s).lower()
 
 def to_pascal(s: str) -> str:
-    """kebab-case → PascalCase"""
-    return ''.join(part.capitalize() for part in s.split('-'))
+    """Plugin id → PascalCase class name.
+
+    Plugin ids may separate words with dots, hyphens or underscores, and may
+    start with a digit. Split on every non-alphanumeric character and prefix
+    an underscore when the result would not be a valid Python identifier.
+    """
+    parts = [part for part in re.split(r"[^A-Za-z0-9]+", s) if part]
+    name = "".join(part[:1].upper() + part[1:] for part in parts)
+    if not name:
+        return ""
+    if name[0].isdigit():
+        name = f"_{name}"
+    return name
 
 def version_callback(value: bool):
     if value:
@@ -415,6 +427,12 @@ def create(
         typer.Argument(help="源目录"),
     ] = ".",
 ):
+    class_name = to_pascal(plugin_id)
+    if not class_name.isidentifier() or keyword.iskeyword(class_name):
+        raise typer.BadParameter(
+            f"plugin id {plugin_id!r} cannot be converted to a valid class name",
+            param_hint="plugin_id",
+        )
     src_path = Path(__file__).parent / "template" / plugin_type
     dst_path = Path(dir).resolve() / "src"
     template_files = sorted(
@@ -432,16 +450,25 @@ def create(
             f"destination already contains template files: {names}",
             param_hint="dir",
         )
+    rendered: list[tuple[str, str]] = []
+    for source in template_files:
+        content = source.read_text(encoding="utf-8")\
+            .replace("<PluginId>", class_name)\
+            .replace("<plugin-id>", to_kebab(plugin_id))
+        if source.suffix == ".py":
+            try:
+                compile(content, str(dst_path / source.name), "exec")
+            except SyntaxError as error:
+                _console.print(
+                    f"[red]generated Python file is invalid: {error}[/red]"
+                )
+                raise typer.Exit(1) from error
+        rendered.append((source.name, content))
     dst_path.mkdir(parents=True, exist_ok=True)
     print("Source path:", src_path)
     print(f"Creating template {plugin_type} plugin to", dst_path)
-    for source in template_files:
-        with open(source, "r") as f:
-            content = f.read()\
-                .replace("<PluginId>", to_pascal(plugin_id))\
-                .replace("<plugin-id>", to_kebab(plugin_id))
-        with open(dst_path / source.name, "w") as f:
-            f.write(content)
+    for name, content in rendered:
+        (dst_path / name).write_text(content, encoding="utf-8")
     print("Completed.")
 
 
