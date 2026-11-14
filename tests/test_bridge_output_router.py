@@ -1,5 +1,9 @@
 import asyncio
 import io
+import os
+import subprocess
+import sys
+import tempfile
 import threading
 import unittest
 from types import SimpleNamespace
@@ -166,6 +170,123 @@ class BridgeOutputRouterTest(unittest.TestCase):
         self.assertTrue(
             all(len(chunk.encode("utf-8")) <= MAX_LOG_BATCH_BYTES for chunk in chunks)
         )
+
+    def test_router_exposes_the_text_stream_interface(self) -> None:
+        router = BridgeOutputRouter("stdout", io.StringIO())
+
+        self.assertIs(router.buffer, router.buffer)
+        self.assertTrue(callable(router.buffer.write))
+        self.assertTrue(callable(router.buffer.flush))
+        self.assertTrue(router.writable())
+        self.assertIsNone(router.errors)
+        self.assertFalse(router.closed)
+
+    def test_binary_buffer_writes_are_decoded_and_routed(self) -> None:
+        bridge = self.make_bridge()
+        output = []
+        bridge.emit_output = lambda stream, text: output.append((stream, text))
+        self.activate_bridge(bridge)
+        original = io.StringIO()
+        router = BridgeOutputRouter("stdout", original)
+        payload = "λog line\n".encode()
+
+        written = router.buffer.write(payload)
+        router.buffer.flush()
+
+        self.assertEqual(written, len(payload))
+        self.assertEqual(original.getvalue(), "λog line\n")
+        self.assertEqual(output, [("stdout", "λog line")])
+
+    def test_fileno_without_a_descriptor_raises_unsupported_operation(self) -> None:
+        class TextOnlyStream:
+            def __init__(self) -> None:
+                self.text = ""
+
+            def write(self, text: str) -> int:
+                self.text += text
+                return len(text)
+
+            def flush(self) -> None:
+                pass
+
+            def writable(self) -> bool:
+                return True
+
+            def isatty(self) -> bool:
+                return False
+
+        router = BridgeOutputRouter("stdout", TextOnlyStream())
+
+        with self.assertRaises(io.UnsupportedOperation):
+            router.fileno()
+        with self.assertRaises(io.UnsupportedOperation):
+            router.buffer.fileno()
+
+    def test_fileno_is_delegated_when_the_original_has_one(self) -> None:
+        with open(os.devnull, "w") as original:
+            router = BridgeOutputRouter("stdout", original)
+
+            self.assertEqual(router.fileno(), original.fileno())
+            self.assertEqual(router.buffer.fileno(), original.fileno())
+
+    def test_subprocess_can_use_the_router_as_stdout(self) -> None:
+        with tempfile.TemporaryFile("w+") as original:
+            router = BridgeOutputRouter("stdout", original)
+
+            subprocess.run(
+                [sys.executable, "-c", "print('child output')"],
+                stdout=router,
+                check=True,
+            )
+
+            original.seek(0)
+            self.assertEqual(original.read(), "child output\n")
+
+    def test_uninstall_restores_the_previous_streams(self) -> None:
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+        fake_stdout = io.StringIO()
+        fake_stderr = io.StringIO()
+        with BridgeOutputRouter._route_lock:
+            saved_stdout_router = BridgeOutputRouter._stdout
+            saved_stderr_router = BridgeOutputRouter._stderr
+            BridgeOutputRouter._stdout = None
+            BridgeOutputRouter._stderr = None
+        try:
+            sys.stdout = fake_stdout
+            sys.stderr = fake_stderr
+            BridgeOutputRouter.install()
+            bridge = self.make_bridge()
+            output = []
+            bridge.emit_output = lambda stream, text: output.append((stream, text))
+            self.activate_bridge(bridge)
+
+            sys.stdout.buffer.write(b"installed out\n")
+            sys.stderr.buffer.write(b"installed err\n")
+
+            self.assertEqual(fake_stdout.getvalue(), "installed out\n")
+            self.assertEqual(fake_stderr.getvalue(), "installed err\n")
+            self.assertEqual(
+                output,
+                [("stdout", "installed out"), ("stderr", "installed err")],
+            )
+
+            BridgeOutputRouter.uninstall()
+
+            self.assertIs(sys.stdout, fake_stdout)
+            self.assertIs(sys.stderr, fake_stderr)
+            sys.stdout.write("plain\n")
+            self.assertEqual(fake_stdout.getvalue(), "installed out\nplain\n")
+            self.assertEqual(
+                output,
+                [("stdout", "installed out"), ("stderr", "installed err")],
+            )
+        finally:
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
+            with BridgeOutputRouter._route_lock:
+                BridgeOutputRouter._stdout = saved_stdout_router
+                BridgeOutputRouter._stderr = saved_stderr_router
 
 
 if __name__ == "__main__":
