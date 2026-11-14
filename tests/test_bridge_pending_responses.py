@@ -2,18 +2,24 @@ import asyncio
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 from pyrite_sdk.core.bridge import Bridge
 from pyrite_sdk.core.transport import TransportClosedError
 from pyrite_sdk.models.consts import PathScope
 from pyrite_sdk.models.schema import request
-from tests.fakes import ClientTransport
+from tests.fakes import ClientTransport, FakeClient
 
 
 async def _wait_until(predicate, timeout=1.0):
     async with asyncio.timeout(timeout):
         while not predicate():
             await asyncio.sleep(0)
+
+
+class _FailingTransport(ClientTransport):
+    async def send(self, client: Any, message: str) -> None:
+        raise RuntimeError("transport write failed")
 
 
 class BridgePendingResponseTest(unittest.IsolatedAsyncioTestCase):
@@ -105,6 +111,51 @@ class BridgePendingResponseTest(unittest.IsolatedAsyncioTestCase):
                 0.01,
             )
 
+        self.assertEqual(bridge.callbacks, {})
+        self.assertEqual(bridge._pending_responses, 0)
+
+    async def test_serialization_failure_fails_pending_callback(self):
+        bridge = self._bridge()
+        bridge.asyncio_loop = asyncio.get_running_loop()
+        bridge.message_queue = asyncio.Queue(maxsize=4)
+        errors = []
+        bridge.push_wait_response(
+            request("sdk.fixture", payload={"data": object()}),
+            callback=lambda **data: errors.append(data.get("error")),
+        )
+        self.assertEqual(bridge._pending_responses, 1)
+        await _wait_until(lambda: bridge.message_queue.qsize() == 1)
+
+        _, envelope = bridge.message_queue.get_nowait()
+        bridge.message_queue.task_done()
+        await bridge.send(FakeClient(), envelope)
+
+        self.assertEqual(len(errors), 1)
+        self.assertIsInstance(errors[0], RuntimeError)
+        self.assertIn("Failed to serialize sdk.fixture", str(errors[0]))
+        self.assertEqual(bridge.callbacks, {})
+        self.assertEqual(bridge._pending_responses, 0)
+
+    async def test_transport_send_failure_fails_pending_callback(self):
+        bridge = Bridge(
+            SimpleNamespace(pages={}),
+            transport=_FailingTransport(),
+        )
+        bridge.asyncio_loop = asyncio.get_running_loop()
+        bridge.message_queue = asyncio.Queue(maxsize=4)
+        errors = []
+        bridge.push_wait_response(
+            request("sdk.fixture"),
+            callback=lambda **data: errors.append(data.get("error")),
+        )
+        await _wait_until(lambda: bridge.message_queue.qsize() == 1)
+
+        _, envelope = bridge.message_queue.get_nowait()
+        bridge.message_queue.task_done()
+        await bridge.send(FakeClient(), envelope)
+
+        self.assertEqual(len(errors), 1)
+        self.assertIsInstance(errors[0], ConnectionError)
         self.assertEqual(bridge.callbacks, {})
         self.assertEqual(bridge._pending_responses, 0)
 

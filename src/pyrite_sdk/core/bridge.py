@@ -897,20 +897,41 @@ class Bridge:
             await self._cancel_all_request_tasks()
             self.connected_clients.discard(client)
 
+    def _fail_pending_send(
+        self,
+        envelope: Envelope,
+        error: BaseException,
+    ) -> None:
+        if envelope.request_id in self.callbacks:
+            self._complete_pending_response(envelope.request_id, error=error)
+
     async def send(self, client: Any, envelope: Envelope) -> None:
         try:
             self._stamp(envelope)
             if envelope.type != "sdk.output.append":
                 self._log_internal("Sending:", envelope.type)
-            await self.transport.send(
-                client,
-                envelope.model_dump_json(by_alias=True),
+            message = envelope.model_dump_json(by_alias=True)
+        except Exception as error:
+            self._log_internal(f"Error serializing envelope: {error}")
+            failure = RuntimeError(
+                f"Failed to serialize {envelope.type}: {error}"
             )
-        except TransportClosedError:
+            failure.__cause__ = error
+            self._fail_pending_send(envelope, failure)
+            return
+        try:
+            await self.transport.send(client, message)
+        except TransportClosedError as error:
             self._log_internal("Transport connection closed")
             self.connected_clients.discard(client)
-        except Exception as e:
-            self._log_internal(f"Error in send: {e}")
+            self._fail_pending_send(envelope, error)
+        except Exception as error:
+            self._log_internal(f"Error in send: {error}")
+            failure = TransportClosedError(
+                f"Failed to send {envelope.type}: {error}"
+            )
+            failure.__cause__ = error
+            self._fail_pending_send(envelope, failure)
 
     async def send_all(self, envelope: Envelope) -> None:
         for client in self.connected_clients.copy():
