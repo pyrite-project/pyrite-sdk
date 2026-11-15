@@ -787,6 +787,29 @@ class ViewModel:
         """
         if self._closed or not self._pending or self._in_flight is not None:
             return False
+        first_error: Optional[ViewProtocolError] = None
+        sent = False
+        # A rejected batch is dropped from the queue, but the operations that
+        # follow it must still go out. Send them here and report the first
+        # failure once the queue has moved on.
+        while self._pending and self._in_flight is None and not self._closed:
+            try:
+                sent = self._send_next_patch() or sent
+            except ViewProtocolError as error:
+                if first_error is None:
+                    first_error = error
+                continue
+            break
+        if first_error is not None:
+            raise first_error
+        return sent
+
+    def _send_next_patch(self) -> bool:
+        """Sends the next queued batch of operations as one patch.
+
+        On a validation failure the rejected operations are dropped from the
+        queue and reported before the error is re-raised.
+        """
         sent_revision = self.revision + 1
         candidates = self._pending[:MAX_PATCH_OPS]
         try:

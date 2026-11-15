@@ -4,6 +4,7 @@ from pyrite_sdk.core.errors import SdkApiError
 from pyrite_sdk.api.view import (
     MAX_PATCH_OPS,
     MAX_SNAPSHOT_NODES,
+    MAX_VIEW_PAYLOAD_BYTES,
     ViewInstance,
     ViewModel,
     ViewProtocolError,
@@ -140,6 +141,24 @@ class ViewModelTest(unittest.TestCase):
         self.assertEqual(len(patches), 1)
         self.assertEqual(len(patches[0].payload["ops"]), MAX_PATCH_OPS)
         self.assertEqual(self.model.pending_count, 1)
+
+    def test_oversized_op_does_not_strand_the_rest_of_the_queue(self):
+        self.model.snapshot(
+            [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}]
+        )
+        self.bridge.calls.clear()
+        oversize = "x" * (MAX_VIEW_PAYLOAD_BYTES + 1)
+        with self.assertRaises(ViewProtocolError):
+            with self.model.batch():
+                self.model.update("a", {"label": oversize})
+                self.model.update("b", {"label": "B"})
+
+        patches = self.bridge.patches()
+        self.assertEqual(len(patches), 1)
+        self.assertEqual(
+            [op["id"] for op in patches[0].payload["ops"]],
+            ["b"],
+        )
 
     def test_hidden_view_defers_updates_until_a_fresh_snapshot(self):
         self.model.visibility_sync(False)
