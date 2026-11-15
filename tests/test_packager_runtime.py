@@ -88,6 +88,39 @@ class PackagerRuntimeTest(unittest.TestCase):
         self.assertEqual(result["code"], 0)
         self.assertIn("done", logged)
 
+    def test_run_exec_replaces_undecodable_stderr_bytes(self) -> None:
+        child_code = (
+            "import sys\n"
+            "sys.stderr.buffer.write(b'\\xff' * (128 * 1024))\n"
+            "sys.stderr.buffer.flush()\n"
+            "sys.stdout.write('done\\n')\n"
+            "sys.exit(1)\n"
+        )
+        console_output = StringIO()
+        result: dict[str, object] = {}
+
+        def invoke() -> None:
+            try:
+                run_exec(
+                    sys.executable,
+                    ["-c", child_code],
+                    Console(file=console_output, force_terminal=False),
+                    lambda _line: None,
+                )
+            except SystemExit as error:
+                result["exit"] = error.code
+
+        worker = threading.Thread(target=invoke, daemon=True)
+        worker.start()
+        worker.join(timeout=10)
+
+        self.assertFalse(
+            worker.is_alive(),
+            "run_exec blocked on undecodable stderr",
+        )
+        self.assertEqual(result.get("exit"), 1)
+        self.assertIn("�", console_output.getvalue())
+
     def test_archive_destination_appends_named_architecture(self) -> None:
         destination = Path("out/foo.bundle.pyrix")
         self.assertEqual(
