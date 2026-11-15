@@ -298,6 +298,7 @@ def run_exec(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        errors="replace",
         env=env,
     )
     assert process.stdout is not None
@@ -307,8 +308,17 @@ def run_exec(
     stderr_chunks: list[str] = []
 
     def drain_stderr() -> None:
-        for line in stderr_stream:
-            stderr_chunks.append(line)
+        try:
+            for line in stderr_stream:
+                stderr_chunks.append(line)
+        finally:
+            # Even an unexpected failure here must not leave the child blocked
+            # on a full stderr pipe: closing the read end makes its next write
+            # fail, so the process exits and stdout reaches EOF.
+            try:
+                stderr_stream.close()
+            except Exception:
+                pass
 
     stderr_thread = threading.Thread(
         target=drain_stderr,
