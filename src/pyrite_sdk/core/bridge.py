@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import codecs
 import inspect
 import io
 import os
@@ -49,6 +50,9 @@ class _BridgeOutputBuffer:
 
     def __init__(self, router: BridgeOutputRouter) -> None:
         self._router = router
+        self._lock = threading.Lock()
+        self._encoding = router.encoding or "utf-8"
+        self._decoder = codecs.getincrementaldecoder(self._encoding)("replace")
 
     @property
     def closed(self) -> bool:
@@ -80,13 +84,22 @@ class _BridgeOutputBuffer:
             raise TypeError(
                 f"a bytes-like object is required, not '{type(data).__name__}'"
             ) from None
-        encoding = self._router.encoding or "utf-8"
-        errors = self._router.errors or "replace"
-        self._router.write(raw.decode(encoding, errors))
+        with self._lock:
+            # The host stream may use strict error handling, so decoding must
+            # not depend on it. An incremental decoder also keeps a multi-byte
+            # character split across writes intact instead of replacing both
+            # halves.
+            text = self._decoder.decode(raw)
+            if text:
+                self._router.write(text)
         return len(raw)
 
     def flush(self) -> None:
-        self._router.flush()
+        with self._lock:
+            remainder = self._decoder.decode(b"", final=True)
+            if remainder:
+                self._router.write(remainder)
+            self._router.flush()
 
     def close(self) -> None:
         # The buffer borrows the host stream and must not close it.

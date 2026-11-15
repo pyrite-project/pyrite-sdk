@@ -197,6 +197,49 @@ class BridgeOutputRouterTest(unittest.TestCase):
         self.assertEqual(original.getvalue(), "λog line\n")
         self.assertEqual(output, [("stdout", "λog line")])
 
+    def test_binary_buffer_replaces_invalid_bytes(self) -> None:
+        bridge = self.make_bridge()
+        output = []
+        bridge.emit_output = lambda stream, text: output.append((stream, text))
+        self.activate_bridge(bridge)
+        original = io.StringIO()
+        router = BridgeOutputRouter("stdout", original)
+
+        written = router.buffer.write(b"bad byte: \xff\n")
+        router.buffer.flush()
+
+        self.assertEqual(written, len(b"bad byte: \xff\n"))
+        self.assertEqual(original.getvalue(), "bad byte: �\n")
+        self.assertEqual(output, [("stdout", "bad byte: �")])
+
+    def test_binary_buffer_keeps_characters_split_across_writes(self) -> None:
+        bridge = self.make_bridge()
+        output = []
+        bridge.emit_output = lambda stream, text: output.append((stream, text))
+        self.activate_bridge(bridge)
+        original = io.StringIO()
+        router = BridgeOutputRouter("stdout", original)
+        payload = "界\n".encode()
+
+        self.assertEqual(router.buffer.write(payload[:1]), 1)
+        self.assertEqual(router.buffer.write(payload[1:]), len(payload) - 1)
+        router.buffer.flush()
+
+        self.assertEqual(original.getvalue(), "界\n")
+        self.assertEqual(output, [("stdout", "界")])
+
+    def test_binary_buffer_flushes_a_dangling_sequence_lossily(self) -> None:
+        bridge = self.make_bridge()
+        bridge.emit_output = lambda _stream, _text: None
+        self.activate_bridge(bridge)
+        original = io.StringIO()
+        router = BridgeOutputRouter("stdout", original)
+
+        router.buffer.write(b"\xe7\x95")
+        router.buffer.flush()
+
+        self.assertEqual(original.getvalue(), "�")
+
     def test_fileno_without_a_descriptor_raises_unsupported_operation(self) -> None:
         class TextOnlyStream:
             def __init__(self) -> None:
